@@ -32,7 +32,6 @@ public:
 	uint32 bIsProned:1;
 	
 public:
-	// Sets default values for this character's properties
 	AProneCharacter(const FObjectInitializer& OI);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -66,25 +65,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character)
 	virtual bool CanProne() const;
 	
-	/** 
-	 * Called when Character stops Proned. Called on non-owned Characters through bIsProned replication.
-	 */
+	/** Called when Character stops Proned. Called on non-owned Characters through bIsProned replication. */
 	virtual void OnEndProne(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
 
-	/** 
-	 * Event when Character stops Proned.
-	 */
+	/** Event when Character stops Proned. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndProne", ScriptName="OnEndProne"))
 	void K2_OnEndProne(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
 
-	/**
-	 * Called when Character Pronees. Called on non-owned Characters through bIsProned replication.
-	 */
+	/** Called when Character Pronees. Called on non-owned Characters through bIsProned replication. */
 	virtual void OnStartProne(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
 
-	/**
-	 * Event when Character Pronees.
-	 */
+	/** Event when Character Pronees. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnStartProne", ScriptName="OnStartProne"))
 	void K2_OnStartProne(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
 };

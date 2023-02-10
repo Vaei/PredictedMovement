@@ -27,7 +27,6 @@ public:
 	uint32 bIsStrafing:1;
 	
 public:
-	// Sets default values for this character's properties
 	AStrafeCharacter(const FObjectInitializer& OI);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -59,25 +58,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character)
 	virtual bool CanStrafe() const;
 	
-	/** 
-	 * Called when Character stops Strafing. Called on non-owned Characters through bIsStrafing replication.
-	 */
+	/** Called when Character stops Strafing. Called on non-owned Characters through bIsStrafing replication. */
 	virtual void OnEndStrafe();
 
-	/** 
-	 * Event when Character stops Strafing.
-	 */
+	/** Event when Character stops Strafing. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndStrafe", ScriptName="OnEndStrafe"))
 	void K2_OnEndStrafe();
 
-	/**
-	 * Called when Character Strafees. Called on non-owned Characters through bIsStrafing replication.
-	 */
+	/** Called when Character Strafees. Called on non-owned Characters through bIsStrafing replication. */
 	virtual void OnStartStrafe();
 
-	/**
-	 * Event when Character Strafees.
-	 */
+	/** Event when Character Strafees. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnStartStrafe", ScriptName="OnStartStrafe"))
 	void K2_OnStartStrafe();
 };

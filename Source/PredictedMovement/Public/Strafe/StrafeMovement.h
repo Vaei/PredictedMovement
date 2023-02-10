@@ -4,12 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Prone/ProneMovement.h"
 #include "StrafeMovement.generated.h"
 
 class AStrafeCharacter;
 UCLASS()
-class PREDICTEDMOVEMENT_API UStrafeMovement : public UProneMovement
+class PREDICTEDMOVEMENT_API UStrafeMovement : public UCharacterMovementComponent
 {
 	GENERATED_BODY()
 	
@@ -121,7 +120,7 @@ public:
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 };
 
-class PREDICTEDMOVEMENT_API FSavedMove_Character_Strafe : public FSavedMove_Character_Prone
+class PREDICTEDMOVEMENT_API FSavedMove_Character_Strafe : public FSavedMove_Character
 {
 public:
 	FSavedMove_Character_Strafe()
@@ -144,9 +143,9 @@ public:
 	virtual uint8 GetCompressedFlags() const override;
 };
 
-class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Strafe : public FNetworkPredictionData_Client_Character_Prone
+class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Strafe : public FNetworkPredictionData_Client_Character
 {
-	using Super = FNetworkPredictionData_Client_Character_Prone;
+	using Super = FNetworkPredictionData_Client_Character;
 
 public:
 	FNetworkPredictionData_Client_Character_Strafe(const UCharacterMovementComponent& ClientMovement)

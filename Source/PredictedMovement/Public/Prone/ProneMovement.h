@@ -72,7 +72,7 @@ public:
 	FTimerHandle ProneLockTimerHandle;
 	
 public:
-	UProneMovement();
+	UProneMovement(const FObjectInitializer& ObjectInitializer);
 	
 	virtual bool HasValidData() const override;
 	virtual void PostLoad() override;

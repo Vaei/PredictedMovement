@@ -5,7 +5,8 @@
 
 #include "Sprint/SprintCharacter.h"
 
-USprintMovement::USprintMovement()
+USprintMovement::USprintMovement(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	MaxAccelerationSprinting = 1024.f;
 	MaxWalkSpeedSprinting = 600.f;

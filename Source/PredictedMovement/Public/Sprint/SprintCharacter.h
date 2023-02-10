@@ -27,7 +27,6 @@ public:
 	uint32 bIsSprinting:1;
 	
 public:
-	// Sets default values for this character's properties
 	ASprintCharacter(const FObjectInitializer& OI);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -59,25 +58,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character)
 	virtual bool CanSprint() const;
 	
-	/** 
-	 * Called when Character stops Sprinting. Called on non-owned Characters through bIsSprinting replication.
-	 */
+	/** Called when Character stops Sprinting. Called on non-owned Characters through bIsSprinting replication. */
 	virtual void OnEndSprint();
 
-	/** 
-	 * Event when Character stops Sprinting.
-	 */
+	/** Event when Character stops Sprinting. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndSprint", ScriptName="OnEndSprint"))
 	void K2_OnEndSprint();
 
-	/**
-	 * Called when Character Sprintes. Called on non-owned Characters through bIsSprinting replication.
-	 */
+	/** Called when Character Sprintes. Called on non-owned Characters through bIsSprinting replication. */
 	virtual void OnStartSprint();
 
-	/**
-	 * Event when Character Sprintes.
-	 */
+	/** Event when Character Sprintes. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnStartSprint", ScriptName="OnStartSprint"))
 	void K2_OnStartSprint();
 };

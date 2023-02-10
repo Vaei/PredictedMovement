@@ -1,14 +1,15 @@
-﻿// Copyright (c) 2023 Jared Taylor. All Rights Reserved.
+// Copyright (c) 2023 Jared Taylor. All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Prone/ProneMovement.h"
 #include "StrafeMovement.generated.h"
 
 class AStrafeCharacter;
 UCLASS()
-class PREDICTEDMOVEMENT_API UStrafeMovement : public UCharacterMovementComponent
+class PREDICTEDMOVEMENT_API UStrafeMovement : public UProneMovement
 {
 	GENERATED_BODY()
 	
@@ -42,6 +43,17 @@ public:
 	 */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float GroundFrictionStrafing;
+
+	/**
+	 * Friction (drag) coefficient applied when braking (whenever Acceleration = 0, or if character is exceeding max speed); actual value used is this multiplied by BrakingFrictionFactor.
+	 * When braking, this property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
+	 * Braking is composed of friction (velocity-dependent drag) and constant deceleration.
+	 * This is the current value, used in all movement modes; if this is not desired, override it or bUseSeparateBrakingFriction when movement mode changes.
+	 * @note Only used if bUseSeparateBrakingFriction setting is true, otherwise current friction such as GroundFriction is used.
+	 * @see bUseSeparateBrakingFriction, BrakingFrictionFactor, GroundFriction, BrakingDecelerationWalking
+	 */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", EditCondition="bUseSeparateBrakingFriction"))
+	float BrakingFrictionStrafing;
 	
 public:
 	/** If true, try to Strafe (or keep Strafing) on next update. If false, try to stop Strafing on next update. */
@@ -72,7 +84,7 @@ public:
 	{
 		if (IsStrafing() && IsMovingOnGround())
 		{
-			Friction = (bUseSeparateBrakingFriction ? BrakingFriction : GroundFrictionStrafing);
+			Friction = (bUseSeparateBrakingFriction ? BrakingFrictionStrafing : GroundFrictionStrafing);
 		}
 		Super::ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
 	}
@@ -109,7 +121,7 @@ public:
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 };
 
-class PREDICTEDMOVEMENT_API FSavedMove_Character_Strafe : public FSavedMove_Character
+class PREDICTEDMOVEMENT_API FSavedMove_Character_Strafe : public FSavedMove_Character_Prone
 {
 public:
 	FSavedMove_Character_Strafe()
@@ -132,9 +144,9 @@ public:
 	virtual uint8 GetCompressedFlags() const override;
 };
 
-class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Strafe : public FNetworkPredictionData_Client_Character
+class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Strafe : public FNetworkPredictionData_Client_Character_Prone
 {
-	using Super = FNetworkPredictionData_Client_Character;
+	using Super = FNetworkPredictionData_Client_Character_Prone;
 
 public:
 	FNetworkPredictionData_Client_Character_Strafe(const UCharacterMovementComponent& ClientMovement)

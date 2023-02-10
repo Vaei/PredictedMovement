@@ -124,6 +124,8 @@ public:
 
 class PREDICTEDMOVEMENT_API FSavedMove_Character_Sprint : public FSavedMove_Character_Strafe
 {
+	using Super = FSavedMove_Character_Strafe;
+	
 public:
 	FSavedMove_Character_Sprint()
 		: bWantsToSprint(0)

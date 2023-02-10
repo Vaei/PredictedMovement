@@ -123,6 +123,8 @@ public:
 
 class PREDICTEDMOVEMENT_API FSavedMove_Character_Strafe : public FSavedMove_Character_Prone
 {
+	using Super = FSavedMove_Character_Prone;
+
 public:
 	FSavedMove_Character_Strafe()
 		: bWantsToStrafe(0)

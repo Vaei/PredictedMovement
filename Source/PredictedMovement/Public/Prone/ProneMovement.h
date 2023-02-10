@@ -4,34 +4,34 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "SprintMovement.generated.h"
+#include "ProneMovement.generated.h"
 
-class ASprintCharacter;
+class AProneCharacter;
 UCLASS()
-class PREDICTEDMOVEMENT_API USprintMovement : public UCharacterMovementComponent
+class PREDICTEDMOVEMENT_API UProneMovement : public UCharacterMovementComponent
 {
 	GENERATED_BODY()
 	
 private:
 	/** Character movement component belongs to */
 	UPROPERTY(Transient, DuplicateTransient)
-	TObjectPtr<ASprintCharacter> SprintCharacterOwner;
+	TObjectPtr<AProneCharacter> ProneCharacterOwner;
 
 public:
 	/** Max Acceleration (rate of change of velocity) */
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
-	float MaxAccelerationSprinting;
+	float MaxAccelerationProned;
 	
-	/** The maximum ground speed when Sprinting. */
+	/** The maximum ground speed when Proned. */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
-	float MaxWalkSpeedSprinting;
+	float MaxWalkSpeedProned;
 
 	/**
 	 * Deceleration when walking and not applying acceleration. This is a constant opposing force that directly lowers velocity by a constant value.
 	 * @see GroundFriction, MaxAcceleration
 	 */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
-	float BrakingDecelerationSprinting;
+	float BrakingDecelerationProned;
 
 	/**
 	 * Setting that affects movement control. Higher values allow faster changes in direction.
@@ -41,52 +41,84 @@ public:
 	 * @see BrakingDecelerationWalking, BrakingFriction, bUseSeparateBrakingFriction, BrakingFrictionFactor
 	 */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
-	float GroundFrictionSprinting;
+	float GroundFrictionProned;
+
+	/** Collision half-height when proned (component scale is applied separately) */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits=cm))
+	float PronedHalfHeight;
+
+	/** Collision half-height when proned (component scale is applied separately) */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits=cm))
+	float PronedRadius;
+
+	/**
+	 * Cannot leave prone for this duration
+	 * @see ClearProneLock
+	 */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits=cm))
+	float ProneLockDuration;
+	
+	/** If true, Character can walk off a ledge when proned. */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
+	uint8 bCanWalkOffLedgesWhenProned:1;
 	
 public:
-	/** If true, try to Sprint (or keep Sprinting) on next update. If false, try to stop Sprinting on next update. */
+	/** If true, try to Prone (or keep Proned) on next update. If false, try to stop Proned on next update. */
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
-	uint8 bWantsToSprint:1;
+	uint8 bWantsToProne:1;
 
 public:
-	USprintMovement();
-
+	bool bPendingProneUnlock = false;
+	FTimerHandle ProneLockTimerHandle;
+	
+public:
+	UProneMovement();
+	
 	virtual bool HasValidData() const override;
 	virtual void PostLoad() override;
 	virtual void SetUpdatedComponent(USceneComponent* NewUpdatedComponent) override;
 
 public:
-	virtual bool IsSprintingAtSpeed() const;
 	virtual float GetMaxAcceleration() const override;
 	virtual float GetMaxSpeed() const override;
 	virtual float GetMaxBrakingDeceleration() const override;
 	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override
 	{
-		if (IsSprinting() && IsMovingOnGround())
+		if (IsProned() && IsMovingOnGround())
 		{
-			Friction = GroundFrictionSprinting;
+			Friction = GroundFrictionProned;
 		}
 		Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
 	}
+
+	virtual bool CanWalkOffLedges() const override;
 	
 public:
-	virtual bool IsSprinting() const;
+	UFUNCTION(BlueprintCallable, Category="Character Movement")
+	void ClearProneLock();
+
+	UFUNCTION(BlueprintPure, Category="Character Movement")
+	bool IsProneLocked() const { return GetWorld() && GetWorld()->GetTimerManager().IsTimerActive(ProneLockTimerHandle); }
+
+	void StartProneLockTimer();
+	
+	virtual bool IsProned() const;
 
 	/**
-	 * Call CharacterOwner->OnStartSprint() if successful.
-	 * In general you should set bWantsToSprint instead to have the Sprint persist during movement, or just use the Sprint functions on the owning Character.
-	 * @param	bClientSimulation	true when called when bIsSprinted is replicated to non owned clients.
+	 * Call CharacterOwner->OnStartProne() if successful.
+	 * In general you should set bWantsToProne instead to have the Prone persist during movement, or just use the Prone functions on the owning Character.
+	 * @param	bClientSimulation	true when called when bIsProneed is replicated to non owned clients.
 	 */
-	virtual void Sprint(bool bClientSimulation = false);
+	virtual void Prone(bool bClientSimulation = false);
 	
 	/**
-	 * Checks if default capsule size fits (no encroachment), and trigger OnEndSprint() on the owner if successful.
-	 * @param	bClientSimulation	true when called when bIsSprinted is replicated to non owned clients.
+	 * Checks if default capsule size fits (no encroachment), and trigger OnEndProne() on the owner if successful.
+	 * @param	bClientSimulation	true when called when bIsProneed is replicated to non owned clients.
 	 */
-	virtual void UnSprint(bool bClientSimulation = false);
+	virtual void UnProne(bool bClientSimulation = false);
 
-	/** Returns true if the character is allowed to Sprint in the current state. By default it is allowed when walking or falling. */
-	virtual bool CanSprintInCurrentState() const;
+	/** Returns true if the character is allowed to Prone in the current state. By default it is allowed when walking or falling. */
+	virtual bool CanProneInCurrentState() const;
 
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
 	virtual void UpdateCharacterStateAfterMovement(float DeltaSeconds) override;
@@ -101,18 +133,18 @@ public:
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 };
 
-class PREDICTEDMOVEMENT_API FSavedMove_Character_Sprint : public FSavedMove_Character
+class PREDICTEDMOVEMENT_API FSavedMove_Character_Prone : public FSavedMove_Character
 {
 public:
-	FSavedMove_Character_Sprint()
-		: bWantsToSprint(0)
+	FSavedMove_Character_Prone()
+		: bWantsToProne(0)
 	{
 	}
 
-	virtual ~FSavedMove_Character_Sprint() override
+	virtual ~FSavedMove_Character_Prone() override
 	{}
 
-	uint32 bWantsToSprint:1;
+	uint32 bWantsToProne:1;
 		
 	/** Clear saved move properties, so it can be re-used. */
 	virtual void Clear() override;
@@ -124,12 +156,12 @@ public:
 	virtual uint8 GetCompressedFlags() const override;
 };
 
-class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Sprint : public FNetworkPredictionData_Client_Character
+class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Prone : public FNetworkPredictionData_Client_Character
 {
 	using Super = FNetworkPredictionData_Client_Character;
 
 public:
-	FNetworkPredictionData_Client_Character_Sprint(const UCharacterMovementComponent& ClientMovement)
+	FNetworkPredictionData_Client_Character_Prone(const UCharacterMovementComponent& ClientMovement)
 	: Super(ClientMovement)
 	{}
 

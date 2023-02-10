@@ -7,35 +7,67 @@
 
 USprintMovement::USprintMovement()
 {
+	MaxAccelerationSprinting = 1024.f;
 	MaxWalkSpeedSprinting = 600.f;
+	BrakingDecelerationSprinting = 512.f;
+	GroundFrictionSprinting = 8.f;
+}
+
+bool USprintMovement::HasValidData() const
+{
+	return Super::HasValidData() && IsValid(SprintCharacterOwner);
 }
 
 void USprintMovement::PostLoad()
 {
 	Super::PostLoad();
 
-	MyCharacterOwner = Cast<ASprintCharacter>(PawnOwner);
+	SprintCharacterOwner = Cast<ASprintCharacter>(PawnOwner);
 }
 
 void USprintMovement::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
 {
 	Super::SetUpdatedComponent(NewUpdatedComponent);
 
-	MyCharacterOwner = Cast<ASprintCharacter>(PawnOwner);
+	SprintCharacterOwner = Cast<ASprintCharacter>(PawnOwner);
+}
+
+bool USprintMovement::IsSprintingAtSpeed() const
+{
+	const float MaxSpeed = IsCrouching() ? MaxWalkSpeedCrouched : MaxWalkSpeed;
+	return Velocity.SizeSquared2D() >= (MaxSpeed * MaxSpeed * 0.98f);
+}
+
+float USprintMovement::GetMaxAcceleration() const
+{
+	if (IsSprinting() && IsMovingOnGround() && IsSprintingAtSpeed())
+	{
+		return MaxAccelerationSprinting;
+	}
+	return Super::GetMaxAcceleration();
 }
 
 float USprintMovement::GetMaxSpeed() const
 {
-	if (IsSprinting() && IsMovingOnGround())
+	if (IsSprinting() && IsMovingOnGround() && IsSprintingAtSpeed())
 	{
 		return MaxWalkSpeedSprinting;
 	}
 	return Super::GetMaxSpeed();
 }
 
+float USprintMovement::GetMaxBrakingDeceleration() const
+{
+	if (IsSprinting() && IsMovingOnGround() && IsSprintingAtSpeed())
+	{
+		return BrakingDecelerationSprinting;
+	}
+	return Super::GetMaxBrakingDeceleration();
+}
+
 bool USprintMovement::IsSprinting() const
 {
-	return MyCharacterOwner && MyCharacterOwner->bIsSprinting;
+	return SprintCharacterOwner && SprintCharacterOwner->bIsSprinting;
 }
 
 void USprintMovement::Sprint(bool bClientSimulation)
@@ -52,9 +84,9 @@ void USprintMovement::Sprint(bool bClientSimulation)
 
 	if (!bClientSimulation)
 	{
-		MyCharacterOwner->bIsSprinting = true;
+		SprintCharacterOwner->bIsSprinting = true;
 	}
-	MyCharacterOwner->OnStartSprint();
+	SprintCharacterOwner->OnStartSprint();
 }
 
 void USprintMovement::UnSprint(bool bClientSimulation)
@@ -66,9 +98,9 @@ void USprintMovement::UnSprint(bool bClientSimulation)
 
 	if (!bClientSimulation)
 	{
-		MyCharacterOwner->bIsSprinting = false;
+		SprintCharacterOwner->bIsSprinting = false;
 	}
-	MyCharacterOwner->OnEndSprint();
+	SprintCharacterOwner->OnEndSprint();
 }
 
 bool USprintMovement::CanSprintInCurrentState() const
@@ -92,6 +124,8 @@ void USprintMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 			Sprint(false);
 		}
 	}
+
+	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
 }
 
 void USprintMovement::UpdateCharacterStateAfterMovement(float DeltaSeconds)
@@ -105,6 +139,8 @@ void USprintMovement::UpdateCharacterStateAfterMovement(float DeltaSeconds)
 			UnSprint(false);
 		}
 	}
+
+	Super::UpdateCharacterStateAfterMovement(DeltaSeconds);
 }
 
 bool USprintMovement::ClientUpdatePositionAfterServerUpdate()
@@ -143,16 +179,16 @@ uint8 FSavedMove_Character_Sprint::GetCompressedFlags() const
 	return Result;
 }
 
-FSavedMovePtr FNetworkPredictionData_Client_Character_Sprint::AllocateNewMove()
-{
-	return MakeShared<FSavedMove_Character_Sprint>();
-}
-
 void USprintMovement::UpdateFromCompressedFlags(uint8 Flags)
 {
 	Super::UpdateFromCompressedFlags(Flags);
 
 	bWantsToSprint = ((Flags & FSavedMove_Character::FLAG_Custom_0) != 0);
+}
+
+FSavedMovePtr FNetworkPredictionData_Client_Character_Sprint::AllocateNewMove()
+{
+	return MakeShared<FSavedMove_Character_Sprint>();
 }
 
 FNetworkPredictionData_Client* USprintMovement::GetPredictionData_Client() const

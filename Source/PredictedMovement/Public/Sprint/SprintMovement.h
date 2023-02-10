@@ -4,11 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Strafe/StrafeMovement.h"
 #include "SprintMovement.generated.h"
 
 class ASprintCharacter;
 UCLASS()
-class PREDICTEDMOVEMENT_API USprintMovement : public UCharacterMovementComponent
+class PREDICTEDMOVEMENT_API USprintMovement : public UStrafeMovement
 {
 	GENERATED_BODY()
 	
@@ -121,7 +122,7 @@ public:
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 };
 
-class PREDICTEDMOVEMENT_API FSavedMove_Character_Sprint : public FSavedMove_Character
+class PREDICTEDMOVEMENT_API FSavedMove_Character_Sprint : public FSavedMove_Character_Strafe
 {
 public:
 	FSavedMove_Character_Sprint()
@@ -144,9 +145,9 @@ public:
 	virtual uint8 GetCompressedFlags() const override;
 };
 
-class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Sprint : public FNetworkPredictionData_Client_Character
+class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Sprint : public FNetworkPredictionData_Client_Character_Strafe
 {
-	using Super = FNetworkPredictionData_Client_Character;
+	using Super = FNetworkPredictionData_Client_Character_Strafe;
 
 public:
 	FNetworkPredictionData_Client_Character_Sprint(const UCharacterMovementComponent& ClientMovement)

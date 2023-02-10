@@ -4,34 +4,34 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "SprintMovement.generated.h"
+#include "StrafeMovement.generated.h"
 
-class ASprintCharacter;
+class AStrafeCharacter;
 UCLASS()
-class PREDICTEDMOVEMENT_API USprintMovement : public UCharacterMovementComponent
+class PREDICTEDMOVEMENT_API UStrafeMovement : public UCharacterMovementComponent
 {
 	GENERATED_BODY()
 	
 private:
 	/** Character movement component belongs to */
 	UPROPERTY(Transient, DuplicateTransient)
-	TObjectPtr<ASprintCharacter> SprintCharacterOwner;
+	TObjectPtr<AStrafeCharacter> StrafeCharacterOwner;
 
 public:
 	/** Max Acceleration (rate of change of velocity) */
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
-	float MaxAccelerationSprinting;
+	float MaxAccelerationStrafing;
 	
-	/** The maximum ground speed when Sprinting. */
+	/** The maximum ground speed when Strafing. */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
-	float MaxWalkSpeedSprinting;
+	float MaxWalkSpeedStrafing;
 
 	/**
 	 * Deceleration when walking and not applying acceleration. This is a constant opposing force that directly lowers velocity by a constant value.
 	 * @see GroundFriction, MaxAcceleration
 	 */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
-	float BrakingDecelerationSprinting;
+	float BrakingDecelerationStrafing;
 
 	/**
 	 * Setting that affects movement control. Higher values allow faster changes in direction.
@@ -41,52 +41,50 @@ public:
 	 * @see BrakingDecelerationWalking, BrakingFriction, bUseSeparateBrakingFriction, BrakingFrictionFactor
 	 */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
-	float GroundFrictionSprinting;
+	float GroundFrictionStrafing;
 	
 public:
-	/** If true, try to Sprint (or keep Sprinting) on next update. If false, try to stop Sprinting on next update. */
+	/** If true, try to Strafe (or keep Strafing) on next update. If false, try to stop Strafing on next update. */
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
-	uint8 bWantsToSprint:1;
+	uint8 bWantsToStrafe:1;
 
 public:
-	USprintMovement();
+	UStrafeMovement();
 
 	virtual bool HasValidData() const override;
 	virtual void PostLoad() override;
 	virtual void SetUpdatedComponent(USceneComponent* NewUpdatedComponent) override;
 
 public:
-	virtual bool IsSprintingAtSpeed() const;
 	virtual float GetMaxAcceleration() const override;
 	virtual float GetMaxSpeed() const override;
 	virtual float GetMaxBrakingDeceleration() const override;
 	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override
 	{
-		if (IsSprinting() && IsMovingOnGround())
+		if (IsStrafing() && IsMovingOnGround())
 		{
-			Friction = GroundFrictionSprinting;
+			Friction = GroundFrictionStrafing;
 		}
 		Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
 	}
-	
 public:
-	virtual bool IsSprinting() const;
+	virtual bool IsStrafing() const;
 
 	/**
-	 * Call CharacterOwner->OnStartSprint() if successful.
-	 * In general you should set bWantsToSprint instead to have the Sprint persist during movement, or just use the Sprint functions on the owning Character.
-	 * @param	bClientSimulation	true when called when bIsSprinted is replicated to non owned clients.
+	 * Call CharacterOwner->OnStartStrafe() if successful.
+	 * In general you should set bWantsToStrafe instead to have the Strafe persist during movement, or just use the Strafe functions on the owning Character.
+	 * @param	bClientSimulation	true when called when bIsStrafeed is replicated to non owned clients.
 	 */
-	virtual void Sprint(bool bClientSimulation = false);
+	virtual void Strafe(bool bClientSimulation = false);
 	
 	/**
-	 * Checks if default capsule size fits (no encroachment), and trigger OnEndSprint() on the owner if successful.
-	 * @param	bClientSimulation	true when called when bIsSprinted is replicated to non owned clients.
+	 * Checks if default capsule size fits (no encroachment), and trigger OnEndStrafe() on the owner if successful.
+	 * @param	bClientSimulation	true when called when bIsStrafeed is replicated to non owned clients.
 	 */
-	virtual void UnSprint(bool bClientSimulation = false);
+	virtual void UnStrafe(bool bClientSimulation = false);
 
-	/** Returns true if the character is allowed to Sprint in the current state. By default it is allowed when walking or falling. */
-	virtual bool CanSprintInCurrentState() const;
+	/** Returns true if the character is allowed to Strafe in the current state. By default it is allowed when walking or falling. */
+	virtual bool CanStrafeInCurrentState() const;
 
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
 	virtual void UpdateCharacterStateAfterMovement(float DeltaSeconds) override;
@@ -101,18 +99,18 @@ public:
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 };
 
-class PREDICTEDMOVEMENT_API FSavedMove_Character_Sprint : public FSavedMove_Character
+class PREDICTEDMOVEMENT_API FSavedMove_Character_Strafe : public FSavedMove_Character
 {
 public:
-	FSavedMove_Character_Sprint()
-		: bWantsToSprint(0)
+	FSavedMove_Character_Strafe()
+		: bWantsToStrafe(0)
 	{
 	}
 
-	virtual ~FSavedMove_Character_Sprint() override
+	virtual ~FSavedMove_Character_Strafe() override
 	{}
 
-	uint32 bWantsToSprint:1;
+	uint32 bWantsToStrafe:1;
 		
 	/** Clear saved move properties, so it can be re-used. */
 	virtual void Clear() override;
@@ -124,12 +122,12 @@ public:
 	virtual uint8 GetCompressedFlags() const override;
 };
 
-class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Sprint : public FNetworkPredictionData_Client_Character
+class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Strafe : public FNetworkPredictionData_Client_Character
 {
 	using Super = FNetworkPredictionData_Client_Character;
 
 public:
-	FNetworkPredictionData_Client_Character_Sprint(const UCharacterMovementComponent& ClientMovement)
+	FNetworkPredictionData_Client_Character_Strafe(const UCharacterMovementComponent& ClientMovement)
 	: Super(ClientMovement)
 	{}
 

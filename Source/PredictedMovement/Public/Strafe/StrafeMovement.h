@@ -4,11 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Prone/ProneMovement.h"
 #include "StrafeMovement.generated.h"
 
 class AStrafeCharacter;
 UCLASS()
-class PREDICTEDMOVEMENT_API UStrafeMovement : public UCharacterMovementComponent
+class PREDICTEDMOVEMENT_API UStrafeMovement : public UProneMovement
 {
 	GENERATED_BODY()
 	

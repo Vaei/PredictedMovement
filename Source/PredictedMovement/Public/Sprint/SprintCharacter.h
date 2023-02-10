@@ -4,11 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Strafe/StrafeCharacter.h"
 #include "SprintCharacter.generated.h"
 
 class USprintMovement;
 UCLASS()
-class PREDICTEDMOVEMENT_API ASprintCharacter : public ACharacter
+class PREDICTEDMOVEMENT_API ASprintCharacter : public AStrafeCharacter
 {
 	GENERATED_BODY()
 

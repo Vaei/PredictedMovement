@@ -35,6 +35,10 @@ void USprintMovement::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
 
 bool USprintMovement::IsSprintingAtSpeed() const
 {
+	if (!IsSprinting())
+	{
+		return false;
+	}
 	const float MaxSpeed = IsCrouching() ? MaxWalkSpeedCrouched : MaxWalkSpeed;
 	return Velocity.SizeSquared2D() >= (MaxSpeed * MaxSpeed * 0.98f);
 }

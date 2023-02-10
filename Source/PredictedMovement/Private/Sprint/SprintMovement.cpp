@@ -12,6 +12,7 @@ USprintMovement::USprintMovement(const FObjectInitializer& ObjectInitializer)
 	MaxWalkSpeedSprinting = 600.f;
 	BrakingDecelerationSprinting = 512.f;
 	GroundFrictionSprinting = 8.f;
+	BrakingFrictionSprinting = 4.f;
 }
 
 bool USprintMovement::HasValidData() const

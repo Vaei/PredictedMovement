@@ -13,6 +13,7 @@ UProneMovement::UProneMovement(const FObjectInitializer& ObjectInitializer)
 	MaxWalkSpeedProned = 168.f;
 	BrakingDecelerationProned = 512.f;
 	GroundFrictionProned = 3.f;
+	BrakingFrictionProned = 1.f;
 
 	PronedRadius = 60.f;
 	PronedHalfHeight = 60.f;

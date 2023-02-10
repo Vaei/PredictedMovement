@@ -155,6 +155,8 @@ public:
 
 class PREDICTEDMOVEMENT_API FSavedMove_Character_Prone : public FSavedMove_Character
 {
+	using Super = FSavedMove_Character;
+
 public:
 	FSavedMove_Character_Prone()
 		: bWantsToProne(0)

@@ -445,7 +445,7 @@ bool UProneMovement::ClientUpdatePositionAfterServerUpdate()
 
 void FSavedMove_Character_Prone::Clear()
 {
-	FSavedMove_Character::Clear();
+	Super::Clear();
 
 	bWantsToProne = false;
 }
@@ -453,14 +453,14 @@ void FSavedMove_Character_Prone::Clear()
 void FSavedMove_Character_Prone::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel,
 	FNetworkPredictionData_Client_Character& ClientData)
 {
-	FSavedMove_Character::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
+	Super::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
 
 	bWantsToProne = Cast<AProneCharacter>(C)->GetProneCharacterMovement()->bWantsToProne;
 }
 
 uint8 FSavedMove_Character_Prone::GetCompressedFlags() const
 {
-	uint8 Result = FSavedMove_Character::GetCompressedFlags();
+	uint8 Result = Super::GetCompressedFlags();
 
 	if (bWantsToProne)
 	{

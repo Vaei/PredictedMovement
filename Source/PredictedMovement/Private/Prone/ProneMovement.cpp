@@ -6,7 +6,8 @@
 #include "Components/CapsuleComponent.h"
 #include "Prone/ProneCharacter.h"
 
-UProneMovement::UProneMovement()
+UProneMovement::UProneMovement(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	MaxAccelerationProned = 256.f;
 	MaxWalkSpeedProned = 168.f;

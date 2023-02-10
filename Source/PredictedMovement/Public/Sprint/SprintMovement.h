@@ -49,7 +49,7 @@ public:
 	uint8 bWantsToSprint:1;
 
 public:
-	USprintMovement();
+	USprintMovement(const FObjectInitializer& ObjectInitializer);
 
 	virtual bool HasValidData() const override;
 	virtual void PostLoad() override;

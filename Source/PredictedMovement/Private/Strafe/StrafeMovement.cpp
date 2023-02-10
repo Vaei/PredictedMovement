@@ -5,7 +5,8 @@
 
 #include "Strafe/StrafeCharacter.h"
 
-UStrafeMovement::UStrafeMovement()
+UStrafeMovement::UStrafeMovement(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	MaxAccelerationStrafing = 1024.f;
 	MaxWalkSpeedStrafing = 400.f;

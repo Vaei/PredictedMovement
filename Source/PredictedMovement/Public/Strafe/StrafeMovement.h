@@ -49,7 +49,7 @@ public:
 	uint8 bWantsToStrafe:1;
 
 public:
-	UStrafeMovement();
+	UStrafeMovement(const FObjectInitializer& ObjectInitializer);
 
 	virtual bool HasValidData() const override;
 	virtual void PostLoad() override;

@@ -12,7 +12,6 @@ UStrafeMovement::UStrafeMovement(const FObjectInitializer& ObjectInitializer)
 	MaxWalkSpeedStrafing = 400.f;
 	BrakingDecelerationStrafing = 512.f;
 	GroundFrictionStrafing = 12.f;
-	BrakingFrictionStrafing = 4.f;
 }
 
 bool UStrafeMovement::HasValidData() const

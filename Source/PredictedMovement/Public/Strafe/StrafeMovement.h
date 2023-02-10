@@ -120,7 +120,7 @@ public:
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 };
 
-class PREDICTEDMOVEMENT_API FSavedMove_Character_Strafe : public FSavedMove_Character
+class PREDICTEDMOVEMENT_API FSavedMove_Character_Strafe : public FSavedMove_Character_Prone
 {
 public:
 	FSavedMove_Character_Strafe()
@@ -143,9 +143,9 @@ public:
 	virtual uint8 GetCompressedFlags() const override;
 };
 
-class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Strafe : public FNetworkPredictionData_Client_Character
+class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Strafe : public FNetworkPredictionData_Client_Character_Prone
 {
-	using Super = FNetworkPredictionData_Client_Character;
+	using Super = FNetworkPredictionData_Client_Character_Prone;
 
 public:
 	FNetworkPredictionData_Client_Character_Strafe(const UCharacterMovementComponent& ClientMovement)

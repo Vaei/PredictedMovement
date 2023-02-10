@@ -160,7 +160,7 @@ bool USprintMovement::ClientUpdatePositionAfterServerUpdate()
 
 void FSavedMove_Character_Sprint::Clear()
 {
-	FSavedMove_Character::Clear();
+	Super::Clear();
 
 	bWantsToSprint = false;
 }
@@ -168,14 +168,14 @@ void FSavedMove_Character_Sprint::Clear()
 void FSavedMove_Character_Sprint::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel,
 	FNetworkPredictionData_Client_Character& ClientData)
 {
-	FSavedMove_Character::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
+	Super::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
 
 	bWantsToSprint = Cast<ASprintCharacter>(C)->GetSprintCharacterMovement()->bWantsToSprint;
 }
 
 uint8 FSavedMove_Character_Sprint::GetCompressedFlags() const
 {
-	uint8 Result = FSavedMove_Character::GetCompressedFlags();
+	uint8 Result = Super::GetCompressedFlags();
 
 	if (bWantsToSprint)
 	{

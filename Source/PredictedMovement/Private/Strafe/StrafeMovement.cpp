@@ -150,7 +150,7 @@ bool UStrafeMovement::ClientUpdatePositionAfterServerUpdate()
 
 void FSavedMove_Character_Strafe::Clear()
 {
-	FSavedMove_Character::Clear();
+	Super::Clear();
 
 	bWantsToStrafe = false;
 }
@@ -158,14 +158,14 @@ void FSavedMove_Character_Strafe::Clear()
 void FSavedMove_Character_Strafe::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel,
 	FNetworkPredictionData_Client_Character& ClientData)
 {
-	FSavedMove_Character::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
+	Super::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
 
 	bWantsToStrafe = Cast<AStrafeCharacter>(C)->GetStrafeCharacterMovement()->bWantsToStrafe;
 }
 
 uint8 FSavedMove_Character_Strafe::GetCompressedFlags() const
 {
-	uint8 Result = FSavedMove_Character::GetCompressedFlags();
+	uint8 Result = Super::GetCompressedFlags();
 
 	if (bWantsToStrafe)
 	{

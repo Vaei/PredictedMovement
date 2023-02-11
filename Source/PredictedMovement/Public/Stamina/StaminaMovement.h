@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Sprint/SprintMovement.h"
 #include "StaminaMovement.generated.h"
 

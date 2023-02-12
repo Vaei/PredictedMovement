@@ -21,13 +21,18 @@ struct FStaminaMoveResponseDataContainer final : FCharacterMoveResponseDataConta
  * You will want to implement what happens based on the stamina yourself, eg. override GetMaxSpeed to move slowly
  * when bStaminaDrained.
  *
- * Override OnStaminaChanged to call (or not) SetStaminaDrained based on the needs of your project.
+ * Override OnStaminaChanged to call (or not) SetStaminaDrained based on the needs of your project. Most games will
+ * want to make use of the drain state to prevent rapid sprint re-entry on tiny amounts of regenerated stamina. However,
+ * unless you require the stamina to completely refill before sprinting again, then you'll want to override
+ * OnStaminaChanged and change FMath::IsNearlyEqual(Stamina, MaxStamina) to multiply MaxStamina by the percentage
+ * that must be regained before re-entry (eg. MaxStamina * 0.1f is 10%).
  *
- * You will need to handle any changes to MaxStamina, it is not predicted here.
  *
  * Nothing is presumed about regenerating or draining stamina, if you want to implement those, do it in CalcVelocity or
  * at least PerformMovement - CalcVelocity stems from PerformMovement but exists within the physics subticks for greater
  * accuracy.
+ *
+ * You will need to handle any changes to MaxStamina, it is not predicted here.
  *
  * This is not designed to work with blueprint, at all, anything you want exposed to blueprint you will need to do it
  * Better yet, add accessors from your Character and perhaps a broadcast event for UI to use.
@@ -104,6 +109,13 @@ public:
 	}
 
 protected:
+	/*
+	 * Drain state entry and exit is handled here. Drain state is used to prevent rapid re-entry of sprinting or other
+	 * such abilities before sufficient stamina has regenerated. However, in the default implementation, 100%
+	 * stamina must be regenerated. Consider overriding this and changing FMath::IsNearlyEqual(Stamina, MaxStamina)
+	 * to FMath::IsNearlyEqual(Stamina, MaxStamina * 0.1f) to require 10% regeneration (or change the 0.1f to your
+	 * desired value).
+	 */
 	virtual void OnStaminaChanged(float PrevValue, float NewValue)
 	{
 		if (FMath::IsNearlyZero(Stamina))

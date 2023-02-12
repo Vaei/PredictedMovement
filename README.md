@@ -52,6 +52,9 @@ No guidelines are available for this, if you need strafing then use the events f
 
 ## Changelog
 
+### 1.0.0.2
+Fixed issue where stamina corrections were being overwritten
+
 ### 1.0.0.1
 Added Stamina
 

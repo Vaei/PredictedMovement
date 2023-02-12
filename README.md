@@ -12,10 +12,10 @@ Compatible with crouching, and should switch properly between crouch->prone, sta
 A shell intended for switching to / from a strafe mode, however the actual functionality is not implemented as it is project-dependent.
 
 ### Sprint
-Well, it makes you sprint. Check `USprintMovement.h` header for capabilities.
+Well, it makes you sprint.
 
 ### Stamina
-Net predicted stamina and drain state. Read the `UStaminaMovement.h` header for a quick guide on how to use (see below also).
+Net predicted stamina and drain state.
 
 ## Example
 I use this in my own project, here you can see the character sprinting, consuming stamina, strafing, and proning with high latency (>220ms) and `p.netshowcorrections 1`. As you can see, there is no desync.
@@ -37,22 +37,58 @@ Also note that Stamina inherits Sprint by default, if you want Stamina but not S
 Once that is complete, you simply need to call the equivalent input function.
 
 ### Stamina
-Add a `void CalcStamina(float DeltaTime)` function to your `UCharacterMovementComponent` and call it before Super after overriding `CalcVelocity`.
+Add a void `CalcStamina(float DeltaTime)` function to your `UCharacterMovementComponent` and call it before Super after
+overriding `CalcVelocity`.
 
-From your new `CalcStamina` function you can then modify stamina. Eg. `SetStamina(GetStamina() + (10.f * DeltaTime));` will regenerate the stamina.
+You will want to implement what happens based on the stamina yourself, eg. override `GetMaxSpeed` to move slowly
+when `bStaminaDrained`.
 
-`CalcVelocity` stems from `PerformMovement` and is called from all primary physics loops that have sub-ticks between frames for incredibly high accuracy. `PerformMovement` should suffice if you have a reason to not update stamina between ticks.
+Override `OnStaminaChanged` to call (or not) `SetStaminaDrained` based on the needs of your project. Most games will
+want to make use of the drain state to prevent rapid sprint re-entry on tiny amounts of regenerated stamina. However,
+unless you require the stamina to completely refill before sprinting again, then you'll want to override
+`OnStaminaChanged` and change `FMath::IsNearlyEqual(Stamina, MaxStamina)` to multiply `MaxStamina` by the percentage
+that must be regained before re-entry (eg. `MaxStamina0.1f is 10%`).
 
-Read `UStaminaMovement.h` for the rest.
+Nothing is presumed about regenerating or draining stamina, if you want to implement those, do it in `CalcVelocity` or
+at least `PerformMovement` - `CalcVelocity` stems from `PerformMovement` but exists within the physics subticks for greater
+accuracy.
 
-GAS can modify the Stamina (by calling `SetStamina()`, nothing special required) and it shouldn't desync, however if you have any delay between the ability activating and the stamina being consumed it will likely desync; the solution is to call `GetCharacterMovement()->FlushServerMoves()` from the Character. It is worthwhile to expose this to blueprint.
+If used with sprinting, `OnStaminaDrained()` should be overridden to call `USprintMovement::UnSprint()`. If you don't
+do this, the greater accuracy of `CalcVelocity` is lost because it cannot stop sprinting between frames.
 
-You might want to expose Stamina to blueprint from your derived `ACharacter`, possible with multicast delegates that blueprints can bind to, to update the UI.
+You will need to handle any changes to `MaxStamina`, it is not predicted here.
+
+GAS can modify the Stamina (by calling `SetStamina()`, nothing special required) and it shouldn't desync, however
+if you have any delay between the ability activating and the stamina being consumed it will likely desync; the
+solution is to call `GetCharacterMovement()->FlushServerMoves()` from the Character.
+It is worthwhile to expose this to blueprint.
+
+This is not designed to work with blueprint, at all, anything you want exposed to blueprint you will need to do it
+Better yet, add accessors from your Character and perhaps a broadcast event for UI to use.
+
+This solution is provided by Cedric 'eXi' Neukirchen and has been repurposed for net predicted Stamina.
 
 ### Strafe
-No guidelines are available for this, if you need strafing then use the events found in `StrafeMovement.h` to determine your implementation strategy.
+Strafe is a shell intended for changing to and from a strafing state, however the actual implementation of
+"what strafe does" is highly dependant on a project, so override the functions and define the behaviour yourself.
+
+Generally `AStrafeCharacter::OnStartStrafe` might change `bUseControllerRotationYaw = true` and
+`bOrientRotationToMovement = false` then and `AStrafeCharacter::OnEndStrafe` would change them back.
+
+Alternatively you could override any `ACharacter` and `UCharacterMovementComponent` functions that use
+`bUseControllerRotationYaw` or `bOrientRotationToMovement` and check `IsStrafing`, but that implementation will be
+more advanced and often unnecessary.
 
 ## Changelog
+
+### 1.0.1.0
+Removed stamina inheritance from sprint
+Fixed CanSprint() being used unnecessarily, CanSprintInCurrentState is utilized properly here
+Moved sprint input checking to virtual func `IsSprintWithinAllowableInputAngle`
+Sprint checks 3D velocity on ground, replaced magic number with UPROPERTY `VelocityCheckMitigatorSprinting`
+Moved implementations out of headers
+Greatly improved comments
+(Thanks to cedric & vori for the code review)
 
 ### 1.0.0.2
 Fixed issue where stamina corrections were being overwritten

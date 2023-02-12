@@ -45,7 +45,7 @@ From your new `CalcStamina` function you can then modify stamina. Eg. `SetStamin
 
 Read `UStaminaMovement.h` for the rest.
 
-GAS can modify the Stamina and it shouldn't desync, however if you have any delay between the ability activating and the stamina being consumed it will likely desync; the solution is to call `GetCharacterMovement()->FlushServerMoves()` from the Character. It is worthwhile to expose this to blueprint.
+GAS can modify the Stamina (by calling `SetStamina()`, nothing special required) and it shouldn't desync, however if you have any delay between the ability activating and the stamina being consumed it will likely desync; the solution is to call `GetCharacterMovement()->FlushServerMoves()` from the Character. It is worthwhile to expose this to blueprint.
 
 You might want to expose Stamina to blueprint from your derived `ACharacter`, possible with multicast delegates that blueprints can bind to, to update the UI.
 

@@ -28,6 +28,8 @@ C++ knowledge is a must, and this cannot be used without C++.
 ## Usage
 Because each ability is a combination of `UCharacterMovementComponent` and `ACharacter` you will need to modify the plugin to inherit the abilities you want for your project. I recommend forking this repository to do that, so you can still pull in any future commits.
 
+Alternatively, the 'link' branch includes all abilities, you simply need to derive the top-most ability (stamina for movement and sprint for character). This branch may in some cases fall behind main, however.
+
 Note that Stamina does not have an `ACharacter` because no Character-specific functionality is required.
 
 Also note that Stamina inherits Sprint by default, if you want Stamina but not Sprint, you will need to remove this inheritance.

@@ -56,13 +56,8 @@ void ASprintCharacter::UnSprint(bool bClientSimulation)
 	}
 }
 
-bool ASprintCharacter::CanSprint() const
+bool ASprintCharacter::IsSprintWithinAllowableInputAngle() const
 {
-	if (bIsSprinting || !GetRootComponent() && GetRootComponent()->IsSimulatingPhysics())
-	{
-		return false;
-	}
-		
 	// This check ensures that we are not sprinting backward or sideways, while allowing leeway 
 	// This angle allows sprinting when holding forward, forward left, forward right
 	// but not left or right or backward)
@@ -79,6 +74,20 @@ bool ASprintCharacter::CanSprint() const
 				return false;
 			}
 		}
+	}
+	return true;
+}
+
+bool ASprintCharacter::CanSprint() const
+{
+	if (bIsSprinting || !GetRootComponent() && GetRootComponent()->IsSimulatingPhysics())
+	{
+		return false;
+	}
+
+	if (!IsSprintWithinAllowableInputAngle())
+	{
+		return false;
 	}
 
 	return true;

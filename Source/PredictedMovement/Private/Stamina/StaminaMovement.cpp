@@ -5,12 +5,6 @@
 
 #include "GameFramework/Character.h"
 
-UStaminaMovement::UStaminaMovement(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-	SetMoveResponseDataContainer(StaminaMoveResponseDataContainer);
-}
-
 void FStaminaMoveResponseDataContainer::ServerFillResponseData(
 	const UCharacterMovementComponent& CharacterMovement, const FClientAdjustment& PendingAdjustment)
 {
@@ -37,6 +31,88 @@ bool FStaminaMoveResponseDataContainer::Serialize(UCharacterMovementComponent& C
 	}
 
 	return !Ar.IsError();
+}
+
+UStaminaMovement::UStaminaMovement(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SetMoveResponseDataContainer(StaminaMoveResponseDataContainer);
+}
+
+void UStaminaMovement::SetStamina(float NewStamina)
+{
+	const float PrevStamina = Stamina;
+	Stamina = FMath::Clamp(NewStamina, 0.f, MaxStamina);
+	if (CharacterOwner != nullptr)
+	{
+		if (!FMath::IsNearlyEqual(PrevStamina, Stamina))
+		{
+			OnStaminaChanged(PrevStamina, Stamina);
+		}
+	}
+}
+
+void UStaminaMovement::SetMaxStamina(float NewMaxStamina)
+{
+	const float PrevMaxStamina = MaxStamina;
+	MaxStamina = FMath::Max(0.f, NewMaxStamina);
+	if (CharacterOwner != nullptr)
+	{
+		if (!FMath::IsNearlyEqual(PrevMaxStamina, MaxStamina))
+		{
+			OnMaxStaminaChanged(PrevMaxStamina, MaxStamina);
+		}
+	}
+}
+
+void UStaminaMovement::SetStaminaDrained(bool bNewValue)
+{
+	const bool bWasStaminaDrained = bStaminaDrained;
+	bStaminaDrained = bNewValue;
+	if (CharacterOwner != nullptr)
+	{
+		if (bWasStaminaDrained != bStaminaDrained)
+		{
+			if (bStaminaDrained)
+			{
+				OnStaminaDrained();
+			}
+			else
+			{
+				OnStaminaDrainRecovered();
+			}
+		}
+	}
+}
+
+void UStaminaMovement::OnStaminaChanged(float PrevValue, float NewValue)
+{
+	/*
+	 * Drain state entry and exit is handled here. Drain state is used to prevent rapid re-entry of sprinting or other
+	 * such abilities before sufficient stamina has regenerated. However, in the default implementation, 100%
+	 * stamina must be regenerated. Consider overriding this and changing FMath::IsNearlyEqual(Stamina, MaxStamina)
+	 * to FMath::IsNearlyEqual(Stamina, MaxStamina * 0.1f) to require 10% regeneration (or change the 0.1f to your
+	 * desired value) in the else-if scope in the function body.
+	 */
+	if (FMath::IsNearlyZero(Stamina))
+	{
+		Stamina = 0.f;
+		if (!bStaminaDrained)
+		{
+			SetStaminaDrained(true);
+		}
+	}
+	// eg. FMath::IsNearlyEqual(Stamina, MaxStamina * 0.1f) to require 10% regeneration
+	else if (FMath::IsNearlyEqual(Stamina, MaxStamina))
+	{
+		// If you want to add a percentage, whether its 10% or otherwise, you will need to multiply MaxStamina here
+		// eg. Stamina = MaxStamina * 0.1f;
+		Stamina = MaxStamina;
+		if (bStaminaDrained)
+		{
+			SetStaminaDrained(false);
+		}
+	}
 }
 
 bool FSavedMove_Character_Stamina::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter,

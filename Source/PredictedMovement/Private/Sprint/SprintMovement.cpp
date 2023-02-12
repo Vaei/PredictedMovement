@@ -120,7 +120,41 @@ void USprintMovement::UnSprint(bool bClientSimulation)
 
 bool USprintMovement::CanSprintInCurrentState() const
 {
-	return (IsFalling() || IsMovingOnGround()) && UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics();
+	if (!UpdatedComponent || UpdatedComponent->IsSimulatingPhysics())
+	{
+		return false;
+	}
+
+	if (!IsFalling() && !IsMovingOnGround())
+	{
+		return false;
+	}
+	
+	if (!IsSprintWithinAllowableInputAngle())
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool USprintMovement::IsSprintWithinAllowableInputAngle() const
+{
+	// This check ensures that we are not sprinting backward or sideways, while allowing leeway 
+	// This angle allows sprinting when holding forward, forward left, forward right
+	// but not left or right or backward)
+	static constexpr float MaxSprintInputDegrees = 50.f;
+	static constexpr float MaxSprintInputNormal = 0.64278732;  // cos(rad(MaxSprintInputDegrees))
+
+	if constexpr (MaxSprintInputDegrees > 0.f)
+	{
+		const float Dot = (GetCurrentAcceleration().GetSafeNormal2D() | UpdatedComponent->GetForwardVector());
+		if (Dot < MaxSprintInputNormal)
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 void USprintMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)

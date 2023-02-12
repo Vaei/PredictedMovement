@@ -55,23 +55,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
 	virtual void UnSprint(bool bClientSimulation = false);
 
-	/**
-	 * This check ensures that we are not sprinting backward or sideways, while allowing leeway 
-	 * This angle allows sprinting when holding forward, forward left, forward right
-	 * but not left or right or backward)
-	 * 
-	 * You can override this to remove this check, or to add your own check. Magic numbers are used to avoid
-	 * more expensive runtime trig calculations.
-	 *
-	 * Consider adding this check to CanSprintInCurrentState() if you want the check to cause Sprint to end
-	 * when it fails while already sprinting
-	 */
-	virtual bool IsSprintWithinAllowableInputAngle() const;
-
-	/** @return true if this character is currently able to sprint (and is not currently sprinting) */
-	UFUNCTION(BlueprintCallable, Category=Character)
-	virtual bool CanSprint() const;
-	
 	/** Called when Character stops Sprinting. Called on non-owned Characters through bIsSprinting replication. */
 	virtual void OnEndSprint();
 

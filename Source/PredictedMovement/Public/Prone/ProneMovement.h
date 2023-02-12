@@ -94,22 +94,8 @@ public:
 	virtual float GetMaxSpeed() const override;
 	virtual float GetMaxBrakingDeceleration() const override;
 	
-	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override
-	{
-		if (IsProned() && IsMovingOnGround())
-		{
-			Friction = GroundFrictionProned;
-		}
-		Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
-	}
-	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override
-	{
-		if (IsProned() && IsMovingOnGround())
-		{
-			Friction = (bUseSeparateBrakingFriction ? BrakingFrictionProned : GroundFrictionProned);
-		}
-		Super::ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
-	}
+	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
+	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
 
 	virtual bool CanWalkOffLedges() const override;
 	

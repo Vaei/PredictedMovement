@@ -80,6 +80,24 @@ float USprintMovement::GetMaxBrakingDeceleration() const
 	return Super::GetMaxBrakingDeceleration();
 }
 
+void USprintMovement::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
+{
+	if (IsSprinting() && IsMovingOnGround())
+	{
+		Friction = GroundFrictionSprinting;
+	}
+	Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
+}
+
+void USprintMovement::ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration)
+{
+	if (IsSprinting() && IsMovingOnGround())
+	{
+		Friction = (bUseSeparateBrakingFriction ? BrakingFrictionSprinting : GroundFrictionSprinting);
+	}
+	Super::ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
+}
+
 bool USprintMovement::IsSprinting() const
 {
 	return SprintCharacterOwner && SprintCharacterOwner->bIsSprinting;

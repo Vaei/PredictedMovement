@@ -67,6 +67,24 @@ float UProneMovement::GetMaxBrakingDeceleration() const
 	return Super::GetMaxBrakingDeceleration();
 }
 
+void UProneMovement::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
+{
+	if (IsProned() && IsMovingOnGround())
+	{
+		Friction = GroundFrictionProned;
+	}
+	Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
+}
+
+void UProneMovement::ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration)
+{
+	if (IsProned() && IsMovingOnGround())
+	{
+		Friction = (bUseSeparateBrakingFriction ? BrakingFrictionProned : GroundFrictionProned);
+	}
+	Super::ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
+}
+
 bool UProneMovement::CanWalkOffLedges() const
 {
 	if (!bCanWalkOffLedgesWhenProned && IsProned())

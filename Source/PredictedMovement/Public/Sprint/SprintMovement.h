@@ -115,8 +115,21 @@ public:
 	 */
 	virtual void UnSprint(bool bClientSimulation = false);
 
-	/** Returns true if the character is allowed to Sprint in the current state. By default it is allowed when walking or falling. */
+	/** Returns true if the character is allowed to Sprint in the current state. */
 	virtual bool CanSprintInCurrentState() const;
+
+	/**
+	 * This check ensures that we are not sprinting backward or sideways, while allowing leeway 
+	 * This angle allows sprinting when holding forward, forward left, forward right
+	 * but not left or right or backward)
+	 * 
+	 * You can override this to remove this check, or to add your own check. Magic numbers are used to avoid
+	 * more expensive runtime trig calculations.
+	 *
+	 * Consider adding this check to CanSprintInCurrentState() if you want the check to cause Sprint to end
+	 * when it fails while already sprinting
+	 */
+	virtual bool IsSprintWithinAllowableInputAngle() const;
 
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
 	virtual void UpdateCharacterStateAfterMovement(float DeltaSeconds) override;

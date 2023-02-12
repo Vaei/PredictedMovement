@@ -34,6 +34,9 @@ struct FStaminaMoveResponseDataContainer final : FCharacterMoveResponseDataConta
  * at least PerformMovement - CalcVelocity stems from PerformMovement but exists within the physics subticks for greater
  * accuracy.
  *
+ * If used with sprinting, OnStaminaDrained() should be overridden to call USprintMovement::UnSprint(). If you don't
+ * do this, the greater accuracy of CalcVelocity is lost because it cannot stop sprinting between frames.
+ *
  * You will need to handle any changes to MaxStamina, it is not predicted here.
  *
  * This is not designed to work with blueprint, at all, anything you want exposed to blueprint you will need to do it

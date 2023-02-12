@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Sprint/SprintMovement.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "StaminaMovement.generated.h"
 
 struct FStaminaMoveResponseDataContainer final : FCharacterMoveResponseDataContainer

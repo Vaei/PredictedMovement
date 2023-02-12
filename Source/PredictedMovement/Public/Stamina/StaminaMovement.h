@@ -56,11 +56,13 @@ class PREDICTEDMOVEMENT_API UStaminaMovement : public UCharacterMovementComponen
 
 public:
 	UStaminaMovement(const FObjectInitializer& ObjectInitializer);
-	
-private:
+
+protected:
+	/** THIS SHOULD ONLY BE MODIFIED IN DERIVED CLASSES FROM OnStaminaChanged AND NOWHERE ELSE */
 	UPROPERTY()
 	float Stamina;
 
+private:
 	UPROPERTY()
 	float MaxStamina;
 

@@ -28,7 +28,7 @@ C++ knowledge is a must, and this cannot be used without C++.
 ## Usage
 Because each ability is a combination of `UCharacterMovementComponent` and `ACharacter` you will need to modify the plugin to inherit the abilities you want for your project. I recommend forking this repository to do that, so you can still pull in any future commits.
 
-It is vitally important that you remember to change the inheritance for `FSavedMove_Character` and `FNetworkPredictionData_Client_Character` also at the bottom of the Movement header files AND change the `using Super = FNetworkPredictionData_Client_Character` to the new Super class! If you experience extreme desync, its because you forgot to do this.
+It is vitally important that you remember to change the inheritance for `FSavedMove_Character` and `FNetworkPredictionData_Client_Character` also at the bottom of the Movement header files AND change the `using Super = ...` to the new Super class! If you experience extreme desync, its because you forgot to do this.
 
 Alternatively, the 'link' branch includes all abilities, you simply need to derive the top-most ability (stamina for movement and sprint for character). This branch may in some cases fall behind main, however.
 

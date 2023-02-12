@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Jared Taylor. All Rights Reserved.
+﻿// Copyright (c) 2023 Jared Taylor. All Rights Reserved.
 
 
 #include "Stamina/StaminaMovement.h"
@@ -72,41 +72,6 @@ void FSavedMove_Character_Stamina::Clear()
 
 	bStaminaDrained = false;
 	Stamina = 0.f;
-}
-
-void FSavedMove_Character_Stamina::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel,
-	FNetworkPredictionData_Client_Character& ClientData)
-{
-	Super::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
-
-	if (const UStaminaMovement* MoveComp = C ? Cast<UStaminaMovement>(C->GetCharacterMovement()) : nullptr)
-	{
-		bStaminaDrained = MoveComp->IsStaminaDrained();
-		Stamina = MoveComp->GetStamina();
-	}
-}
-
-void FSavedMove_Character_Stamina::PrepMoveFor(ACharacter* C)
-{
-	Super::PrepMoveFor(C);
-
-	if (UStaminaMovement* MoveComp = C ? Cast<UStaminaMovement>(C->GetCharacterMovement()) : nullptr)
-	{
-		MoveComp->SetStaminaDrained(bStaminaDrained);
-		MoveComp->SetStamina(Stamina);
-	}
-}
-
-bool FSavedMove_Character_Stamina::IsImportantMove(const FSavedMovePtr& LastAckedMove) const
-{
-	const TSharedPtr<FSavedMove_Character_Stamina>& SavedAckedMove = StaticCastSharedPtr<FSavedMove_Character_Stamina>(LastAckedMove);
-
-	if (bStaminaDrained != SavedAckedMove->bStaminaDrained)
-	{
-		return true;
-	}
-
-	return Super::IsImportantMove(LastAckedMove);
 }
 
 void FSavedMove_Character_Stamina::SetInitialPosition(ACharacter* C)

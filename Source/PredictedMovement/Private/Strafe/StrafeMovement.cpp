@@ -61,6 +61,24 @@ float UStrafeMovement::GetMaxBrakingDeceleration() const
 	return Super::GetMaxBrakingDeceleration();
 }
 
+void UStrafeMovement::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
+{
+	if (IsStrafing() && IsMovingOnGround())
+	{
+		Friction = GroundFrictionStrafing;
+	}
+	Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
+}
+
+void UStrafeMovement::ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration)
+{
+	if (IsStrafing() && IsMovingOnGround())
+	{
+		Friction = (bUseSeparateBrakingFriction ? BrakingFrictionStrafing : GroundFrictionStrafing);
+	}
+	Super::ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
+}
+
 bool UStrafeMovement::IsStrafing() const
 {
 	return StrafeCharacterOwner && StrafeCharacterOwner->bIsStrafing;

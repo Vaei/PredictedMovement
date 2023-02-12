@@ -158,6 +158,9 @@ public:
 	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const override;
 	virtual void CombineWith(const FSavedMove_Character* OldMove, ACharacter* InCharacter, APlayerController* PC, const FVector& OldStartLocation) override;
 	virtual void Clear() override;
+	virtual void SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character& ClientData) override;
+	virtual void PrepMoveFor(ACharacter* C) override;
+	virtual bool IsImportantMove(const FSavedMovePtr& LastAckedMove) const override;
 	virtual void SetInitialPosition(ACharacter* C) override;
 };
 

@@ -35,7 +35,7 @@ struct FStaminaMoveResponseDataContainer final : FCharacterMoveResponseDataConta
  * This solution is provided by Cedric 'eXi' Neukirchen and has been repurposed for net predicted Stamina.
  */
 UCLASS()
-class PREDICTEDMOVEMENT_API UStaminaMovement : public USprintMovement
+class PREDICTEDMOVEMENT_API UStaminaMovement : public UCharacterMovementComponent
 {
 	GENERATED_BODY()
 
@@ -138,9 +138,9 @@ public:
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 };
 
-class PREDICTEDMOVEMENT_API FSavedMove_Character_Stamina : public FSavedMove_Character_Sprint
+class PREDICTEDMOVEMENT_API FSavedMove_Character_Stamina : public FSavedMove_Character
 {
-	using Super = FSavedMove_Character_Sprint;
+	using Super = FSavedMove_Character;
 	
 public:
 	FSavedMove_Character_Stamina()
@@ -161,9 +161,9 @@ public:
 	virtual void SetInitialPosition(ACharacter* C) override;
 };
 
-class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Stamina : public FNetworkPredictionData_Client_Character_Sprint
+class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Stamina : public FNetworkPredictionData_Client_Character
 {
-	using Super = FNetworkPredictionData_Client_Character_Sprint;
+	using Super = FNetworkPredictionData_Client_Character;
 
 public:
 	FNetworkPredictionData_Client_Character_Stamina(const UCharacterMovementComponent& ClientMovement)

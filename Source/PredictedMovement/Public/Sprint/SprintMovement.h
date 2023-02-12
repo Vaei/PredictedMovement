@@ -45,6 +45,15 @@ public:
 	float GroundFrictionSprinting;
 
 	/**
+     * When struggling to surpass walk speed, which can occur with heavy rotation and low acceleration, we
+     * mitigate the check so there isn't a constant re-entry that can occur as an edge case.
+     * This can optionally be used inversely, to require you to considerably exceed MaxSpeedWalking before sprinting
+     * will actually take effect.
+     */
+    UPROPERTY(Category="Character Movement: Walking", AdvancedDisplay, EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+    float VelocityCheckMitigatorSprinting;
+	
+	/**
 	 * Friction (drag) coefficient applied when braking (whenever Acceleration = 0, or if character is exceeding max speed); actual value used is this multiplied by BrakingFrictionFactor.
 	 * When braking, this property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
 	 * Braking is composed of friction (velocity-dependent drag) and constant deceleration.

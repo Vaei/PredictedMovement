@@ -13,6 +13,8 @@ USprintMovement::USprintMovement(const FObjectInitializer& ObjectInitializer)
 	BrakingDecelerationSprinting = 512.f;
 	GroundFrictionSprinting = 8.f;
 	BrakingFrictionSprinting = 4.f;
+
+	VelocityCheckMitigatorSprinting = 0.98f;
 }
 
 bool USprintMovement::HasValidData() const
@@ -40,8 +42,15 @@ bool USprintMovement::IsSprintingAtSpeed() const
 	{
 		return false;
 	}
-	const float MaxSpeed = IsCrouching() ? MaxWalkSpeedCrouched : MaxWalkSpeed;
-	return Velocity.SizeSquared2D() >= (MaxSpeed * MaxSpeed * 0.98f);
+
+	// When moving on ground we want to factor moving uphill or downhill so variations in terrain
+	// aren't culled from the check. When falling, we don't want to factor fall velocity, only lateral
+	const float Vel = IsMovingOnGround() ? Velocity.SizeSquared() : Velocity.SizeSquared2D();
+	const float WalkSpeed = IsCrouching() ? MaxWalkSpeedCrouched : MaxWalkSpeed;
+
+	// When struggling to surpass walk speed, which can occur with heavy rotation and low acceleration, we
+	// mitigate the check so there isn't a constant re-entry that can occur as an edge case
+	return Vel >= (WalkSpeed * WalkSpeed * VelocityCheckMitigatorSprinting);
 }
 
 float USprintMovement::GetMaxAcceleration() const

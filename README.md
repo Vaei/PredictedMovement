@@ -81,6 +81,9 @@ more advanced and often unnecessary.
 
 ## Changelog
 
+### 1.0.1.1
+* Removed accidental include
+
 ### 1.0.1.0
 * Removed stamina inheritance from sprint
 * Fixed CanSprint() being used unnecessarily, CanSprintInCurrentState is utilized properly here

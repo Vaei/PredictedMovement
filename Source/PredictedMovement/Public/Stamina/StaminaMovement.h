@@ -39,6 +39,11 @@ struct FStaminaMoveResponseDataContainer final : FCharacterMoveResponseDataConta
  *
  * You will need to handle any changes to MaxStamina, it is not predicted here.
  *
+ * GAS can modify the Stamina (by calling SetStamina(), nothing special required) and it shouldn't desync, however
+ * if you have any delay between the ability activating and the stamina being consumed it will likely desync; the
+ * solution is to call GetCharacterMovement()->FlushServerMoves() from the Character.
+ * It is worthwhile to expose this to blueprint.
+ *
  * This is not designed to work with blueprint, at all, anything you want exposed to blueprint you will need to do it
  * Better yet, add accessors from your Character and perhaps a broadcast event for UI to use.
  *

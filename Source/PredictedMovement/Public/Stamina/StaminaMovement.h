@@ -34,6 +34,9 @@ struct FStaminaMoveResponseDataContainer final : FCharacterMoveResponseDataConta
  * at least PerformMovement - CalcVelocity stems from PerformMovement but exists within the physics subticks for greater
  * accuracy.
  *
+ * If used with sprinting, OnStaminaDrained() should be overridden to call USprintMovement::UnSprint(). If you don't
+ * do this, the greater accuracy of CalcVelocity is lost because it cannot stop sprinting between frames.
+ *
  * You will need to handle any changes to MaxStamina, it is not predicted here.
  *
  * This is not designed to work with blueprint, at all, anything you want exposed to blueprint you will need to do it
@@ -64,51 +67,11 @@ public:
 	float GetMaxStamina() const { return MaxStamina; }
 	bool IsStaminaDrained() const { return bStaminaDrained; }
 
-	FORCEINLINE_DEBUGGABLE void SetStamina(float NewStamina)
-	{
-		const float PrevStamina = Stamina;
-		Stamina = FMath::Clamp(NewStamina, 0.f, MaxStamina);
-		if (CharacterOwner != nullptr)
-		{
-			if (!FMath::IsNearlyEqual(PrevStamina, Stamina))
-			{
-				OnStaminaChanged(PrevStamina, Stamina);
-			}
-		}
-	}
+	void SetStamina(float NewStamina);
 
-	FORCEINLINE_DEBUGGABLE void SetMaxStamina(float NewMaxStamina)
-	{
-		const float PrevMaxStamina = MaxStamina;
-		MaxStamina = FMath::Max(0.f, NewMaxStamina);
-		if (CharacterOwner != nullptr)
-		{
-			if (!FMath::IsNearlyEqual(PrevMaxStamina, MaxStamina))
-			{
-				OnMaxStaminaChanged(PrevMaxStamina, MaxStamina);
-			}
-		}
-	}
+	void SetMaxStamina(float NewMaxStamina);
 
-	FORCEINLINE_DEBUGGABLE void SetStaminaDrained(bool bNewValue)
-	{
-		const bool bWasStaminaDrained = bStaminaDrained;
-		bStaminaDrained = bNewValue;
-		if (CharacterOwner != nullptr)
-		{
-			if (bWasStaminaDrained != bStaminaDrained)
-			{
-				if (bStaminaDrained)
-				{
-					OnStaminaDrained();
-				}
-				else
-				{
-					OnStaminaDrainRecovered();
-				}
-			}
-		}
-	}
+	void SetStaminaDrained(bool bNewValue);
 
 protected:
 	/*
@@ -118,29 +81,8 @@ protected:
 	 * to FMath::IsNearlyEqual(Stamina, MaxStamina * 0.1f) to require 10% regeneration (or change the 0.1f to your
 	 * desired value) in the else-if scope in the function body.
 	 */
-	virtual void OnStaminaChanged(float PrevValue, float NewValue)
-	{
-		if (FMath::IsNearlyZero(Stamina))
-		{
-			Stamina = 0.f;
-			if (!bStaminaDrained)
-			{
-				SetStaminaDrained(true);
-			}
-		}
-		// eg. FMath::IsNearlyEqual(Stamina, MaxStamina * 0.1f) to require 10% regeneration
-		else if (FMath::IsNearlyEqual(Stamina, MaxStamina))
-		{
-			// If you want to add a percentage, whether its 10% or otherwise, you will need to multiply MaxStamina here
-			// eg. Stamina = MaxStamina * 0.1f;
-			Stamina = MaxStamina;
-			if (bStaminaDrained)
-			{
-				SetStaminaDrained(false);
-			}
-		}
-	}
-	
+	virtual void OnStaminaChanged(float PrevValue, float NewValue);
+
 	virtual void OnMaxStaminaChanged(float PrevValue, float NewValue) {}
 	virtual void OnStaminaDrained() {}
 	virtual void OnStaminaDrainRecovered() {}

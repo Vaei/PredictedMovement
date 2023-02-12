@@ -44,6 +44,15 @@ public:
 	float GroundFrictionSprinting;
 
 	/**
+     * When struggling to surpass walk speed, which can occur with heavy rotation and low acceleration, we
+     * mitigate the check so there isn't a constant re-entry that can occur as an edge case.
+     * This can optionally be used inversely, to require you to considerably exceed MaxSpeedWalking before sprinting
+     * will actually take effect.
+     */
+    UPROPERTY(Category="Character Movement: Walking", AdvancedDisplay, EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+    float VelocityCheckMitigatorSprinting;
+	
+	/**
 	 * Friction (drag) coefficient applied when braking (whenever Acceleration = 0, or if character is exceeding max speed); actual value used is this multiplied by BrakingFrictionFactor.
 	 * When braking, this property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
 	 * Braking is composed of friction (velocity-dependent drag) and constant deceleration.
@@ -72,23 +81,9 @@ public:
 	virtual float GetMaxSpeed() const override;
 	virtual float GetMaxBrakingDeceleration() const override;
 	
-	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override
-	{
-		if (IsSprinting() && IsMovingOnGround())
-		{
-			Friction = GroundFrictionSprinting;
-		}
-		Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
-	}
-	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override
-	{
-		if (IsSprinting() && IsMovingOnGround())
-		{
-			Friction = (bUseSeparateBrakingFriction ? BrakingFrictionSprinting : GroundFrictionSprinting);
-		}
-		Super::ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
-	}
-	
+	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
+	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
+
 public:
 	virtual bool IsSprinting() const;
 
@@ -105,8 +100,21 @@ public:
 	 */
 	virtual void UnSprint(bool bClientSimulation = false);
 
-	/** Returns true if the character is allowed to Sprint in the current state. By default it is allowed when walking or falling. */
+	/** Returns true if the character is allowed to Sprint in the current state. */
 	virtual bool CanSprintInCurrentState() const;
+
+	/**
+	 * This check ensures that we are not sprinting backward or sideways, while allowing leeway 
+	 * This angle allows sprinting when holding forward, forward left, forward right
+	 * but not left or right or backward)
+	 * 
+	 * You can override this to remove this check, or to add your own check. Magic numbers are used to avoid
+	 * more expensive runtime trig calculations.
+	 *
+	 * Consider adding this check to CanSprintInCurrentState() if you want the check to cause Sprint to end
+	 * when it fails while already sprinting
+	 */
+	virtual bool IsSprintWithinAllowableInputAngle() const;
 
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
 	virtual void UpdateCharacterStateAfterMovement(float DeltaSeconds) override;

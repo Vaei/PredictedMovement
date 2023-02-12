@@ -13,6 +13,8 @@ USprintMovement::USprintMovement(const FObjectInitializer& ObjectInitializer)
 	BrakingDecelerationSprinting = 512.f;
 	GroundFrictionSprinting = 8.f;
 	BrakingFrictionSprinting = 4.f;
+
+	VelocityCheckMitigatorSprinting = 0.98f;
 }
 
 bool USprintMovement::HasValidData() const
@@ -40,8 +42,15 @@ bool USprintMovement::IsSprintingAtSpeed() const
 	{
 		return false;
 	}
-	const float MaxSpeed = IsCrouching() ? MaxWalkSpeedCrouched : MaxWalkSpeed;
-	return Velocity.SizeSquared2D() >= (MaxSpeed * MaxSpeed * 0.98f);
+
+	// When moving on ground we want to factor moving uphill or downhill so variations in terrain
+	// aren't culled from the check. When falling, we don't want to factor fall velocity, only lateral
+	const float Vel = IsMovingOnGround() ? Velocity.SizeSquared() : Velocity.SizeSquared2D();
+	const float WalkSpeed = IsCrouching() ? MaxWalkSpeedCrouched : MaxWalkSpeed;
+
+	// When struggling to surpass walk speed, which can occur with heavy rotation and low acceleration, we
+	// mitigate the check so there isn't a constant re-entry that can occur as an edge case
+	return Vel >= (WalkSpeed * WalkSpeed * VelocityCheckMitigatorSprinting);
 }
 
 float USprintMovement::GetMaxAcceleration() const
@@ -69,6 +78,24 @@ float USprintMovement::GetMaxBrakingDeceleration() const
 		return BrakingDecelerationSprinting;
 	}
 	return Super::GetMaxBrakingDeceleration();
+}
+
+void USprintMovement::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
+{
+	if (IsSprinting() && IsMovingOnGround())
+	{
+		Friction = GroundFrictionSprinting;
+	}
+	Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
+}
+
+void USprintMovement::ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration)
+{
+	if (IsSprinting() && IsMovingOnGround())
+	{
+		Friction = (bUseSeparateBrakingFriction ? BrakingFrictionSprinting : GroundFrictionSprinting);
+	}
+	Super::ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
 }
 
 bool USprintMovement::IsSprinting() const
@@ -111,7 +138,41 @@ void USprintMovement::UnSprint(bool bClientSimulation)
 
 bool USprintMovement::CanSprintInCurrentState() const
 {
-	return (IsFalling() || IsMovingOnGround()) && UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics();
+	if (!UpdatedComponent || UpdatedComponent->IsSimulatingPhysics())
+	{
+		return false;
+	}
+
+	if (!IsFalling() && !IsMovingOnGround())
+	{
+		return false;
+	}
+	
+	if (!IsSprintWithinAllowableInputAngle())
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool USprintMovement::IsSprintWithinAllowableInputAngle() const
+{
+	// This check ensures that we are not sprinting backward or sideways, while allowing leeway 
+	// This angle allows sprinting when holding forward, forward left, forward right
+	// but not left or right or backward)
+	static constexpr float MaxSprintInputDegrees = 50.f;
+	static constexpr float MaxSprintInputNormal = 0.64278732;  // cos(rad(MaxSprintInputDegrees))
+
+	if constexpr (MaxSprintInputDegrees > 0.f)
+	{
+		const float Dot = (GetCurrentAcceleration().GetSafeNormal2D() | UpdatedComponent->GetForwardVector());
+		if (Dot < MaxSprintInputNormal)
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 void USprintMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)

@@ -82,19 +82,20 @@ more advanced and often unnecessary.
 ## Changelog
 
 ### 1.0.1.0
-Removed stamina inheritance from sprint
-Fixed CanSprint() being used unnecessarily, CanSprintInCurrentState is utilized properly here
-Moved sprint input checking to virtual func `IsSprintWithinAllowableInputAngle`
-Sprint checks 3D velocity on ground, replaced magic number with UPROPERTY `VelocityCheckMitigatorSprinting`
-Moved implementations out of headers
-Greatly improved comments
+* Removed stamina inheritance from sprint
+* Fixed CanSprint() being used unnecessarily, CanSprintInCurrentState is utilized properly here
+* Moved sprint input checking to virtual func `IsSprintWithinAllowableInputAngle`
+* Sprint checks 3D velocity on ground, replaced magic number with UPROPERTY `VelocityCheckMitigatorSprinting`
+* Moved implementations out of headers
+* Greatly improved comments
+
 (Thanks to cedric & vori for the code review)
 
 ### 1.0.0.2
-Fixed issue where stamina corrections were being overwritten
+* Fixed issue where stamina corrections were being overwritten
 
 ### 1.0.0.1
-Added Stamina
+* Added Stamina
 
 ### 1.0.0.0
-Initial Release
+* Initial Release

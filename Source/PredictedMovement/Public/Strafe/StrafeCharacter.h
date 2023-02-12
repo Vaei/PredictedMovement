@@ -7,6 +7,18 @@
 #include "StrafeCharacter.generated.h"
 
 class UStrafeMovement;
+
+/**
+ * Strafe is a shell intended for changing to and from a strafing state, however the actual implementation of
+ * "what strafe does" is highly dependant on a project, so override the functions and define the behaviour yourself.
+ *
+ * Generally AStrafeCharacter::OnStartStrafe might change bUseControllerRotationYaw = true and
+ * bOrientRotationToMovement = false then and AStrafeCharacter::OnEndStrafe would change them back.
+ *
+ * Alternatively you could override any ACharacter and UCharacterMovementComponent functions that use
+ * bUseControllerRotationYaw or bOrientRotationToMovement and check IsStrafing, but that implementation will be
+ * more advanced and often unnecessary.
+ */
 UCLASS()
 class PREDICTEDMOVEMENT_API AStrafeCharacter : public AProneCharacter
 {

@@ -6,7 +6,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "StaminaMovement.generated.h"
 
-struct FStaminaMoveResponseDataContainer final : FCharacterMoveResponseDataContainer
+struct FStaminaMoveResponseDataContainer : FCharacterMoveResponseDataContainer
 {
 	using Super = FCharacterMoveResponseDataContainer;
 	

@@ -3,6 +3,9 @@ This plugin offers several shells usually with a derived `UCharacterMovementComp
 
 ## Predicted Abilities
 
+# Example
+You can [find the Third Person Template example project here](https://github.com/Vaei/PredictedMovementExample)
+
 ### Prone
 Similar functionality as crouching. Also supports change in radius. Has a lock timer, to prevent early exit from prone.
 
@@ -17,7 +20,7 @@ Well, it makes you sprint.
 ### Stamina
 Net predicted stamina and drain state.
 
-## Example
+## Demonstration
 I use this in my own project, here you can see the character sprinting, consuming stamina, strafing, and proning with high latency (>220ms) and `p.netshowcorrections 1`. As you can see, there is no desync.
 
 https://youtu.be/SHVm57AMruc
@@ -82,6 +85,11 @@ Alternatively you could override any `ACharacter` and `UCharacterMovementCompone
 more advanced and often unnecessary.
 
 ## Changelog
+
+### 1.0.1.2
+* Expose stamina as protected
+* Change ObjectInitializer property name from OI
+* Fixed incorrect information in comment for recovering stamina
 
 ### 1.0.1.1
 * Removed accidental include

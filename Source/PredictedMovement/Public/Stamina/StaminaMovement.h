@@ -6,7 +6,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "StaminaMovement.generated.h"
 
-struct FStaminaMoveResponseDataContainer : FCharacterMoveResponseDataContainer
+struct PREDICTEDMOVEMENT_API FStaminaMoveResponseDataContainer : FCharacterMoveResponseDataContainer
 {
 	using Super = FCharacterMoveResponseDataContainer;
 	

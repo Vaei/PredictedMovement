@@ -84,9 +84,7 @@ protected:
 	/*
 	 * Drain state entry and exit is handled here. Drain state is used to prevent rapid re-entry of sprinting or other
 	 * such abilities before sufficient stamina has regenerated. However, in the default implementation, 100%
-	 * stamina must be regenerated. Consider overriding this and changing FMath::IsNearlyEqual(Stamina, MaxStamina)
-	 * to FMath::IsNearlyEqual(Stamina, MaxStamina * 0.1f) to require 10% regeneration (or change the 0.1f to your
-	 * desired value) in the else-if scope in the function body.
+	 * stamina must be regenerated. Consider overriding this, check the implementation's comment for more information.
 	 */
 	virtual void OnStaminaChanged(float PrevValue, float NewValue);
 

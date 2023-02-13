@@ -83,6 +83,11 @@ more advanced and often unnecessary.
 
 ## Changelog
 
+### 1.0.1.2
+* Expose stamina as protected
+* Change ObjectInitializer property name from OI
+* Fixed incorrect information in comment for recovering stamina
+
 ### 1.0.1.1
 * Removed accidental include
 

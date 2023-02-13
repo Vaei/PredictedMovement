@@ -202,7 +202,7 @@ void UStaminaMovement::ClientHandleMoveResponse(const FCharacterMoveResponseData
 				const IConsoleVariable* VarNetShowCorrections = IConsoleManager::Get().FindConsoleVariable(*FString("p.NetShowCorrections"));
 				if (VarNetShowCorrections != nullptr && VarNetShowCorrections->GetInt() != 0)
 				{
-					UE_LOG(LogTemp, Error, TEXT("[%s] Client Received Correction."), *FString(__FUNCTION__));
+					UE_LOG(LogNetPlayerMovement, Error, TEXT("[%s] Client Received Correction."), *FString(__FUNCTION__));
 				}
 #endif // !UE_BUILD_SHIPPPING
 
@@ -211,8 +211,11 @@ void UStaminaMovement::ClientHandleMoveResponse(const FCharacterMoveResponseData
 			}
 		}
 	}
-	
-	Super::ClientHandleMoveResponse(MoveResponse);
+
+	// Calling UCharacterMovementComponent specifically, because a Super call in a class deriving from
+	// this one with it's own implementation of ClientHandleMoveResponse would never want to call Super
+	// either, and this helps with readability
+	UCharacterMovementComponent::ClientHandleMoveResponse(MoveResponse);
 }
 
 FNetworkPredictionData_Client* UStaminaMovement::GetPredictionData_Client() const

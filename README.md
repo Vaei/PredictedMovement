@@ -86,6 +86,10 @@ more advanced and often unnecessary.
 
 ## Changelog
 
+### 1.0.1.4
+* ClientHandleMoveResponse use LogNetPlayerMovement instead of LogTemp
+* Minor readability change to ClientHandleMoveResponse and a helpful comment
+
 ### 1.0.1.3
 * Add export macro and remove final for StaminaMoveResponseDataContainer
 

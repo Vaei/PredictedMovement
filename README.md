@@ -86,6 +86,9 @@ more advanced and often unnecessary.
 
 ## Changelog
 
+### 1.0.1.3
+* Add export macro and remove final for StaminaMoveResponseDataContainer
+
 ### 1.0.1.2
 * Expose stamina as protected
 * Change ObjectInitializer property name from OI

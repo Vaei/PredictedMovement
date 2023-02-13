@@ -39,7 +39,7 @@ public:
 	uint32 bIsStrafing:1;
 	
 public:
-	AStrafeCharacter(const FObjectInitializer& OI);
+	AStrafeCharacter(const FObjectInitializer& FObjectInitializer);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 

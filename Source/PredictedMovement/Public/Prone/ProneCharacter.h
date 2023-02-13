@@ -32,7 +32,7 @@ public:
 	uint32 bIsProned:1;
 	
 public:
-	AProneCharacter(const FObjectInitializer& OI);
+	AProneCharacter(const FObjectInitializer& FObjectInitializer);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 

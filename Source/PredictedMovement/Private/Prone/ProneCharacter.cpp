@@ -6,8 +6,8 @@
 #include "Net/UnrealNetwork.h"
 #include "Prone/ProneMovement.h"
 
-AProneCharacter::AProneCharacter(const FObjectInitializer& OI)
-	: Super(OI.SetDefaultSubobjectClass<UProneMovement>(CharacterMovementComponentName))
+AProneCharacter::AProneCharacter(const FObjectInitializer& FObjectInitializer)
+	: Super(FObjectInitializer.SetDefaultSubobjectClass<UProneMovement>(CharacterMovementComponentName))
 {
 	ProneMovement = Cast<UProneMovement>(GetCharacterMovement());
 

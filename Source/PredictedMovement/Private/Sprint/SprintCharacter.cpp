@@ -6,8 +6,8 @@
 #include "Net/UnrealNetwork.h"
 #include "Sprint/SprintMovement.h"
 
-ASprintCharacter::ASprintCharacter(const FObjectInitializer& OI)
-	: Super(OI.SetDefaultSubobjectClass<USprintMovement>(CharacterMovementComponentName))
+ASprintCharacter::ASprintCharacter(const FObjectInitializer& FObjectInitializer)
+	: Super(FObjectInitializer.SetDefaultSubobjectClass<USprintMovement>(CharacterMovementComponentName))
 {
 	SprintMovement = Cast<USprintMovement>(GetCharacterMovement());
 }

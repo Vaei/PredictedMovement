@@ -6,8 +6,8 @@
 #include "Net/UnrealNetwork.h"
 #include "Strafe/StrafeMovement.h"
 
-AStrafeCharacter::AStrafeCharacter(const FObjectInitializer& OI)
-	: Super(OI.SetDefaultSubobjectClass<UStrafeMovement>(CharacterMovementComponentName))
+AStrafeCharacter::AStrafeCharacter(const FObjectInitializer& FObjectInitializer)
+	: Super(FObjectInitializer.SetDefaultSubobjectClass<UStrafeMovement>(CharacterMovementComponentName))
 {
 	StrafeMovement = Cast<UStrafeMovement>(GetCharacterMovement());
 }

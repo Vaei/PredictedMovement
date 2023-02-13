@@ -27,7 +27,7 @@ public:
 	uint32 bIsSprinting:1;
 	
 public:
-	ASprintCharacter(const FObjectInitializer& OI);
+	ASprintCharacter(const FObjectInitializer& FObjectInitializer);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 

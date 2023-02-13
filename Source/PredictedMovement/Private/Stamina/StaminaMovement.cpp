@@ -87,13 +87,6 @@ void UStaminaMovement::SetStaminaDrained(bool bNewValue)
 
 void UStaminaMovement::OnStaminaChanged(float PrevValue, float NewValue)
 {
-	/*
-	 * Drain state entry and exit is handled here. Drain state is used to prevent rapid re-entry of sprinting or other
-	 * such abilities before sufficient stamina has regenerated. However, in the default implementation, 100%
-	 * stamina must be regenerated. Consider overriding this and changing FMath::IsNearlyEqual(Stamina, MaxStamina)
-	 * to FMath::IsNearlyEqual(Stamina, MaxStamina * 0.1f) to require 10% regeneration (or change the 0.1f to your
-	 * desired value) in the else-if scope in the function body.
-	 */
 	if (FMath::IsNearlyZero(Stamina))
 	{
 		Stamina = 0.f;
@@ -102,11 +95,16 @@ void UStaminaMovement::OnStaminaChanged(float PrevValue, float NewValue)
 			SetStaminaDrained(true);
 		}
 	}
-	// eg. FMath::IsNearlyEqual(Stamina, MaxStamina * 0.1f) to require 10% regeneration
+	// This will need to change if not using MaxStamina for recovery, here is an example (commented out) that uses
+	// 10% instead; to use this, comment out the existing else if statement, and change the 0.1f to the percentage
+	// you want to use (0.1f is 10%)
+	//
+	// else if (bStaminaDrained && Stamina >= MaxStamina * 0.1f)
+	// {
+	// 	SetStaminaDrained(false);
+	// }
 	else if (FMath::IsNearlyEqual(Stamina, MaxStamina))
 	{
-		// If you want to add a percentage, whether its 10% or otherwise, you will need to multiply MaxStamina here
-		// eg. Stamina = MaxStamina * 0.1f;
 		Stamina = MaxStamina;
 		if (bStaminaDrained)
 		{

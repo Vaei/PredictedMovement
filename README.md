@@ -15,7 +15,7 @@ Compatible with crouching, and should switch properly between crouch->prone, sta
 A shell intended for switching to / from a strafe mode, however the actual functionality is not implemented as it is project-dependent.
 
 ## Sprint
-Well, it makes you sprint.
+It makes you sprint by changing your movement properties when activated.
 
 ## Stamina
 Net predicted stamina and drain state.

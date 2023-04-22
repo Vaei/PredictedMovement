@@ -30,7 +30,7 @@ C++ knowledge is a must, and this cannot be used without C++.
 
 # Frequently Asked Questions
 ### Why is such an elaborate solution needed, can't I simply replicate the max speed?
-`ACharacter` & `UCharacterMovementComponent` have built-in client-side prediction to provide latency-free yet server authoritative netcode. If you replicate anything that it uses, this will happen outside of the prediction framework and result in considerable desync. It may appear to work in testing, but until you introduce latency, you won't see the actual result.
+`ACharacter` & `UCharacterMovementComponent` have built-in client-side prediction to provide what feels like latency-free movement, yet with server authority. If you replicate anything that it uses, this will happen outside of the prediction framework and result in considerable desync. It may appear to work in testing, but until you introduce latency, you won't see the actual result.
 
 This solution introduces the abilities and stamina into the prediction framework so that it doesn't desync.
 

@@ -30,9 +30,13 @@ C++ knowledge is a must, and this cannot be used without C++.
 
 # Frequently Asked Questions
 ### Why is such an elaborate solution needed, can't I simply replicate the max speed?
-`ACharacter` & `UCharacterMovementComponent` have built-in client-side prediction to provide what feels like latency-free movement, yet with server authority. If you replicate anything that it uses, this will happen outside of the prediction framework and result in considerable desync. It may appear to work in testing, but until you introduce latency, you won't see the actual result.
+`ACharacter` & `UCharacterMovementComponent` have built-in client-side prediction to provide what feels like latency-free movement, yet with server authority to prevent hacking/cheating.
+
+If you replicate anything that the character's predicted movement uses, this will happen outside of the prediction framework and result in considerable desync. It may appear to work in testing, but until you introduce latency, you won't see the actual result.
 
 This solution introduces the abilities and stamina into the prediction framework so that it doesn't desync.
+
+Client-side prediction with server authority is considered the gold standard, however it comes with downsides; it is vastly more complex to develop, takes considerably more time to develop, and has high processing costs so for larger games such as battle royales or high player-count shooters it can become incredibly prohibitive for a server to process the prediction of so many players.
 
 ### What is client-side prediction?
 This is a complex topic beyond the scope of this readme. Here are some resources:

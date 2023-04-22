@@ -84,6 +84,19 @@ Alternatively you could override any `ACharacter` and `UCharacterMovementCompone
 `bUseControllerRotationYaw` or `bOrientRotationToMovement` and check `IsStrafing`, but that implementation will be
 more advanced and often unnecessary.
 
+# Why do we need this?
+(This is a super short version of a really complex topic. You can watch a more in-depth explanation [here](https://www.youtube.com/watch?v=dOkuIvKCvpg))
+
+You may be wondering: Why can't I just change the speed of my CMC in an RPC and call it a day? What's with all these "Saved Movements"?
+
+The CMC Prediction/Reconciliation system depends on every action taken by the Character to be able to be stored and played back and end up in the exact same state in both the client and the server, that is to say, it has to be deterministic.
+
+(If you are already lost at the "Prediction/Reconciliation" start [here](https://www.gabrielgambetta.com/client-server-game-architecture.html), read all four parts and then come back)
+
+This means that every variable that alters how the Character moves and every change to those variables change has to be recorded in the same "replay-able" way so the server can check that the client predicted movement was correct (Acknowledge the move) or send all the data needed for a correction in case the prediction was wrong (Client adjust position).
+
+When the Client prediction fails and the server sends the corrected package, the Client proceeds to fix its variables and then replay all the saved moves (The moves sent to the server that still haven't had a response) between the corrected move and the present, ending up with a less noticeable (if at all) rubberbanding effect.
+
 ## Changelog
 
 ### 1.0.1.4

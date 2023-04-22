@@ -36,12 +36,12 @@ If you replicate anything that the character's predicted movement uses, this wil
 
 This solution introduces the abilities and stamina into the prediction framework so that it doesn't desync.
 
-Client-side prediction with server authority is considered the gold standard, however it comes with downsides; it is vastly more complex to develop, takes considerably more time to develop, and has high processing costs so for larger games such as battle royales or high player-count shooters it can become incredibly prohibitive for a server to process the prediction of so many players.
-
 ### What is client-side prediction?
 This is a complex topic beyond the scope of this readme. Here are some resources:
 * [Gabriel Gambetta's "Fast-Paced Multiplayer"](https://www.gabrielgambetta.com/client-server-game-architecture.html). There are 4 parts to this.
 * [Video detailing the `UCharacterMovementComponent` class](https://www.youtube.com/watch?v=dOkuIvKCvpg)
+
+Client-side prediction with server authority is considered the gold standard, however it comes with downsides; it is vastly more complex to develop, takes considerably more time to develop, and has high processing costs so for larger games such as battle royales or high player-count shooters it can become incredibly prohibitive for a server to process the prediction of so many players.
 
 ### Why is the `ACharacter` class required for RPCs? Can't you just replicate the `UCharacterMovementComponent`?
 Replication routes through the `AActor` class, even for `UActorComponent`, these components send an additional `uint8` that identifies which component is replicating. By manually routing through the `ACharacter` class we forego the bandwidth cost of the additional `uint8`. It is an optimization that the engine establishes the standard for.

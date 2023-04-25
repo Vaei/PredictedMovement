@@ -49,6 +49,15 @@ Replication routes through the `AActor` class, even for `UActorComponent`, these
 ### Why are there multiple `UCharacterMovementComponent` and `ACharacter`?
 Developers who use this plugin need to fork it and change the inheritance so the abilities they want are present in their project's resulting `ACharacter`, thus they do not end up with abilities that their project does not require. There may be a `link` branch that has all abilties linked together for you but it is not always up to date, if this is the case, you can still use it as an example.
 
+### Why isn't `PrepMoveFor` and `SetMoveFor` being used for Stamina?
+Corrections occur in `UCharacterMovementComponent::ClientHandleMoveResponse` and the information is sent in `FStaminaMoveResponseDataContainer::ServerFillResponseData`.
+
+`PrepMoveFor` and `SetMoveFor` will actually undo the correction.
+
+A paraphrased explanation of why by Cedric 'eXi':
+
+Let's say the server corrects it to 5 and your move still has the old value of 50. Your saved moves will continue sprinting longer and cause another correction. Instead of running out of stamina you will probably have enough to keep sprinting and then send a new server move with a location that the server can't reach. The boolean (`bStaminaDrained`) also comes from the server. Doesn't sound right to override it with the saved move, and for saving it into the saved move, the InitialPosition function should be enough. That's what epic does, at least for the values that are used in `CombineWith`.
+
 # Usage
 Because each ability is a combination of `UCharacterMovementComponent` and `ACharacter` you will need to modify the plugin to inherit the abilities you want for your project. I recommend forking this repository to do that, so you can still pull in any future commits.
 

@@ -67,8 +67,6 @@ Alternatively, the 'link' branch includes all abilities, you simply need to deri
 
 Note that Stamina does not have an `ACharacter` because no Character-specific functionality is required.
 
-Also note that Stamina inherits Sprint by default, if you want Stamina but not Sprint, you will need to remove this inheritance.
-
 Once that is complete, you simply need to call the equivalent input function.
 
 ## Stamina

@@ -58,6 +58,15 @@ A paraphrased explanation of why by Cedric 'eXi':
 
 Let's say the server corrects it to 5 and your move still has the old value of 50. Your saved moves will continue sprinting longer and cause another correction. Instead of running out of stamina you will probably have enough to keep sprinting and then send a new server move with a location that the server can't reach. The boolean (`bStaminaDrained`) also comes from the server. Doesn't sound right to override it with the saved move, and for saving it into the saved move, the InitialPosition function should be enough. That's what epic does, at least for the values that are used in `CombineWith`.
 
+### Why should CharacterMovementComponent handle Stamina instead of GAS Attributes?
+The CharacterMovementComponent has its own ecosystem for prediction. Performing any form of external action that modifies data which the CMC uses to predict movement may result in corrections.
+
+Furthermore, not following the whole setup for concepts like SavedMoves also removes the ability of the CMC to reconcile whatever was predicted after a corrected move.
+
+There are also restrictions on GAS side that limit the ability to predict properly, such as GEs not allowing Stacks and Removal to be predicted.
+
+As a general note, the game that spawned this plugin tried every available method to implement Stamina via GAS and was unable to have it working correctly in a networked environment. This is the only method that worked. There are no known or published solutions to achieve GAS-based Stamina. Inadequate and limited results could be achieved, but nothing that is sufficient for this game, and likely not sufficient for most games.
+
 # Usage
 Because each ability is a combination of `UCharacterMovementComponent` and `ACharacter` you will need to modify the plugin to inherit the abilities you want for your project. I recommend forking this repository to do that, so you can still pull in any future commits.
 

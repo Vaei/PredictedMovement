@@ -123,6 +123,10 @@ more advanced and often unnecessary.
 
 # Changelog
 
+### 1.0.2.0
+* Prone lock timer implemented properly (with prediction instead of timer handle) to fix desync
+* Can no longer jump while prone
+
 ### 1.0.1.5
 * Remove ground checks for sprint and strafe movement properties (walking off a ledge shouldn't momentarily change to normal speed, etc)
 

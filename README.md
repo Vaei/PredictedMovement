@@ -123,6 +123,9 @@ more advanced and often unnecessary.
 
 # Changelog
 
+### 1.0.1.5
+* Remove ground checks for sprint and strafe movement properties (walking off a ledge shouldn't momentarily change to normal speed, etc)
+
 ### 1.0.1.4
 * ClientHandleMoveResponse use LogNetPlayerMovement instead of LogTemp
 * Minor readability change to ClientHandleMoveResponse and a helpful comment

@@ -55,7 +55,7 @@ bool USprintMovement::IsSprintingAtSpeed() const
 
 float USprintMovement::GetMaxAcceleration() const
 {
-	if (IsSprinting() && IsMovingOnGround() && IsSprintingAtSpeed())
+	if (IsSprinting() && IsSprintingAtSpeed())
 	{
 		return MaxAccelerationSprinting;
 	}
@@ -64,7 +64,7 @@ float USprintMovement::GetMaxAcceleration() const
 
 float USprintMovement::GetMaxSpeed() const
 {
-	if (IsSprinting() && IsMovingOnGround() && IsSprintingAtSpeed())
+	if (IsSprinting() && IsSprintingAtSpeed())
 	{
 		return MaxWalkSpeedSprinting;
 	}
@@ -73,7 +73,7 @@ float USprintMovement::GetMaxSpeed() const
 
 float USprintMovement::GetMaxBrakingDeceleration() const
 {
-	if (IsSprinting() && IsMovingOnGround() && IsSprintingAtSpeed())
+	if (IsSprinting() && IsSprintingAtSpeed())
 	{
 		return BrakingDecelerationSprinting;
 	}

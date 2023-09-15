@@ -45,7 +45,7 @@ float UStrafeMovement::GetMaxAcceleration() const
 
 float UStrafeMovement::GetMaxSpeed() const
 {
-	if (IsStrafing() && IsMovingOnGround())
+	if (IsStrafing())
 	{
 		return MaxWalkSpeedStrafing;
 	}

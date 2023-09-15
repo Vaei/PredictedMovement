@@ -95,26 +95,38 @@ bool UProneMovement::CanWalkOffLedges() const
 	return Super::CanWalkOffLedges();
 }
 
-void UProneMovement::ClearProneLock()
+bool UProneMovement::CanAttemptJump() const
 {
-	if (GetWorld() && GetWorld()->GetTimerManager().IsTimerActive(ProneLockTimerHandle))
+	return Super::CanAttemptJump() && !bWantsToProne;
+}
+
+float UProneMovement::GetTimestamp() const
+{
+	if (CharacterOwner->GetLocalRole() == ROLE_Authority)
 	{
-		GetWorld()->GetTimerManager().ClearTimer(ProneLockTimerHandle);
-		if (bPendingProneUnlock && ProneCharacterOwner && ProneCharacterOwner->IsLocallyControlled())
+		if (CharacterOwner->IsLocallyControlled())
 		{
-			ProneCharacterOwner->UnProne(false);
+			// Server owned character
+			return GetWorld()->GetTimeSeconds();
 		}
+		else
+		{
+			// Server remote character
+			const FNetworkPredictionData_Server_Character* ServerData = GetPredictionData_Server_Character();
+			return ServerData->CurrentClientTimeStamp;
+		}
+	}
+	else
+	{
+		// Client owned character
+		const FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character();
+		return ClientData->CurrentTimeStamp;
 	}
 }
 
 bool UProneMovement::IsProned() const
 {
 	return ProneCharacterOwner && ProneCharacterOwner->bIsProned;
-}
-
-void UProneMovement::StartProneLockTimer()
-{
-	GetWorld()->GetTimerManager().SetTimer(ProneLockTimerHandle, this, &ThisClass::ClearProneLock, ProneLockDuration, false);
 }
 
 void UProneMovement::Prone(bool bClientSimulation)
@@ -138,7 +150,7 @@ void UProneMovement::Prone(bool bClientSimulation)
 			ProneCharacterOwner->bIsProned = true;
 		}
 		ProneCharacterOwner->OnStartProne( 0.f, 0.f );
-		StartProneLockTimer();
+		SetProneLock(true);
 		return;
 	}
 
@@ -212,7 +224,7 @@ void UProneMovement::Prone(bool bClientSimulation)
 	
 	bForceNextFloorCheck = true;
 
-	StartProneLockTimer();
+	SetProneLock(true);
 
 	// OnStartProne takes the change from the Default size, not the current one (though they are usually the same).
 	const float MeshAdjust = ScaledHalfHeightAdjust;
@@ -419,6 +431,12 @@ void UProneMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 	// Proxies get replicated Prone state.
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
+		// Check if prone lock timer has expired
+		if (bProneLocked && !IsProneLockOnTimer())
+		{
+			SetProneLock(false);
+		}
+		
 		// Check for a change in Prone state. Players toggle Prone by changing bWantsToProne.
 		const bool bIsProned = IsProned();
 		if (bIsProned && (!bWantsToProne || !CanProneInCurrentState()))
@@ -466,6 +484,7 @@ void FSavedMove_Character_Prone::Clear()
 	Super::Clear();
 
 	bWantsToProne = false;
+	bProneLocked = false;
 }
 
 void FSavedMove_Character_Prone::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel,
@@ -474,6 +493,14 @@ void FSavedMove_Character_Prone::SetMoveFor(ACharacter* C, float InDeltaTime, FV
 	Super::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
 
 	bWantsToProne = Cast<AProneCharacter>(C)->GetProneCharacterMovement()->bWantsToProne;
+	bProneLocked = Cast<AProneCharacter>(C)->GetProneCharacterMovement()->bProneLocked;
+}
+
+void FSavedMove_Character_Prone::PrepMoveFor(ACharacter* C)
+{
+	FSavedMove_Character::PrepMoveFor(C);
+
+	Cast<AProneCharacter>(C)->GetProneCharacterMovement()->bProneLocked = bProneLocked;
 }
 
 uint8 FSavedMove_Character_Prone::GetCompressedFlags() const

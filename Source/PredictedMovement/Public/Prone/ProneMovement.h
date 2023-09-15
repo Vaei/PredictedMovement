@@ -78,10 +78,12 @@ public:
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
 	uint8 bWantsToProne:1;
 
-public:
-	bool bPendingProneUnlock = false;
-	FTimerHandle ProneLockTimerHandle;
-	
+	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
+	uint8 bProneLocked:1;
+
+protected:
+	float ProneLockTimestamp = -1.f;
+
 public:
 	UProneMovement(const FObjectInitializer& ObjectInitializer);
 	
@@ -98,16 +100,38 @@ public:
 	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
 
 	virtual bool CanWalkOffLedges() const override;
+	virtual bool CanAttemptJump() const override;
 	
 public:
-	UFUNCTION(BlueprintCallable, Category="Character Movement")
-	void ClearProneLock();
-
 	UFUNCTION(BlueprintPure, Category="Character Movement")
-	bool IsProneLocked() const { return GetWorld() && GetWorld()->GetTimerManager().IsTimerActive(ProneLockTimerHandle); }
-
-	void StartProneLockTimer();
+	bool IsProneLocked() const { return bProneLocked; }
 	
+	bool IsProneLockOnTimer() const { return GetRemainingProneLockCooldown() > 0.f; }
+
+	// Prone lock timer
+	float GetRemainingProneLockCooldown() const
+	{
+		const float CurrentTimestamp = GetTimestamp();
+		const float RemainingCooldown = ProneLockDuration - (CurrentTimestamp - ProneLockTimestamp);
+		return FMath::Clamp(RemainingCooldown, 0.f, ProneLockDuration);
+	}
+
+	void SetProneLock(bool bLock)
+	{
+		if (bLock)
+		{
+			bProneLocked = true;
+			ProneLockTimestamp = GetTimestamp();
+		}
+		else
+		{
+			bProneLocked = false;
+		}
+	}
+
+	float GetTimestamp() const;
+
+public:
 	virtual bool IsProned() const;
 
 	/**
@@ -146,6 +170,7 @@ class PREDICTEDMOVEMENT_API FSavedMove_Character_Prone : public FSavedMove_Chara
 public:
 	FSavedMove_Character_Prone()
 		: bWantsToProne(0)
+		, bProneLocked(0)
 	{
 	}
 
@@ -153,12 +178,14 @@ public:
 	{}
 
 	uint32 bWantsToProne:1;
+	uint32 bProneLocked:1;
 		
 	/** Clear saved move properties, so it can be re-used. */
 	virtual void Clear() override;
 
 	/** Called to set up this saved move (when initially created) to make a predictive correction. */
 	virtual void SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character & ClientData) override;
+	virtual void PrepMoveFor(ACharacter* C) override;
 
 	/** Returns a byte containing encoded special movement information (jumping, crouching, etc.)	 */
 	virtual uint8 GetCompressedFlags() const override;

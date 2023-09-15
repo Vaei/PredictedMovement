@@ -113,13 +113,13 @@ public:
 	/**
 	 * Call CharacterOwner->OnStartProne() if successful.
 	 * In general you should set bWantsToProne instead to have the Prone persist during movement, or just use the Prone functions on the owning Character.
-	 * @param	bClientSimulation	true when called when bIsProneed is replicated to non owned clients.
+	 * @param	bClientSimulation	true when called when bIsProned is replicated to non owned clients.
 	 */
 	virtual void Prone(bool bClientSimulation = false);
 	
 	/**
 	 * Checks if default capsule size fits (no encroachment), and trigger OnEndProne() on the owner if successful.
-	 * @param	bClientSimulation	true when called when bIsProneed is replicated to non owned clients.
+	 * @param	bClientSimulation	true when called when bIsProned is replicated to non owned clients.
 	 */
 	virtual void UnProne(bool bClientSimulation = false);
 

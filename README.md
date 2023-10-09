@@ -123,6 +123,9 @@ more advanced and often unnecessary.
 
 # Changelog
 
+### 1.0.2.1
+* Removed `IsSprintingAtSpeed()` check for `USprintMovement::GetMaxSpeed()`
+
 ### 1.0.2.0
 * Prone lock timer implemented properly (with prediction instead of timer handle) to fix desync
 * Can no longer jump while prone

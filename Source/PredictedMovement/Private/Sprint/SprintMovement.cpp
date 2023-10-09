@@ -64,7 +64,7 @@ float USprintMovement::GetMaxAcceleration() const
 
 float USprintMovement::GetMaxSpeed() const
 {
-	if (IsSprinting() && IsSprintingAtSpeed())
+	if (IsSprinting())
 	{
 		return MaxWalkSpeedSprinting;
 	}

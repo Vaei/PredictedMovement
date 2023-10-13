@@ -498,7 +498,7 @@ void FSavedMove_Character_Prone::SetMoveFor(ACharacter* C, float InDeltaTime, FV
 
 void FSavedMove_Character_Prone::PrepMoveFor(ACharacter* C)
 {
-	FSavedMove_Character::PrepMoveFor(C);
+	Super::PrepMoveFor(C);
 
 	Cast<AProneCharacter>(C)->GetProneCharacterMovement()->bProneLocked = bProneLocked;
 }

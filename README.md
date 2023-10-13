@@ -123,6 +123,9 @@ more advanced and often unnecessary.
 
 # Changelog
 
+### 1.0.2.2
+* Changed `FSavedMove_Character_Prone::PrepMoveFor` to use `Super` instead of `FSavedMove_Character`
+
 ### 1.0.2.1
 * Removed `IsSprintingAtSpeed()` check for `USprintMovement::GetMaxSpeed()`
 

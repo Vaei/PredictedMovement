@@ -33,10 +33,33 @@ bool FStaminaMoveResponseDataContainer::Serialize(UCharacterMovementComponent& C
 	return !Ar.IsError();
 }
 
+FStaminaNetworkMoveDataContainer::FStaminaNetworkMoveDataContainer()
+{
+    NewMoveData = &MoveData[0];
+    PendingMoveData = &MoveData[1];
+    OldMoveData = &MoveData[2];
+}
+
+void FStaminaNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove, ENetworkMoveType MoveType)
+{
+    Super::ClientFillNetworkMoveData(ClientMove, MoveType);
+ 
+    Stamina = static_cast<const FSavedMove_Character_Stamina&>(ClientMove).Stamina;
+}
+
+bool FStaminaNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap, ENetworkMoveType MoveType)
+{
+    Super::Serialize(CharacterMovement, Ar, PackageMap, MoveType);
+    
+    SerializeOptionalValue<float>(Ar.IsSaving(), Ar, Stamina, 0.f);
+    return !Ar.IsError();
+}
+
 UStaminaMovement::UStaminaMovement(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	SetMoveResponseDataContainer(StaminaMoveResponseDataContainer);
+    SetNetworkMoveDataContainer(StaminaMoveDataContainer);
 }
 
 void UStaminaMovement::SetStamina(float NewStamina)
@@ -216,6 +239,24 @@ void UStaminaMovement::ClientHandleMoveResponse(const FCharacterMoveResponseData
 	// this one with it's own implementation of ClientHandleMoveResponse would never want to call Super
 	// either, and this helps with readability
 	UCharacterMovementComponent::ClientHandleMoveResponse(MoveResponse);
+}
+
+bool UStaminaMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel, const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
+{
+    if (Super::ServerCheckClientError(ClientTimeStamp, DeltaTime, Accel, ClientWorldLocation, RelativeClientLocation, ClientMovementBase, ClientBaseBoneName, ClientMovementMode))
+    {
+        return true;
+    }
+    
+	// This will trigger a client correction if the Stamina value in the Client differs 2 units from the one in the server
+	// Desyncs can happen if we set the Stamina directly in Gameplay code (ie: GAS)
+    const FStaminaNetworkMoveData* CurrentMoveData = static_cast<const FStaminaNetworkMoveData*>(GetCurrentNetworkMoveData());
+    if (!FMath::IsNearlyEqual(CurrentMoveData->Stamina, Stamina, 2.f))
+    {
+        return true;
+    }
+    
+    return false;
 }
 
 FNetworkPredictionData_Client* UStaminaMovement::GetPredictionData_Client() const

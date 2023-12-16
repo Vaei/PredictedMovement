@@ -18,7 +18,7 @@ A shell intended for switching to / from a strafe mode, however the actual funct
 It makes you sprint by changing your movement properties when activated.
 
 ## Stamina
-Net predicted stamina and drain state.
+Net predicted stamina and drain state. It also includes a correction mechanism.
 
 # Demonstration
 I use this in my own project, here you can see the character sprinting, consuming stamina, strafing, and proning with high latency (>220ms) and `p.netshowcorrections 1`. As you can see, there is no desync.
@@ -102,8 +102,10 @@ You will need to handle any changes to `MaxStamina`, it is not predicted here.
 
 GAS can modify the Stamina (by calling `SetStamina()`, nothing special required) and it shouldn't desync, however
 if you have any delay between the ability activating and the stamina being consumed it will likely desync; the
-solution is to call `GetCharacterMovement()->FlushServerMoves()` from the Character.
-It is worthwhile to expose this to blueprint.
+solution is to call `GetCharacterMovement()->FlushServerMoves()` from the Character. It is worthwhile to expose 
+this to blueprint.
+The correction mechanism implemented in `UStaminaMovement::ServerCheckClientError` will trigger a correction if 
+the Stamina desyncs in 2 units. Note that Stamina corrections won't necessarily correct also our character Transform.
 
 This is not designed to work with blueprint, at all, anything you want exposed to blueprint you will need to do it
 Better yet, add accessors from your Character and perhaps a broadcast event for UI to use.

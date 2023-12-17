@@ -7,7 +7,6 @@ public class PredictedMovement : ModuleRules
 	public PredictedMovement(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-		bEnforceIWYU = true;
 
 		PublicDependencyModuleNames.AddRange(
 			new string[]

@@ -125,6 +125,9 @@ more advanced and often unnecessary.
 
 # Changelog
 
+### 1.0.2.3
+* Remove `bForceIWYU`
+
 ### 1.0.2.2
 * Changed `FSavedMove_Character_Prone::PrepMoveFor` to use `Super` instead of `FSavedMove_Character`
 

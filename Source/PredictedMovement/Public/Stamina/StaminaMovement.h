@@ -84,6 +84,11 @@ class PREDICTEDMOVEMENT_API UStaminaMovement : public UCharacterMovementComponen
 	GENERATED_BODY()
 
 public:
+	/** Maximum distance character is allowed to lag behind server location when interpolating between updates. */
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, meta=(ClampMin="0.0", UIMin="0.0"))
+	float NetworkStaminaCorrectionThreshold;
+	
+public:
 	UStaminaMovement(const FObjectInitializer& ObjectInitializer);
 
 protected:

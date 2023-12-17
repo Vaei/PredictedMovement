@@ -125,6 +125,9 @@ more advanced and often unnecessary.
 
 # Changelog
 
+### 1.0.3.0
+* `UStaminaMovement::ServerCheckClientError` added by [PR from vorixo](https://github.com/Vaei/PredictedMovement/pull/3/commits/d03a4ec5f7dd07c48e8a9f0b21255fc258adb865)
+
 ### 1.0.2.3
 * Remove `bForceIWYU`
 

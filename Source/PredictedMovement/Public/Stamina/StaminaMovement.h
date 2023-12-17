@@ -17,6 +17,35 @@ struct PREDICTEDMOVEMENT_API FStaminaMoveResponseDataContainer : FCharacterMoveR
 	bool bStaminaDrained;
 };
 
+struct PREDICTEDMOVEMENT_API FStaminaNetworkMoveData : public FCharacterNetworkMoveData
+{
+public:
+    typedef FCharacterNetworkMoveData Super;
+ 
+    FStaminaNetworkMoveData()
+        : Stamina(0)
+    {
+
+    }
+ 
+    virtual void ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove, ENetworkMoveType MoveType) override;
+    virtual bool Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap, ENetworkMoveType MoveType) override;
+ 
+    float Stamina;
+ 
+};
+ 
+struct PREDICTEDMOVEMENT_API FStaminaNetworkMoveDataContainer : public FCharacterNetworkMoveDataContainer
+{
+public:
+    typedef FCharacterNetworkMoveDataContainer Super;
+ 
+    FStaminaNetworkMoveDataContainer();
+ 
+private:
+    FStaminaNetworkMoveData MoveData[3];
+};
+
 /**
  * Add a void CalcStamina(float DeltaTime) function to your UCharacterMovementComponent and call it before Super after
  * overriding CalcVelocity.
@@ -94,9 +123,13 @@ protected:
 
 private:
 	FStaminaMoveResponseDataContainer StaminaMoveResponseDataContainer;
+
+	FStaminaNetworkMoveDataContainer StaminaMoveDataContainer;
 	
 public:
 	virtual void ClientHandleMoveResponse(const FCharacterMoveResponseDataContainer& MoveResponse) override;
+
+	virtual bool ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel, const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode) override;
 
 	/** Get prediction data for a client game. Should not be used if not running as a client. Allocates the data on demand and can be overridden to allocate a custom override if desired. Result must be a FNetworkPredictionData_Client_Character. */
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;

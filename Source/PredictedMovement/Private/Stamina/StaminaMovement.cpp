@@ -60,6 +60,8 @@ UStaminaMovement::UStaminaMovement(const FObjectInitializer& ObjectInitializer)
 {
 	SetMoveResponseDataContainer(StaminaMoveResponseDataContainer);
     SetNetworkMoveDataContainer(StaminaMoveDataContainer);
+
+	NetworkStaminaCorrectionThreshold = 2.f;
 }
 
 void UStaminaMovement::SetStamina(float NewStamina)
@@ -248,10 +250,10 @@ bool UStaminaMovement::ServerCheckClientError(float ClientTimeStamp, float Delta
         return true;
     }
     
-	// This will trigger a client correction if the Stamina value in the Client differs 2 units from the one in the server
+	// This will trigger a client correction if the Stamina value in the Client differs NetworkStaminaCorrectionThreshold (2.f default) units from the one in the server
 	// Desyncs can happen if we set the Stamina directly in Gameplay code (ie: GAS)
     const FStaminaNetworkMoveData* CurrentMoveData = static_cast<const FStaminaNetworkMoveData*>(GetCurrentNetworkMoveData());
-    if (!FMath::IsNearlyEqual(CurrentMoveData->Stamina, Stamina, 2.f))
+    if (!FMath::IsNearlyEqual(CurrentMoveData->Stamina, Stamina, NetworkStaminaCorrectionThreshold))
     {
         return true;
     }

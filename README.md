@@ -105,7 +105,7 @@ if you have any delay between the ability activating and the stamina being consu
 solution is to call `GetCharacterMovement()->FlushServerMoves()` from the Character. It is worthwhile to expose 
 this to blueprint.
 The correction mechanism implemented in `UStaminaMovement::ServerCheckClientError` will trigger a correction if 
-the Stamina desyncs in 2 units. Note that Stamina corrections won't necessarily correct also our character Transform.
+the Stamina desyncs in 2 units by default (see `UStaminaMovement::NetworkStaminaCorrectionThreshold`). Note that Stamina corrections won't necessarily correct also our character Transform.
 
 This is not designed to work with blueprint, at all, anything you want exposed to blueprint you will need to do it
 Better yet, add accessors from your Character and perhaps a broadcast event for UI to use.
@@ -124,6 +124,9 @@ Alternatively you could override any `ACharacter` and `UCharacterMovementCompone
 more advanced and often unnecessary.
 
 # Changelog
+
+### 1.0.3.1
+* Added NetworkStaminaCorrectionThreshold and exposed via UPROPERTY()
 
 ### 1.0.3.0
 * `UStaminaMovement::ServerCheckClientError` added by [PR from vorixo](https://github.com/Vaei/PredictedMovement/pull/3/commits/d03a4ec5f7dd07c48e8a9f0b21255fc258adb865)

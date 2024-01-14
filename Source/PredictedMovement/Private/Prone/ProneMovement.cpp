@@ -19,6 +19,10 @@ UProneMovement::UProneMovement(const FObjectInitializer& ObjectInitializer)
 	PronedHalfHeight = 60.f;
 
 	ProneLockDuration = 1.f;
+
+	bCanWalkOffLedgesWhenProned = false;
+	bWantsToProne = false;
+	bProneLocked = false;
 }
 
 bool UProneMovement::HasValidData() const

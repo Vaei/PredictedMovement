@@ -6,6 +6,8 @@
 #include "Components/CapsuleComponent.h"
 #include "Prone/ProneCharacter.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(ProneMovement)
+
 UProneMovement::UProneMovement(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

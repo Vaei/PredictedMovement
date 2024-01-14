@@ -6,6 +6,8 @@
 #include "Net/UnrealNetwork.h"
 #include "Strafe/StrafeMovement.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(StrafeCharacter)
+
 AStrafeCharacter::AStrafeCharacter(const FObjectInitializer& FObjectInitializer)
 	: Super(FObjectInitializer.SetDefaultSubobjectClass<UStrafeMovement>(CharacterMovementComponentName))
 {

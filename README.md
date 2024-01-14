@@ -139,6 +139,10 @@ more advanced and often unnecessary.
 
 # Changelog
 
+### 1.0.4.0
+* Fixed a bug causing SimulatedProxy to factor ProneLock incorrectly, causing it to become stuck in Prone
+* Moved prone lock definitions to the .cpp
+
 ### 1.0.3.3
 * Initialize a few uninitialized properties
 * Add `UE_INLINE_GENERATED_CPP_BY_NAME` to all relevant .cpp

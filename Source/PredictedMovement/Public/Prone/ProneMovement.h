@@ -104,30 +104,14 @@ public:
 	
 public:
 	UFUNCTION(BlueprintPure, Category="Character Movement")
-	bool IsProneLocked() const { return bProneLocked; }
-	
-	bool IsProneLockOnTimer() const { return GetRemainingProneLockCooldown() > 0.f; }
+	bool IsProneLocked() const;
+
+	bool IsProneLockOnTimer() const;
 
 	// Prone lock timer
-	float GetRemainingProneLockCooldown() const
-	{
-		const float CurrentTimestamp = GetTimestamp();
-		const float RemainingCooldown = ProneLockDuration - (CurrentTimestamp - ProneLockTimestamp);
-		return FMath::Clamp(RemainingCooldown, 0.f, ProneLockDuration);
-	}
+	float GetRemainingProneLockCooldown() const;
 
-	void SetProneLock(bool bLock)
-	{
-		if (bLock)
-		{
-			bProneLocked = true;
-			ProneLockTimestamp = GetTimestamp();
-		}
-		else
-		{
-			bProneLocked = false;
-		}
-	}
+	void SetProneLock(bool bLock);
 
 	float GetTimestamp() const;
 

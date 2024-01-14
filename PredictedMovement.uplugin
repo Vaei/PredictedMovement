@@ -1,11 +1,11 @@
 {
 	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "1.0.3.2",
+	"VersionName": "1.0.3.3",
 	"FriendlyName": "PredictedMovement",
 	"Description": "This plugin offers several shells usually with a derived UCharacterMovementComponent and ACharacter which form a single net predicted ability",
 	"Category": "Gameplay",
-	"CreatedBy": "Vaei",
+	"CreatedBy": "Jared Taylor (Vaei)",
 	"CreatedByURL": "",
 	"DocsURL": "",
 	"MarketplaceURL": "",

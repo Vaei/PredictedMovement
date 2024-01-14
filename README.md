@@ -125,6 +125,10 @@ more advanced and often unnecessary.
 
 # Changelog
 
+### 1.0.3.3
+* Initialize a few uninitialized properties
+* Add `UE_INLINE_GENERATED_CPP_BY_NAME` to all relevant .cpp
+
 ### 1.0.3.2
 * SprintMovement added option (`bUseMaxAccelerationSprintingOnlyAtSpeed`) for using `MaxAccelerationSprinting` when `IsSprintingAtSpeed()` is false
 

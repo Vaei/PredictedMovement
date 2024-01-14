@@ -16,6 +16,8 @@ USprintMovement::USprintMovement(const FObjectInitializer& ObjectInitializer)
 	BrakingFrictionSprinting = 4.f;
 
 	VelocityCheckMitigatorSprinting = 0.98f;
+
+	bWantsToSprint = false;
 }
 
 bool USprintMovement::HasValidData() const

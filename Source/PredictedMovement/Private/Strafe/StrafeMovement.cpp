@@ -5,6 +5,8 @@
 
 #include "Strafe/StrafeCharacter.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(StrafeMovement)
+
 UStrafeMovement::UStrafeMovement(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

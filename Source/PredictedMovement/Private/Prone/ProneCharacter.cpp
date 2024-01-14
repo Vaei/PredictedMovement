@@ -6,6 +6,8 @@
 #include "Net/UnrealNetwork.h"
 #include "Prone/ProneMovement.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(ProneCharacter)
+
 AProneCharacter::AProneCharacter(const FObjectInitializer& FObjectInitializer)
 	: Super(FObjectInitializer.SetDefaultSubobjectClass<UProneMovement>(CharacterMovementComponentName))
 {

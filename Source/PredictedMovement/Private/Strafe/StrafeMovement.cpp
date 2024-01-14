@@ -13,6 +13,8 @@ UStrafeMovement::UStrafeMovement(const FObjectInitializer& ObjectInitializer)
 	BrakingDecelerationStrafing = 512.f;
 	GroundFrictionStrafing = 12.f;
 	BrakingFrictionStrafing = 4.f;
+
+	bWantsToStrafe = false;
 }
 
 bool UStrafeMovement::HasValidData() const

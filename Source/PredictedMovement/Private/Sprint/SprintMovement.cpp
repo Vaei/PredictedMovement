@@ -5,6 +5,8 @@
 
 #include "Sprint/SprintCharacter.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(SprintMovement)
+
 USprintMovement::USprintMovement(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

@@ -6,6 +6,8 @@
 #include "Net/UnrealNetwork.h"
 #include "Sprint/SprintMovement.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(SprintCharacter)
+
 ASprintCharacter::ASprintCharacter(const FObjectInitializer& FObjectInitializer)
 	: Super(FObjectInitializer.SetDefaultSubobjectClass<USprintMovement>(CharacterMovementComponentName))
 {

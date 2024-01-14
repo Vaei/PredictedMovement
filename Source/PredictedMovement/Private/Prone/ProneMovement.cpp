@@ -106,6 +106,41 @@ bool UProneMovement::CanAttemptJump() const
 	return Super::CanAttemptJump() && !bWantsToProne;
 }
 
+bool UProneMovement::IsProneLocked() const
+{
+	if (CharacterOwner && CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		// Sim proxies don't prone lock
+		return false;
+	}
+	return bProneLocked;
+}
+
+bool UProneMovement::IsProneLockOnTimer() const
+{
+	return GetRemainingProneLockCooldown() > 0.f;
+}
+
+float UProneMovement::GetRemainingProneLockCooldown() const
+{
+	const float CurrentTimestamp = GetTimestamp();
+	const float RemainingCooldown = ProneLockDuration - (CurrentTimestamp - ProneLockTimestamp);
+	return FMath::Clamp(RemainingCooldown, 0.f, ProneLockDuration);
+}
+
+void UProneMovement::SetProneLock(bool bLock)
+{
+	if (bLock)
+	{
+		bProneLocked = true;
+		ProneLockTimestamp = GetTimestamp();
+	}
+	else
+	{
+		bProneLocked = false;
+	}
+}
+
 float UProneMovement::GetTimestamp() const
 {
 	if (CharacterOwner->GetLocalRole() == ROLE_Authority)

@@ -125,6 +125,9 @@ more advanced and often unnecessary.
 
 # Changelog
 
+### 1.0.3.2
+* SprintMovement added option (`bUseMaxAccelerationSprintingOnlyAtSpeed`) for using `MaxAccelerationSprinting` when `IsSprintingAtSpeed()` is false
+
 ### 1.0.3.1
 * Added NetworkStaminaCorrectionThreshold and exposed via UPROPERTY()
 

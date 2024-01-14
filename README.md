@@ -4,6 +4,20 @@ This plugin offers several shells usually with a derived `UCharacterMovementComp
 # Example
 You can [find the Third Person Template example project here](https://github.com/Vaei/PredictedMovementExample)
 
+# Notes
+Each Character exposes it's Movement component to blueprint. If you are using more than one provided Character class, or if you are exposing a derived movement component, you should remove the parts of the `UPROPERTY` macro that expose it to blueprint to avoid issues in the editor when opening your character blueprint; exposing multiple means the engine displays multiple regardless of inheritance and this spams the detail panel with the same movement component under multiple names and causes serious slow-downs.
+
+Example:
+```cpp
+// Change this:
+UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
+TObjectPtr<UProneMovement> ProneMovement;
+
+// To this:
+UPROPERTY()
+TObjectPtr<UProneMovement> ProneMovement;
+```
+
 # Predicted Abilities
 
 ## Prone

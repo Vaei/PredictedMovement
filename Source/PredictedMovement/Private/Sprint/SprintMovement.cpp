@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2023 Jared Taylor. All Rights Reserved.
+// Copyright (c) 2023 Jared Taylor. All Rights Reserved.
 
 
 #include "Sprint/SprintMovement.h"
@@ -8,6 +8,7 @@
 USprintMovement::USprintMovement(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bUseMaxAccelerationSprintingOnlyAtSpeed = true;
 	MaxAccelerationSprinting = 1024.f;
 	MaxWalkSpeedSprinting = 600.f;
 	BrakingDecelerationSprinting = 512.f;
@@ -55,7 +56,7 @@ bool USprintMovement::IsSprintingAtSpeed() const
 
 float USprintMovement::GetMaxAcceleration() const
 {
-	if (IsSprinting() && IsSprintingAtSpeed())
+	if (IsSprinting() && (!bUseMaxAccelerationSprintingOnlyAtSpeed || IsSprintingAtSpeed()))
 	{
 		return MaxAccelerationSprinting;
 	}

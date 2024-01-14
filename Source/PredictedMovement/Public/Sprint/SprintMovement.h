@@ -18,6 +18,10 @@ private:
 	TObjectPtr<ASprintCharacter> SprintCharacterOwner;
 
 public:
+	/** If true, sprinting acceleration will only be applied when IsSprintingAtSpeed() returns true */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite)
+	bool bUseMaxAccelerationSprintingOnlyAtSpeed;
+	
 	/** Max Acceleration (rate of change of velocity) */
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float MaxAccelerationSprinting;

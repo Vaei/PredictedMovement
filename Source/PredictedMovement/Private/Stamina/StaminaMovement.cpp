@@ -186,63 +186,18 @@ void FSavedMove_Character_Stamina::SetInitialPosition(ACharacter* C)
 	}
 }
 
-void UStaminaMovement::ClientHandleMoveResponse(const FCharacterMoveResponseDataContainer& MoveResponse)
+void UStaminaMovement::OnClientCorrectionReceived(FNetworkPredictionData_Client_Character& ClientData, float TimeStamp,
+	FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase,
+	bool bBaseRelativePosition, uint8 ServerMovementMode)
 {
-	if (MoveResponse.IsCorrection())
-	{
-		if (!MoveResponse.bRootMotionSourceCorrection && !MoveResponse.bRootMotionMontageCorrection)
-		{
-			bool ValidMoveResponse = true;
-			if (!HasValidData() || !IsActive())
-			{
-				ValidMoveResponse = false;
-			}
+	// ClientHandleMoveResponse() ➜ ClientAdjustPosition_Implementation() ➜ OnClientCorrectionReceived()
+	const FStaminaMoveResponseDataContainer& StaminaMoveResponse = static_cast<const FStaminaMoveResponseDataContainer&>(GetMoveResponseDataContainer());
+	
+	SetStamina(StaminaMoveResponse.Stamina);
+	SetStaminaDrained(StaminaMoveResponse.bStaminaDrained);
 
-			const FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character();
-			check(ClientData);
-
-			const FStaminaMoveResponseDataContainer& StaminaMoveResponse = static_cast<const FStaminaMoveResponseDataContainer&>(MoveResponse);
-
-			// Make sure the base actor exists on this client.
-			const bool bUnresolvedBase = StaminaMoveResponse.bHasBase && (StaminaMoveResponse.ClientAdjustment.NewBase == nullptr);
-			if (bUnresolvedBase)
-			{
-				if (StaminaMoveResponse.ClientAdjustment.bBaseRelativePosition)
-				{
-					ValidMoveResponse = false;
-				}
-			}
-
-			// Make sure the SavedMove still exists
-			const int32 MoveIndex = ClientData->GetSavedMoveIndex(StaminaMoveResponse.ClientAdjustment.TimeStamp);
-			if (MoveIndex == INDEX_NONE)
-			{
-				ValidMoveResponse = false;
-			}
-
-			// This is a bit weird, but the actual function the adjust the client position doesn't get the MoveResponse, but single variables
-			// So we can't really override that one as we need the full container.
-			// The Adjust Client Function does however filter actually correcting things based on the two conditions above, so we have to mimic them
-			if (ValidMoveResponse)
-			{
-#if !UE_BUILD_SHIPPING
-				const IConsoleVariable* VarNetShowCorrections = IConsoleManager::Get().FindConsoleVariable(*FString("p.NetShowCorrections"));
-				if (VarNetShowCorrections != nullptr && VarNetShowCorrections->GetInt() != 0)
-				{
-					UE_LOG(LogNetPlayerMovement, Error, TEXT("[%s] Client Received Correction."), *FString(__FUNCTION__));
-				}
-#endif // !UE_BUILD_SHIPPPING
-
-				SetStamina(StaminaMoveResponse.Stamina);
-				SetStaminaDrained(StaminaMoveResponse.bStaminaDrained);
-			}
-		}
-	}
-
-	// Calling UCharacterMovementComponent specifically, because a Super call in a class deriving from
-	// this one with it's own implementation of ClientHandleMoveResponse would never want to call Super
-	// either, and this helps with readability
-	UCharacterMovementComponent::ClientHandleMoveResponse(MoveResponse);
+	Super::OnClientCorrectionReceived(ClientData, TimeStamp, NewLocation, NewVelocity, NewBase, NewBaseBoneName,
+	bHasBase, bBaseRelativePosition, ServerMovementMode);
 }
 
 bool UStaminaMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel, const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)

@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "1.0.4.0",
+	"VersionName": "1.0.5.0",
 	"FriendlyName": "PredictedMovement",
 	"Description": "This plugin offers several shells usually with a derived UCharacterMovementComponent and ACharacter which form a single net predicted ability",
 	"Category": "Gameplay",

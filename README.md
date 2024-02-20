@@ -139,6 +139,9 @@ more advanced and often unnecessary.
 
 # Changelog
 
+### 1.0.5.0
+* Replaced ClientHandleMoveResponse with OnClientCorrectionReceived
+
 ### 1.0.4.0
 * Fixed a bug causing SimulatedProxy to factor ProneLock incorrectly, causing it to become stuck in Prone
 * Moved prone lock definitions to the .cpp

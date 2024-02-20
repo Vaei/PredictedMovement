@@ -139,6 +139,9 @@ more advanced and often unnecessary.
 
 # Changelog
 
+### 1.0.5.1
+* Pre-processor macros for OnClientCorrectionReceived to support 5.3
+
 ### 1.0.5.0
 * Replaced ClientHandleMoveResponse with OnClientCorrectionReceived
 

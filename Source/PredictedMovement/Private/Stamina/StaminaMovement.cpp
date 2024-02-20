@@ -188,7 +188,12 @@ void FSavedMove_Character_Stamina::SetInitialPosition(ACharacter* C)
 
 void UStaminaMovement::OnClientCorrectionReceived(FNetworkPredictionData_Client_Character& ClientData, float TimeStamp,
 	FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase,
-	bool bBaseRelativePosition, uint8 ServerMovementMode)
+	bool bBaseRelativePosition, uint8 ServerMovementMode
+#if WITH_ARBITRARY_GRAVITY
+	, FVector ServerGravityDirection)
+#else
+	)
+#endif
 {
 	// ClientHandleMoveResponse() ➜ ClientAdjustPosition_Implementation() ➜ OnClientCorrectionReceived()
 	const FStaminaMoveResponseDataContainer& StaminaMoveResponse = static_cast<const FStaminaMoveResponseDataContainer&>(GetMoveResponseDataContainer());
@@ -197,7 +202,12 @@ void UStaminaMovement::OnClientCorrectionReceived(FNetworkPredictionData_Client_
 	SetStaminaDrained(StaminaMoveResponse.bStaminaDrained);
 
 	Super::OnClientCorrectionReceived(ClientData, TimeStamp, NewLocation, NewVelocity, NewBase, NewBaseBoneName,
-	bHasBase, bBaseRelativePosition, ServerMovementMode);
+	bHasBase, bBaseRelativePosition, ServerMovementMode
+#if WITH_ARBITRARY_GRAVITY
+	, ServerGravityDirection);
+#else
+	);
+#endif
 }
 
 bool UStaminaMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel, const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)

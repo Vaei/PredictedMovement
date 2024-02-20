@@ -6,6 +6,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "StaminaMovement.generated.h"
 
+#define WITH_ARBITRARY_GRAVITY ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
+
 struct PREDICTEDMOVEMENT_API FStaminaMoveResponseDataContainer : FCharacterMoveResponseDataContainer
 {
 	using Super = FCharacterMoveResponseDataContainer;
@@ -133,8 +135,13 @@ private:
 	
 public:
 	virtual void OnClientCorrectionReceived(FNetworkPredictionData_Client_Character& ClientData, float TimeStamp,
-		FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase,
-		bool bBaseRelativePosition, uint8 ServerMovementMode) override;
+	FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase,
+	bool bBaseRelativePosition, uint8 ServerMovementMode
+#if WITH_ARBITRARY_GRAVITY
+	, FVector ServerGravityDirection) override;
+#else
+	) override;
+#endif
 	
 	virtual bool ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
 		const FVector& ClientWorldLocation, const FVector& RelativeClientLocation,

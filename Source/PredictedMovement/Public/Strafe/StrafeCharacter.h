@@ -26,7 +26,6 @@ class PREDICTEDMOVEMENT_API AStrafeCharacter : public AProneCharacter
 
 private:
 	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
-	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
 	TObjectPtr<UStrafeMovement> StrafeMovement;
 
 	friend class FSavedMove_Character_Strafe;

@@ -14,7 +14,6 @@ class PREDICTEDMOVEMENT_API AProneCharacter : public ACharacter
 
 private:
 	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
-	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
 	TObjectPtr<UProneMovement> ProneMovement;
 
 	friend class FSavedMove_Character_Prone;

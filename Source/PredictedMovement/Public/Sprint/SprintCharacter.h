@@ -3,12 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Strafe/StrafeCharacter.h"
+#include "Strafe/AimDownSightsCharacter.h"
 #include "SprintCharacter.generated.h"
 
 class USprintMovement;
 UCLASS()
-class PREDICTEDMOVEMENT_API ASprintCharacter : public AStrafeCharacter
+class PREDICTEDMOVEMENT_API ASprintCharacter : public AAimDownSightsCharacter
 {
 	GENERATED_BODY()
 

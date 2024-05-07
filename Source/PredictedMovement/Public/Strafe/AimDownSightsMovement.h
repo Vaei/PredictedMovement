@@ -4,9 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Prone/ProneMovement.h"
-#include "StrafeMovement.generated.h"
+#include "AimDownSightsMovement.generated.h"
 
-class AStrafeCharacter;
+class AAimDownSightsCharacter;
 
 /**
  * Strafe is a shell intended for changing to and from a strafing state, however the actual implementation of
@@ -20,30 +20,30 @@ class AStrafeCharacter;
  * more advanced and often unnecessary.
  */
 UCLASS()
-class PREDICTEDMOVEMENT_API UStrafeMovement : public UProneMovement
+class PREDICTEDMOVEMENT_API UAimDownSightsMovement : public UProneMovement
 {
 	GENERATED_BODY()
 	
 private:
 	/** Character movement component belongs to */
 	UPROPERTY(Transient, DuplicateTransient)
-	TObjectPtr<AStrafeCharacter> StrafeCharacterOwner;
+	TObjectPtr<AAimDownSightsCharacter> AimDownSightsCharacterOwner;
 
 public:
 	/** Max Acceleration (rate of change of velocity) */
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
-	float MaxAccelerationStrafing;
+	float MaxAccelerationAiming;
 	
 	/** The maximum ground speed when Strafing. */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
-	float MaxWalkSpeedStrafing;
+	float MaxWalkSpeedAiming;
 
 	/**
 	 * Deceleration when walking and not applying acceleration. This is a constant opposing force that directly lowers velocity by a constant value.
 	 * @see GroundFriction, MaxAcceleration
 	 */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
-	float BrakingDecelerationStrafing;
+	float BrakingDecelerationAiming;
 
 	/**
 	 * Setting that affects movement control. Higher values allow faster changes in direction.
@@ -53,7 +53,7 @@ public:
 	 * @see BrakingDecelerationWalking, BrakingFriction, bUseSeparateBrakingFriction, BrakingFrictionFactor
 	 */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
-	float GroundFrictionStrafing;
+	float GroundFrictionAiming;
 
 	/**
 	 * Friction (drag) coefficient applied when braking (whenever Acceleration = 0, or if character is exceeding max speed); actual value used is this multiplied by BrakingFrictionFactor.
@@ -64,15 +64,15 @@ public:
 	 * @see bUseSeparateBrakingFriction, BrakingFrictionFactor, GroundFriction, BrakingDecelerationWalking
 	 */
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", EditCondition="bUseSeparateBrakingFriction"))
-	float BrakingFrictionStrafing;
+	float BrakingFrictionAiming;
 	
 public:
 	/** If true, try to Strafe (or keep Strafing) on next update. If false, try to stop Strafing on next update. */
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
-	uint8 bWantsToStrafe:1;
+	uint8 bWantsToAimDownSights:1;
 
 public:
-	UStrafeMovement(const FObjectInitializer& ObjectInitializer);
+	UAimDownSightsMovement(const FObjectInitializer& ObjectInitializer);
 
 	virtual bool HasValidData() const override;
 	virtual void PostLoad() override;
@@ -87,23 +87,23 @@ public:
 	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
 
 public:
-	virtual bool IsStrafing() const;
+	virtual bool IsAimingDownSights() const;
 
 	/**
 	 * Call CharacterOwner->OnStartStrafe() if successful.
 	 * In general you should set bWantsToStrafe instead to have the Strafe persist during movement, or just use the Strafe functions on the owning Character.
 	 * @param	bClientSimulation	true when called when bIsStrafeed is replicated to non owned clients.
 	 */
-	virtual void Strafe(bool bClientSimulation = false);
+	virtual void AimDownSights(bool bClientSimulation = false);
 	
 	/**
 	 * Checks if default capsule size fits (no encroachment), and trigger OnEndStrafe() on the owner if successful.
 	 * @param	bClientSimulation	true when called when bIsStrafeed is replicated to non owned clients.
 	 */
-	virtual void UnStrafe(bool bClientSimulation = false);
+	virtual void StopAimDownSights(bool bClientSimulation = false);
 
 	/** Returns true if the character is allowed to Strafe in the current state. By default it is allowed when walking or falling. */
-	virtual bool CanStrafeInCurrentState() const;
+	virtual bool CanAimDownSightsInCurrentState() const;
 
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
 	virtual void UpdateCharacterStateAfterMovement(float DeltaSeconds) override;
@@ -118,20 +118,20 @@ public:
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 };
 
-class PREDICTEDMOVEMENT_API FSavedMove_Character_Strafe : public FSavedMove_Character_Prone
+class PREDICTEDMOVEMENT_API FSavedMove_Character_AimDownSights : public FSavedMove_Character_Prone
 {
 	using Super = FSavedMove_Character_Prone;
 
 public:
-	FSavedMove_Character_Strafe()
-		: bWantsToStrafe(0)
+	FSavedMove_Character_AimDownSights()
+		: bWantsToAimDownSights(0)
 	{
 	}
 
-	virtual ~FSavedMove_Character_Strafe() override
+	virtual ~FSavedMove_Character_AimDownSights() override
 	{}
 
-	uint32 bWantsToStrafe:1;
+	uint32 bWantsToAimDownSights:1;
 		
 	/** Clear saved move properties, so it can be re-used. */
 	virtual void Clear() override;
@@ -143,12 +143,12 @@ public:
 	virtual uint8 GetCompressedFlags() const override;
 };
 
-class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Strafe : public FNetworkPredictionData_Client_Character_Prone
+class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_AimDownSights : public FNetworkPredictionData_Client_Character_Prone
 {
 	using Super = FNetworkPredictionData_Client_Character_Prone;
 
 public:
-	FNetworkPredictionData_Client_Character_Strafe(const UCharacterMovementComponent& ClientMovement)
+	FNetworkPredictionData_Client_Character_AimDownSights(const UCharacterMovementComponent& ClientMovement)
 	: Super(ClientMovement)
 	{}
 

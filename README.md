@@ -1,4 +1,5 @@
-# PredictedMovement
+# Predicted Movement <img align="right" width=128, height=128 src="https://github.com/Vaei/PredictedMovement/blob/main/Resources/Icon128.png">
+
 This plugin offers several shells usually with a derived `UCharacterMovementComponent` and `ACharacter` which form a single net predicted ability.
 
 # Example

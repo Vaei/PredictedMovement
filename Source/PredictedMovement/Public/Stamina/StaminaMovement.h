@@ -4,12 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "System/PredictedMovementVersioning.h"
 #include "StaminaMovement.generated.h"
 
-#define WITH_ARBITRARY_GRAVITY ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
-
 struct PREDICTEDMOVEMENT_API FStaminaMoveResponseDataContainer : FCharacterMoveResponseDataContainer
-{
+{  // Server ➜ Client
 	using Super = FCharacterMoveResponseDataContainer;
 	
 	virtual void ServerFillResponseData(const UCharacterMovementComponent& CharacterMovement, const FClientAdjustment& PendingAdjustment) override;
@@ -20,7 +19,7 @@ struct PREDICTEDMOVEMENT_API FStaminaMoveResponseDataContainer : FCharacterMoveR
 };
 
 struct PREDICTEDMOVEMENT_API FStaminaNetworkMoveData : public FCharacterNetworkMoveData
-{
+{  // Client ➜ Server
 public:
     typedef FCharacterNetworkMoveData Super;
  
@@ -38,7 +37,7 @@ public:
 };
  
 struct PREDICTEDMOVEMENT_API FStaminaNetworkMoveDataContainer : public FCharacterNetworkMoveDataContainer
-{
+{  // Client ➜ Server
 public:
     typedef FCharacterNetworkMoveDataContainer Super;
  
@@ -137,7 +136,7 @@ public:
 	virtual void OnClientCorrectionReceived(FNetworkPredictionData_Client_Character& ClientData, float TimeStamp,
 	FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase,
 	bool bBaseRelativePosition, uint8 ServerMovementMode
-#if WITH_ARBITRARY_GRAVITY
+#if UE_5_03_OR_LATER
 	, FVector ServerGravityDirection) override;
 #else
 	) override;

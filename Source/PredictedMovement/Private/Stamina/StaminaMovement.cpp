@@ -189,7 +189,7 @@ void FSavedMove_Character_Stamina::SetInitialPosition(ACharacter* C)
 void UStaminaMovement::OnClientCorrectionReceived(FNetworkPredictionData_Client_Character& ClientData, float TimeStamp,
 	FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase,
 	bool bBaseRelativePosition, uint8 ServerMovementMode
-#if WITH_ARBITRARY_GRAVITY
+#if UE_5_03_OR_LATER
 	, FVector ServerGravityDirection)
 #else
 	)
@@ -203,7 +203,7 @@ void UStaminaMovement::OnClientCorrectionReceived(FNetworkPredictionData_Client_
 
 	Super::OnClientCorrectionReceived(ClientData, TimeStamp, NewLocation, NewVelocity, NewBase, NewBaseBoneName,
 	bHasBase, bBaseRelativePosition, ServerMovementMode
-#if WITH_ARBITRARY_GRAVITY
+#if UE_5_03_OR_LATER
 	, ServerGravityDirection);
 #else
 	);

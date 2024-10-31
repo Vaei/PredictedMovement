@@ -16,6 +16,11 @@ namespace FModifierTags
 
 int32 FModifierData::GetNumModifiersByLevel(uint8 Level) const
 {
+	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
+	{
+		return 0;
+	}
+	
 	// Can't apply a modifier of level 0 in the first place
 	if (!ensureAlways(Level > 0))
 	{
@@ -36,6 +41,11 @@ void FModifierData::Initialize(AModifierCharacter* InCharacterOwner)
 
 void FModifierData::AddModifier(uint8 Level)
 {
+	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(bHasInitialized, TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -69,6 +79,11 @@ void FModifierData::AddModifier(uint8 Level)
 
 void FModifierData::RemoveModifier(uint8 Level)
 {
+	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(bHasInitialized, TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -98,6 +113,11 @@ void FModifierData::RemoveModifier(uint8 Level)
 
 void FModifierData::RemoveAllModifiers()
 {
+	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(bHasInitialized, TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -117,6 +137,11 @@ void FModifierData::RemoveAllModifiers()
 
 void FModifierData::RemoveAllModifiersByLevel(uint8 Level)
 {
+	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(bHasInitialized, TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -136,6 +161,11 @@ void FModifierData::RemoveAllModifiersByLevel(uint8 Level)
 
 void FModifierData::RemoveAllModifiersExceptLevel(uint8 Level)
 {
+	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(bHasInitialized, TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -154,6 +184,11 @@ void FModifierData::RemoveAllModifiersExceptLevel(uint8 Level)
 
 void FModifierData::SetModifiers(const TArray<uint8>& NewModifiers)
 {
+	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
+	{
+		return;
+	}
+	
 	if (ensureAlwaysMsgf(MaxModifiers > 0, TEXT("Cannot set modifiers %s with max modifiers set to 0, use SetModifierLevel instead"), *ModifierType.ToString()))
 	{
 		return;
@@ -168,6 +203,11 @@ void FModifierData::SetModifiers(const TArray<uint8>& NewModifiers)
 
 void FModifierData::SetModifierLevel(uint8 Level)
 {
+	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
+	{
+		return;
+	}
+	
 	if (!CharacterOwner.IsValid())
 	{
 		return;

@@ -10,7 +10,7 @@ class UStrafeMovement;
 
 /**
  * Strafe is a shell intended for changing to and from a strafing state, however the actual implementation of
- * "what strafe does" is highly dependant on a project, so override the functions and define the behaviour yourself.
+ * "what strafe does" is highly dependent on a project, so override the functions and define the behaviour yourself.
  *
  * Generally AStrafeCharacter::OnStartStrafe might change bUseControllerRotationYaw = true and
  * bOrientRotationToMovement = false then and AStrafeCharacter::OnEndStrafe would change them back.

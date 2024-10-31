@@ -31,26 +31,59 @@ int32 FModifierData::GetNumModifiersByLevel(uint8 Level) const
 void FModifierData::Initialize(AModifierCharacter* InCharacterOwner)
 {
 	CharacterOwner = InCharacterOwner;
+	bHasInitialized = true;
 }
 
 void FModifierData::AddModifier(uint8 Level)
 {
-	if (!ensureAlwaysMsgf(Level > 0, TEXT("Cannot apply a modifier of level 0")))
+	if (!ensureAlwaysMsgf(bHasInitialized, TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
+	{
+		return;
+	}
+	
+	if (!CharacterOwner.IsValid())
 	{
 		return;
 	}
 
+	if (ensureAlwaysMsgf(MaxModifiers > 0, TEXT("Cannot apply a modifier %s with max modifiers set to 0, use SetModifierLevel instead"), *ModifierType.ToString()))
+	{
+		return;
+	}
+	
+	if (!ensureAlwaysMsgf(Level > 0, TEXT("Cannot apply a modifier %s of level 0"), *ModifierType.ToString()))
+	{
+		return;
+	}
+
+	// Remove the oldest modifier if we're at the max
 	if (Modifiers.Num() == MaxModifiers)
 	{
 		Modifiers.RemoveAt(0);
 	}
 
+	// Add the new modifier
 	Modifiers.Add(Level);
 	OnModifiersChanged();
 }
 
 void FModifierData::RemoveModifier(uint8 Level)
 {
+	if (!ensureAlwaysMsgf(bHasInitialized, TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
+	{
+		return;
+	}
+	
+	if (!CharacterOwner.IsValid())
+	{
+		return;
+	}
+	
+	if (ensureAlwaysMsgf(MaxModifiers > 0, TEXT("Cannot remove a modifier %s with max modifiers set to 0, use SetModifierLevel instead"), *ModifierType.ToString()))
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(Level > 0, TEXT("Cannot remove a modifier of level 0")))
 	{
 		return;
@@ -65,6 +98,16 @@ void FModifierData::RemoveModifier(uint8 Level)
 
 void FModifierData::RemoveAllModifiers()
 {
+	if (!ensureAlwaysMsgf(bHasInitialized, TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
+	{
+		return;
+	}
+	
+	if (ensureAlwaysMsgf(MaxModifiers > 0, TEXT("Cannot remove a modifier %s with max modifiers set to 0, use SetModifierLevel instead"), *ModifierType.ToString()))
+	{
+		return;
+	}
+	
 	if (Modifiers.Num() > 0)
 	{
 		Modifiers.Reset();
@@ -74,6 +117,16 @@ void FModifierData::RemoveAllModifiers()
 
 void FModifierData::RemoveAllModifiersByLevel(uint8 Level)
 {
+	if (!ensureAlwaysMsgf(bHasInitialized, TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
+	{
+		return;
+	}
+	
+	if (ensureAlwaysMsgf(MaxModifiers > 0, TEXT("Cannot remove a modifier %s with max modifiers set to 0, use SetModifierLevel instead"), *ModifierType.ToString()))
+	{
+		return;
+	}
+	
 	if (GetNumModifiersByLevel(Level) > 0)
 	{
 		Modifiers.Remove(Level);
@@ -83,6 +136,16 @@ void FModifierData::RemoveAllModifiersByLevel(uint8 Level)
 
 void FModifierData::RemoveAllModifiersExceptLevel(uint8 Level)
 {
+	if (!ensureAlwaysMsgf(bHasInitialized, TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
+	{
+		return;
+	}
+	
+	if (ensureAlwaysMsgf(MaxModifiers > 0, TEXT("Cannot remove a modifier %s with max modifiers set to 0, use SetModifierLevel instead"), *ModifierType.ToString()))
+	{
+		return;
+	}
+	
 	Modifiers.RemoveAll([Level](uint8 ModifierLevel)
 	{
 		return ModifierLevel != Level;
@@ -91,6 +154,11 @@ void FModifierData::RemoveAllModifiersExceptLevel(uint8 Level)
 
 void FModifierData::SetModifiers(const TArray<uint8>& NewModifiers)
 {
+	if (ensureAlwaysMsgf(MaxModifiers > 0, TEXT("Cannot set modifiers %s with max modifiers set to 0, use SetModifierLevel instead"), *ModifierType.ToString()))
+	{
+		return;
+	}
+	
 	if (Modifiers != NewModifiers)
 	{
 		Modifiers = NewModifiers;
@@ -111,17 +179,16 @@ void FModifierData::SetModifierLevel(uint8 Level)
 		ModifierLevel = Level;
 
 		CharacterOwner->OnModifierChanged(ModifierType, ModifierLevel, PrevLevel);
-		
-		// @TODO if (HonorCharacterOwner->HasAuthority())
-		// {
-		// 	// Replicate to sim proxies
-		// 	HonorCharacterOwner->SimulatedSnareLevel = SnareLevel;
-		// }
 	}
 }
 
 void FModifierData::OnModifiersChanged()
 {
+	if (MaxModifiers == 0)
+	{
+		return;
+	}
+	
 	// Determine modifier level
 	uint8 NewLevel = 0;
 	switch (LevelMethod)
@@ -148,6 +215,12 @@ bool FModifierData::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOu
 	// Serialize the modifier level
 	SerializeOptionalValue<uint8>(Ar.IsSaving(), Ar, ModifierLevel, 0);
 
+	// Don't serialize modifier stack if the max is 0
+	if (MaxModifiers == 0)
+	{
+		return !Ar.IsError();
+	}
+	
 	// Serialize the number of elements
 	int32 NumModifiers = Modifiers.Num();
 	if (Ar.IsSaving())

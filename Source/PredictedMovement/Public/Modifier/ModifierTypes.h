@@ -86,7 +86,7 @@ public:
 	}
 
 	int32 GetNumModifiers() const	{ return Modifiers.Num();	}
-	int32 GetNumModifiersByLevel(uint8 Level = 0) const;
+	int32 GetNumModifiersByLevel(uint8 Level) const;
 
 	void Initialize(AModifierCharacter* InCharacterOwner);
 

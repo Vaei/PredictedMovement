@@ -34,10 +34,10 @@ struct PREDICTEDMOVEMENT_API FModifierData
 {
 	GENERATED_BODY()
 
-	FModifierData()
-		: ModifierType(FModifierTags::Modifier_Type_Debuff_Snare)
-		, LevelMethod(EModifierLevelMethod::Max)
-		, MaxModifiers(3)
+	FModifierData(const FGameplayTag& InModifierType = FModifierTags::Modifier_Type_Debuff_Snare, EModifierLevelMethod InLevelMethod = EModifierLevelMethod::Max, int32 InMaxModifiers = 3)
+		: ModifierType(InModifierType)
+		, LevelMethod(InLevelMethod)
+		, MaxModifiers(InMaxModifiers)
 		, ModifierLevel(0)
 		, CharacterOwner(nullptr)
 		, bHasInitialized(false)

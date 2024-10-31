@@ -56,7 +56,7 @@ void FModifierData::AddModifier(uint8 Level)
 		return;
 	}
 
-	if (ensureAlwaysMsgf(MaxModifiers > 0, TEXT("Cannot apply a modifier %s with max modifiers set to 0, use SetModifierLevel instead"), *ModifierType.ToString()))
+	if (!ensureAlwaysMsgf(MaxModifiers > 0, TEXT("Cannot apply a modifier %s with max modifiers set to 0, use SetModifierLevel instead"), *ModifierType.ToString()))
 	{
 		return;
 	}
@@ -94,7 +94,7 @@ void FModifierData::RemoveModifier(uint8 Level)
 		return;
 	}
 	
-	if (ensureAlwaysMsgf(MaxModifiers > 0, TEXT("Cannot remove a modifier %s with max modifiers set to 0, use SetModifierLevel instead"), *ModifierType.ToString()))
+	if (!ensureAlwaysMsgf(MaxModifiers > 0, TEXT("Cannot remove a modifier %s with max modifiers set to 0, use SetModifierLevel instead"), *ModifierType.ToString()))
 	{
 		return;
 	}
@@ -123,7 +123,7 @@ void FModifierData::RemoveAllModifiers()
 		return;
 	}
 	
-	if (ensureAlwaysMsgf(MaxModifiers > 0, TEXT("Cannot remove a modifier %s with max modifiers set to 0, use SetModifierLevel instead"), *ModifierType.ToString()))
+	if (!ensureAlwaysMsgf(MaxModifiers > 0, TEXT("Cannot remove a modifier %s with max modifiers set to 0, use SetModifierLevel instead"), *ModifierType.ToString()))
 	{
 		return;
 	}
@@ -147,7 +147,7 @@ void FModifierData::RemoveAllModifiersByLevel(uint8 Level)
 		return;
 	}
 	
-	if (ensureAlwaysMsgf(MaxModifiers > 0, TEXT("Cannot remove a modifier %s with max modifiers set to 0, use SetModifierLevel instead"), *ModifierType.ToString()))
+	if (!ensureAlwaysMsgf(MaxModifiers > 0, TEXT("Cannot remove a modifier %s with max modifiers set to 0, use SetModifierLevel instead"), *ModifierType.ToString()))
 	{
 		return;
 	}
@@ -171,7 +171,7 @@ void FModifierData::RemoveAllModifiersExceptLevel(uint8 Level)
 		return;
 	}
 	
-	if (ensureAlwaysMsgf(MaxModifiers > 0, TEXT("Cannot remove a modifier %s with max modifiers set to 0, use SetModifierLevel instead"), *ModifierType.ToString()))
+	if (!ensureAlwaysMsgf(MaxModifiers > 0, TEXT("Cannot remove a modifier %s with max modifiers set to 0, use SetModifierLevel instead"), *ModifierType.ToString()))
 	{
 		return;
 	}
@@ -189,7 +189,7 @@ void FModifierData::SetModifiers(const TArray<uint8>& NewModifiers)
 		return;
 	}
 	
-	if (ensureAlwaysMsgf(MaxModifiers > 0, TEXT("Cannot set modifiers %s with max modifiers set to 0, use SetModifierLevel instead"), *ModifierType.ToString()))
+	if (!ensureAlwaysMsgf(MaxModifiers > 0, TEXT("Cannot set modifiers %s with max modifiers set to 0, use SetModifierLevel instead"), *ModifierType.ToString()))
 	{
 		return;
 	}

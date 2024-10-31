@@ -25,11 +25,11 @@ void AModifierCharacter::OnModifierChanged(const FGameplayTag& ModifierType, uin
 	// Events for when a modifier is added or removed
 	if (ModifierLevel > 0 && PrevModifierLevel == 0)
 	{
-		OnModifierAdded(ModifierType, ModifierLevel);
+		OnModifierAdded(ModifierType, ModifierLevel, PrevModifierLevel);
 	}
 	else if (ModifierLevel == 0 && PrevModifierLevel > 0)
 	{
-		OnModifierRemoved(ModifierType, PrevModifierLevel);
+		OnModifierRemoved(ModifierType, ModifierLevel, PrevModifierLevel);
 	}
 
 	// Replicate to simulated proxies
@@ -39,18 +39,18 @@ void AModifierCharacter::OnModifierChanged(const FGameplayTag& ModifierType, uin
 	}
 }
 
-void AModifierCharacter::OnModifierAdded(const FGameplayTag& ModifierType, uint8 ModifierLevel)
+void AModifierCharacter::OnModifierAdded(const FGameplayTag& ModifierType, uint8 ModifierLevel, uint8 PrevModifierLevel)
 {
 	// @TIP: Add Loose Gameplay Tag Here (Not Replicated)
 
-	K2_OnModifierAdded(ModifierType, ModifierLevel, 0);
+	K2_OnModifierAdded(ModifierType, ModifierLevel, PrevModifierLevel);
 }
 
-void AModifierCharacter::OnModifierRemoved(const FGameplayTag& ModifierType, uint8 ModifierLevel)
+void AModifierCharacter::OnModifierRemoved(const FGameplayTag& ModifierType, uint8 ModifierLevel, uint8 PrevModifierLevel)
 {
 	// @TIP: Remove Loose Gameplay Tag Here (Not Replicated)
 
-	K2_OnModifierRemoved(ModifierType, ModifierLevel, 0);
+	K2_OnModifierRemoved(ModifierType, ModifierLevel, PrevModifierLevel);
 }
 
 void AModifierCharacter::OnRep_SimulatedSnare(uint8 PrevSimulatedSnare)

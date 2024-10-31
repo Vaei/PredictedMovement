@@ -30,8 +30,8 @@ public:
 
 public:
 	virtual void OnModifierChanged(const FGameplayTag& ModifierType, uint8 ModifierLevel, uint8 PrevModifierLevel);
-	virtual void OnModifierAdded(const FGameplayTag& ModifierType, uint8 ModifierLevel);
-	virtual void OnModifierRemoved(const FGameplayTag& ModifierType, uint8 ModifierLevel);
+	virtual void OnModifierAdded(const FGameplayTag& ModifierType, uint8 ModifierLevel, uint8 PrevModifierLevel);
+	virtual void OnModifierRemoved(const FGameplayTag& ModifierType, uint8 ModifierLevel, uint8 PrevModifierLevel);
 
 	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="On Modifier Added"))
 	void K2_OnModifierAdded(const FGameplayTag& ModifierType, uint8 ModifierLevel, uint8 PrevModifierLevel);

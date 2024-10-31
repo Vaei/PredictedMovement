@@ -12,8 +12,8 @@ void FStaminaMoveResponseDataContainer::ServerFillResponseData(
 {
 	Super::ServerFillResponseData(CharacterMovement, PendingAdjustment);
 
+	// Server ➜ Client
 	const UStaminaMovement* MoveComp = Cast<UStaminaMovement>(&CharacterMovement);
-
 	bStaminaDrained = MoveComp->IsStaminaDrained();
 	Stamina = MoveComp->GetStamina();
 }
@@ -26,6 +26,7 @@ bool FStaminaMoveResponseDataContainer::Serialize(UCharacterMovementComponent& C
 		return false;
 	}
 
+	// Server ➜ Client
 	if (IsCorrection())
 	{
 		Ar << Stamina;
@@ -45,14 +46,16 @@ FStaminaNetworkMoveDataContainer::FStaminaNetworkMoveDataContainer()
 void FStaminaNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove, ENetworkMoveType MoveType)
 {
     Super::ClientFillNetworkMoveData(ClientMove, MoveType);
- 
+	
+	// Client ➜ Server
     Stamina = static_cast<const FSavedMove_Character_Stamina&>(ClientMove).Stamina;
 }
 
 bool FStaminaNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap, ENetworkMoveType MoveType)
 {
     Super::Serialize(CharacterMovement, Ar, PackageMap, MoveType);
-    
+
+	// Client ➜ Server
     SerializeOptionalValue<float>(Ar.IsSaving(), Ar, Stamina, 0.f);
     return !Ar.IsError();
 }

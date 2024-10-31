@@ -39,6 +39,8 @@ struct PREDICTEDMOVEMENT_API FModifierData
 		, LevelMethod(EModifierLevelMethod::Max)
 		, MaxModifiers(3)
 		, ModifierLevel(0)
+		, CharacterOwner(nullptr)
+		, bHasInitialized(false)
 	{}
 
 	/** The type of modifier */
@@ -49,8 +51,11 @@ struct PREDICTEDMOVEMENT_API FModifierData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier)
 	EModifierLevelMethod LevelMethod;
 
-	/** The maximum number of modifiers that can be applied at a single time */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier)
+	/**
+	 * The maximum number of modifiers that can be applied at a single time
+	 * Set to 0 to disable stacking
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(UIMin="0", ClampMin="0"))
 	int32 MaxModifiers;
 
 public:
@@ -64,6 +69,9 @@ public:
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<AModifierCharacter> CharacterOwner;
+
+	UPROPERTY(Transient)
+	bool bHasInitialized;
 
 public:
 	template<typename T>

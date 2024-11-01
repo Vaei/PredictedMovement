@@ -78,14 +78,14 @@ public:
 	const FGameplayTag& GetModifierType() const { return ModifierType; }
 
 	/** The method used to calculate modifier levels */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(EditCondition="MaxModifiers > 1", EditConditionHides))
 	EModifierLevelMethod LevelMethod;
 
 	/**
 	 * The maximum number of modifiers that can be applied at a single time
-	 * Set to 0 to disable stacking
+	 * Set to 1 to disable stacking
 	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Modifier, meta=(UIMin="0", ClampMin="0"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Modifier, meta=(UIMin="1", ClampMin="1"))
 	int32 MaxModifiers;
 	
 public:

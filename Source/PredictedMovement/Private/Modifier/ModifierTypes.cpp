@@ -49,8 +49,13 @@ void FModifierData::Initialize(AModifierCharacter* InCharacterOwner, const FGame
 {
 	CharacterOwner = InCharacterOwner;
 	ModifierType = InModifierType;
-	InModifierLevels.GetGameplayTagArray(ModifierLevelTags);
-	ModifierLevelTags.Insert(FGameplayTag::EmptyTag, 0);  // Level 0
+
+	// Only if we're using gameplay tag levels instead of enum levels
+	if (InModifierLevels.Num() > 0)
+	{
+		InModifierLevels.GetGameplayTagArray(ModifierLevelTags);
+		ModifierLevelTags.Insert(FGameplayTag::EmptyTag, 0);  // Level 0
+	}
 }
 
 void FModifierData::AddModifier(uint8 Level)

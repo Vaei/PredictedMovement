@@ -85,22 +85,22 @@ UModifierMovement::UModifierMovement(const FObjectInitializer& ObjectInitializer
 	Snare.LevelType = EModifierLevelType::FGameplayTag;
 	
 	// Init boost levels
-	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_25.GetTag());
-	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_50.GetTag());
-	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_75.GetTag());
+	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_25);
+	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_50);
+	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_75);
 
-	BoostScalars.Add(FModifierTags::Modifier_Type_Buff_Boost_25, 1.25f);
-	BoostScalars.Add(FModifierTags::Modifier_Type_Buff_Boost_50, 1.50f);
-	BoostScalars.Add(FModifierTags::Modifier_Type_Buff_Boost_75, 1.75f);
+	BoostScalars.Add(FModifierTags::Modifier_Type_Buff_Boost_25, { 1.25f });
+	BoostScalars.Add(FModifierTags::Modifier_Type_Buff_Boost_50, { 1.50f });
+	BoostScalars.Add(FModifierTags::Modifier_Type_Buff_Boost_75, { 1.75f });
 
 	// Init snare levels
-	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_25.GetTag());
-	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_50.GetTag());
-	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_75.GetTag());
+	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_25);
+	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_50);
+	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_75);
 	
-	SnareScalars.Add(FModifierTags::Modifier_Type_Debuff_Snare_25, 0.75f);
-	SnareScalars.Add(FModifierTags::Modifier_Type_Debuff_Snare_50, 0.50f);
-	SnareScalars.Add(FModifierTags::Modifier_Type_Debuff_Snare_75, 0.25f);
+	SnareScalars.Add(FModifierTags::Modifier_Type_Debuff_Snare_25, { 0.75f });
+	SnareScalars.Add(FModifierTags::Modifier_Type_Debuff_Snare_50, { 0.50f });
+	SnareScalars.Add(FModifierTags::Modifier_Type_Debuff_Snare_75, { 0.25f });
 }
 
 void UModifierMovement::PostLoad()
@@ -184,38 +184,53 @@ void FSavedMove_Character_Modifier::SetInitialPosition(ACharacter* C)
 	}
 }
 
-float UModifierMovement::GetBoostScalar() const
-{
-	if (const float* Level = BoostScalars.Find(GetBoostLevel()))
-	{
-		return *Level;
-	}
-	return 1.f;
-}
-
-float UModifierMovement::GetSnareScalar() const
-{
-	if (const float* Level = SnareScalars.Find(GetSnareLevel()))
-	{
-		return *Level;
-	}
-	return 1.f;
-}
-
-float UModifierMovement::GetMaxSpeedScalar() const
-{
-	return GetBoostScalar() * GetSnareScalar();
-}
-
 float UModifierMovement::GetRootMotionTranslationScalar() const
 {
 	// Allowing boost to affect root motion will increase attack range, dodge range, etc., it is disabled by default
-	return (bSnareAffectsRootMotion ? GetSnareScalar() : 1.f) * (bBoostAffectsRootMotion ? GetBoostScalar() : 1.f);
+	return (bSnareAffectsRootMotion ? GetSnareSpeedScalar() : 1.f) * (bBoostAffectsRootMotion ? GetBoostSpeedScalar() : 1.f);
 }
 
 float UModifierMovement::GetMaxSpeed() const
 {
 	return Super::GetMaxSpeed() * GetMaxSpeedScalar();
+}
+
+float UModifierMovement::GetMaxAcceleration() const
+{
+	return Super::GetMaxAcceleration() * GetMaxAccelScalar();
+}
+
+float UModifierMovement::GetMaxBrakingDeceleration() const
+{
+	return Super::GetMaxBrakingDeceleration() * GetMaxBrakingScalar();
+}
+
+float UModifierMovement::GetGroundFriction() const
+{
+	return GroundFriction * GetMaxGroundFrictionScalar();
+}
+
+float UModifierMovement::GetBrakingFriction() const
+{
+	return BrakingFriction * GetBrakingFrictionScalar();
+}
+
+void UModifierMovement::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
+{
+	if (IsMovingOnGround())
+	{
+		Friction = GetGroundFriction();
+	}
+	Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
+}
+
+void UModifierMovement::ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration)
+{
+	if (IsMovingOnGround())
+	{
+		Friction = bUseSeparateBrakingFriction ? GetBrakingFriction() : GetGroundFriction();
+	}
+	Super::ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
 }
 
 void UModifierMovement::OnClientCorrectionReceived(FNetworkPredictionData_Client_Character& ClientData, float TimeStamp,

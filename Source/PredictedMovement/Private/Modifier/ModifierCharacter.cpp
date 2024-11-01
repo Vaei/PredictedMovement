@@ -67,19 +67,19 @@ void AModifierCharacter::OnRep_SimulatedBoost(uint8 PrevSimulatedBoost)
 	}
 }
 
-void AModifierCharacter::Boost(EBoost BoostLevel)
+void AModifierCharacter::Boost(FGameplayTag BoostLevel)
 {
 	if (ModifierMovement)
 	{
-		ModifierMovement->Boost.AddModifier(static_cast<uint8>(BoostLevel));
+		ModifierMovement->Boost.AddModifier(BoostLevel);
 	}
 }
 
-void AModifierCharacter::RemoveBoost(EBoost BoostLevel)
+void AModifierCharacter::RemoveBoost(FGameplayTag BoostLevel)
 {
 	if (ModifierMovement)
 	{
-		ModifierMovement->Boost.RemoveModifier(static_cast<uint8>(BoostLevel));
+		ModifierMovement->Boost.RemoveModifier(BoostLevel);
 	}
 }
 
@@ -88,9 +88,9 @@ bool AModifierCharacter::IsBoosted() const
 	return ModifierMovement && ModifierMovement->Boost.HasModifier();
 }
 
-EBoost AModifierCharacter::GetBoostLevel() const
+FGameplayTag AModifierCharacter::GetBoostLevel() const
 {
-	return ModifierMovement ? ModifierMovement->Boost.GetModifierLevel<EBoost>() : EBoost::None;
+	return ModifierMovement ? ModifierMovement->Boost.GetModifierLevel() : FGameplayTag::EmptyTag;
 }
 
 int32 AModifierCharacter::GetNumBoosts() const
@@ -98,11 +98,10 @@ int32 AModifierCharacter::GetNumBoosts() const
 	return ModifierMovement ? ModifierMovement->Boost.GetNumModifiers() : 0;
 }
 
-int32 AModifierCharacter::GetNumBoostsByLevel(EBoost BoostLevel) const
+int32 AModifierCharacter::GetNumBoostsByLevel(FGameplayTag BoostLevel) const
 {
-	return ModifierMovement ? ModifierMovement->Boost.GetNumModifiersByLevel(static_cast<uint8>(BoostLevel)) : 0;
+	return ModifierMovement ? ModifierMovement->Boost.GetNumModifiersByLevel(BoostLevel) : 0;
 }
-
 
 /* Snare */
 
@@ -117,19 +116,19 @@ void AModifierCharacter::OnRep_SimulatedSnare(uint8 PrevSimulatedSnare)
 	}
 }
 
-void AModifierCharacter::Snare(ESnare SnareLevel)
+void AModifierCharacter::Snare(FGameplayTag SnareLevel)
 {
 	if (ModifierMovement)
 	{
-		ModifierMovement->Snare.AddModifier(static_cast<uint8>(SnareLevel));
+		ModifierMovement->Snare.AddModifier(SnareLevel);
 	}
 }
 
-void AModifierCharacter::RemoveSnare(ESnare SnareLevel)
+void AModifierCharacter::RemoveSnare(FGameplayTag SnareLevel)
 {
 	if (ModifierMovement)
 	{
-		ModifierMovement->Snare.RemoveModifier(static_cast<uint8>(SnareLevel));
+		ModifierMovement->Snare.RemoveModifier(SnareLevel);
 	}
 }
 
@@ -138,9 +137,9 @@ bool AModifierCharacter::IsSnared() const
 	return ModifierMovement && ModifierMovement->Snare.HasModifier();
 }
 
-ESnare AModifierCharacter::GetSnareLevel() const
+FGameplayTag AModifierCharacter::GetSnareLevel() const
 {
-	return ModifierMovement ? ModifierMovement->Snare.GetModifierLevel<ESnare>() : ESnare::None;
+	return ModifierMovement ? ModifierMovement->Snare.GetModifierLevel() : FGameplayTag::EmptyTag;
 }
 
 int32 AModifierCharacter::GetNumSnares() const
@@ -148,7 +147,7 @@ int32 AModifierCharacter::GetNumSnares() const
 	return ModifierMovement ? ModifierMovement->Snare.GetNumModifiers() : 0;
 }
 
-int32 AModifierCharacter::GetNumSnaresByLevel(ESnare SnareLevel) const
+int32 AModifierCharacter::GetNumSnaresByLevel(FGameplayTag SnareLevel) const
 {
-	return ModifierMovement ? ModifierMovement->Snare.GetNumModifiersByLevel(static_cast<uint8>(SnareLevel)) : 0;
+	return ModifierMovement ? ModifierMovement->Snare.GetNumModifiersByLevel(SnareLevel) : 0;
 }

@@ -11,36 +11,14 @@
 namespace FModifierTags
 {
 	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_Boost);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_Boost_25);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_Boost_50);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_Boost_75);
 	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Debuff_Snare);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Debuff_Snare_25);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Debuff_Snare_50);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Debuff_Snare_75);
 }
-
-/**
- * Boost is a local predicted buff modifier that reduces movement speed
- * By default, up to 3 boosts can be added, and the highest level will be applied
- * UModifierMovement::Boost contains properties to change stacking behavior and max number of boosts
- */
-UENUM(BlueprintType)
-enum class EBoost : uint8
-{
-	None,
-	Boost_25		UMETA(DisplayName = "Boost 25% (Increase)", Tooltip = "25% Increase in Movement Speed"),
-	Boost_50		UMETA(DisplayName = "Boost 50% (Increase)", Tooltip = "50% Increase in Movement Speed"),
-	Boost_75		UMETA(DisplayName = "Boost 75% (Increase)", Tooltip = "75% Increase in Movement Speed"),
-};
-
-/**
- * Snare is an externally applied debuff modifier that reduces movement speed
- * By default, up to 3 snares can be added, and the highest level will be applied
- * UModifierMovement::Snare contains properties to change stacking behavior and max number of snares
- */
-UENUM(BlueprintType)
-enum class ESnare : uint8
-{
-	None,
-	Snare_25		UMETA(DisplayName = "Snare 25% (Reduction)", Tooltip = "25% Reduction in Movement Speed"),
-	Snare_50		UMETA(DisplayName = "Snare 50% (Reduction)", Tooltip = "50% Reduction in Movement Speed"),
-	Snare_75		UMETA(DisplayName = "Snare 75% (Reduction)", Tooltip = "75% Reduction in Movement Speed"),
-};
 
 struct PREDICTEDMOVEMENT_API FModifierMoveResponseDataContainer : FCharacterMoveResponseDataContainer
 {  // Server ➜ Client
@@ -98,27 +76,21 @@ public:
 	virtual void SetUpdatedCharacter();
 
 public:
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
-	float BoostScalar_25 = 1.25f;
+	UPROPERTY(Category="Character Movement: Walking", EditDefaultsOnly, BlueprintReadOnly)
+	FGameplayTagContainer BoostLevels;
 
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
-	float BoostScalar_50 = 1.5f;
-
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
-	float BoostScalar_75 = 1.75f;
+	TMap<FGameplayTag, float> BoostScalars;
 
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
 	bool bBoostAffectsRootMotion = false;
 	
 public:
+	UPROPERTY(Category="Character Movement: Walking", EditDefaultsOnly, BlueprintReadOnly)
+	FGameplayTagContainer SnareLevels;
+	
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
-	float SnaredScalar_25 = 0.75f;
-
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
-	float SnaredScalar_50 = 0.5f;
-
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
-	float SnaredScalar_75 = 0.25f;
+	TMap<FGameplayTag, float> SnareScalars;
 
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
 	bool bSnareAffectsRootMotion = true;
@@ -129,9 +101,9 @@ public:
 	FModifierData Snare;
 
 	UFUNCTION(BlueprintCallable, Category="Character Movement: Walking")
-	ESnare GetSnareLevel() const
+	const FGameplayTag& GetSnareLevel() const
 	{
-		return Snare.GetModifierLevel<ESnare>();
+		return Snare.GetModifierLevel();
 	}
 
 	UFUNCTION(BlueprintPure, Category="Character Movement: Walking")
@@ -145,9 +117,9 @@ public:
 	FModifierData Boost;
 	
 	UFUNCTION(BlueprintCallable, Category="Character Movement: Walking")
-	EBoost GetBoostLevel() const
+	const FGameplayTag& GetBoostLevel() const
 	{
-		return Boost.GetModifierLevel<EBoost>();
+		return Boost.GetModifierLevel();
 	}
 
 	UFUNCTION(BlueprintPure, Category="Character Movement: Walking")

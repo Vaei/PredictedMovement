@@ -10,7 +10,13 @@
 namespace FModifierTags
 {
 	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_Boost, "Modifier.Type.Buff.Boost");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_Boost_25, "Modifier.Type.Buff.Boost.25");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_Boost_50, "Modifier.Type.Buff.Boost.50");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_Boost_75, "Modifier.Type.Buff.Boost.75");
 	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Snare, "Modifier.Type.Debuff.Snare");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Snare_25, "Modifier.Type.Debuff.Snare.25");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Snare_50, "Modifier.Type.Debuff.Snare.50");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Snare_75, "Modifier.Type.Debuff.Snare.75");
 }
 
 void FModifierMoveResponseDataContainer::ServerFillResponseData(
@@ -73,6 +79,24 @@ UModifierMovement::UModifierMovement(const FObjectInitializer& ObjectInitializer
 {
 	SetMoveResponseDataContainer(ModifierMoveResponseDataContainer);
     SetNetworkMoveDataContainer(ModifierMoveDataContainer);
+
+	// Init boost levels
+	BoostLevels.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_25.GetTag());
+	BoostLevels.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_50.GetTag());
+	BoostLevels.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_75.GetTag());
+
+	BoostScalars.Add(FModifierTags::Modifier_Type_Buff_Boost_25, 1.25f);
+	BoostScalars.Add(FModifierTags::Modifier_Type_Buff_Boost_50, 1.50f);
+	BoostScalars.Add(FModifierTags::Modifier_Type_Buff_Boost_75, 1.75f);
+
+	// Init snare levels
+	SnareLevels.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_25.GetTag());
+	SnareLevels.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_50.GetTag());
+	SnareLevels.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_75.GetTag());
+	
+	SnareScalars.Add(FModifierTags::Modifier_Type_Debuff_Snare_25, 0.75f);
+	SnareScalars.Add(FModifierTags::Modifier_Type_Debuff_Snare_50, 0.50f);
+	SnareScalars.Add(FModifierTags::Modifier_Type_Debuff_Snare_75, 0.25f);
 }
 
 void UModifierMovement::PostLoad()
@@ -90,8 +114,8 @@ void UModifierMovement::SetUpdatedComponent(USceneComponent* NewUpdatedComponent
 void UModifierMovement::SetUpdatedCharacter()
 {
 	AModifierCharacter* ModifierCharacter = Cast<AModifierCharacter>(PawnOwner);
-	Boost.Initialize(ModifierCharacter, FModifierTags::Modifier_Type_Buff_Boost);
-	Snare.Initialize(ModifierCharacter, FModifierTags::Modifier_Type_Debuff_Snare);
+	Boost.Initialize(ModifierCharacter, FModifierTags::Modifier_Type_Buff_Boost, BoostLevels);
+	Snare.Initialize(ModifierCharacter, FModifierTags::Modifier_Type_Debuff_Snare, SnareLevels);
 }
 
 void FSavedMove_Character_Modifier::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel,
@@ -158,24 +182,20 @@ void FSavedMove_Character_Modifier::SetInitialPosition(ACharacter* C)
 
 float UModifierMovement::GetBoostScalar() const
 {
-	switch (Boost.GetModifierLevel<EBoost>())
+	if (const float* Level = BoostScalars.Find(GetBoostLevel()))
 	{
-	case EBoost::Boost_25: return BoostScalar_25;
-	case EBoost::Boost_50: return BoostScalar_50;
-	case EBoost::Boost_75: return BoostScalar_75;
-	default: return 1.f;
+		return *Level;
 	}
+	return 1.f;
 }
 
 float UModifierMovement::GetSnareScalar() const
 {
-	switch (Snare.GetModifierLevel<ESnare>())
+	if (const float* Level = SnareScalars.Find(GetSnareLevel()))
 	{
-	case ESnare::Snare_25: return SnaredScalar_25;
-	case ESnare::Snare_50: return SnaredScalar_50;
-	case ESnare::Snare_75: return SnaredScalar_75;
-	default: return 1.f;
+		return *Level;
 	}
+	return 1.f;
 }
 
 float UModifierMovement::GetMaxSpeedScalar() const

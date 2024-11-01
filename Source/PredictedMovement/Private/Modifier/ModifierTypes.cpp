@@ -16,13 +16,13 @@ FModifierData& FModifierData::operator<<(const FModifierData& Clone)
 	return *this;
 }
 
-uint8 FModifierData::GetModifierLevelIndex(const FGameplayTag& Level) const
+uint8 FModifierData::GetModifierLevelByte(const FGameplayTag& Level) const
 {
-	if (ensureAlwaysMsgf(ModifierLevels.Contains(Level), TEXT("Modifier level %s is not valid"), *Level.ToString()))
+	if (ensureAlwaysMsgf(ModifierLevelTags.Contains(Level), TEXT("Modifier level %s is not valid"), *Level.ToString()))
 	{
-		return ModifierLevels.IndexOfByKey(Level);
+		return ModifierLevelTags.IndexOfByKey(Level);
 	}
-	return UINT8_MAX;
+	return LEVEL_NONE;
 }
 
 int32 FModifierData::GetNumModifiersByLevel(uint8 Level) const
@@ -44,22 +44,13 @@ int32 FModifierData::GetNumModifiersByLevel(uint8 Level) const
 	}).Num();
 }
 
-int32 FModifierData::GetNumModifiersByLevel(const FGameplayTag& Level) const
-{
-	if (GetModifierLevelIndex(Level) != UINT8_MAX)
-	{
-		return GetNumModifiersByLevel(Level);
-	}
-	return 0;
-}
-
 void FModifierData::Initialize(AModifierCharacter* InCharacterOwner, const FGameplayTag& InModifierType,
 	const FGameplayTagContainer& InModifierLevels)
 {
 	CharacterOwner = InCharacterOwner;
 	ModifierType = InModifierType;
-	InModifierLevels.GetGameplayTagArray(ModifierLevels);
-	ModifierLevels.Insert(FGameplayTag::EmptyTag, 0);  // Level 0
+	InModifierLevels.GetGameplayTagArray(ModifierLevelTags);
+	ModifierLevelTags.Insert(FGameplayTag::EmptyTag, 0);  // Level 0
 }
 
 void FModifierData::AddModifier(uint8 Level)
@@ -134,22 +125,6 @@ void FModifierData::RemoveModifier(uint8 Level)
 	}
 }
 
-void FModifierData::AddModifier(const FGameplayTag& Level)
-{
-	if (GetModifierLevelIndex(Level) != UINT8_MAX)
-	{
-		AddModifier(GetModifierLevelIndex(Level));
-	}
-}
-
-void FModifierData::RemoveModifier(const FGameplayTag& Level)
-{
-	if (GetModifierLevelIndex(Level) != UINT8_MAX)
-	{
-		RemoveModifier(GetModifierLevelIndex(Level));
-	}
-}
-
 void FModifierData::RemoveAllModifiers()
 {
 	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
@@ -221,22 +196,6 @@ void FModifierData::RemoveAllModifiersExceptLevel(uint8 Level)
 	});
 }
 
-void FModifierData::RemoveAllModifiersByLevel(const FGameplayTag& Level)
-{
-	if (GetModifierLevelIndex(Level) != UINT8_MAX)
-	{
-		return RemoveAllModifiersByLevel(GetModifierLevelIndex(Level));
-	}
-}
-
-void FModifierData::RemoveAllModifiersExceptLevel(const FGameplayTag& Level)
-{
-	if (GetModifierLevelIndex(Level) != UINT8_MAX)
-	{
-		return RemoveAllModifiersExceptLevel(GetModifierLevelIndex(Level));
-	}
-}
-
 void FModifierData::SetModifiers(const TArray<uint8>& NewModifiers)
 {
 	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
@@ -274,14 +233,6 @@ void FModifierData::SetModifierLevel(uint8 Level)
 		ModifierLevel = Level;
 
 		CharacterOwner->OnModifierChanged(ModifierType, ModifierLevel, PrevLevel);
-	}
-}
-
-void FModifierData::SetModifierLevel(const FGameplayTag& Level)
-{
-	if (GetModifierLevelIndex(Level) != UINT8_MAX)
-	{
-		SetModifierLevel(GetModifierLevelIndex(Level));
 	}
 }
 

@@ -95,15 +95,28 @@ public:
 	UPROPERTY()
 	TArray<uint8> Modifiers;
 
+	/** Cached levels used to lookup tags from uint8 */
+	UPROPERTY(Transient)
+	TArray<FGameplayTag> ModifierLevels;
+	
 	UPROPERTY(Transient)
 	TWeakObjectPtr<AModifierCharacter> CharacterOwner;
 
 public:
+	/** Used for enum casting when level is enum based */
 	template<typename T>
 	T GetModifierLevel() const
 	{
 		return static_cast<T>(ModifierLevel);
 	}
+
+	/** Used for gameplay tag conversion when level is gameplay tag based */
+	const FGameplayTag& GetModifierLevel() const
+	{
+		return ModifierLevels.IsValidIndex(ModifierLevel) ? ModifierLevels[ModifierLevel] : FGameplayTag::EmptyTag;
+	}
+	
+	uint8 GetModifierLevelIndex(const FGameplayTag& Level) const;
 
 	bool HasModifier() const
 	{
@@ -112,18 +125,30 @@ public:
 
 	int32 GetNumModifiers() const	{ return Modifiers.Num();	}
 	int32 GetNumModifiersByLevel(uint8 Level) const;
+	int32 GetNumModifiersByLevel(const FGameplayTag& Level) const;
 
-	void Initialize(AModifierCharacter* InCharacterOwner, const FGameplayTag& InModifierType);
+	/**
+	 * Initialization is mandatory
+	 * @param InCharacterOwner The character that owns this modifier
+	 * @param InModifierType The type of modifier
+	 * @param InModifierLevels The levels of the modifier -- not required if using enum based levels
+	 */
+	void Initialize(AModifierCharacter* InCharacterOwner, const FGameplayTag& InModifierType, const FGameplayTagContainer& InModifierLevels);
 	bool HasInitialized() const { return ModifierType.IsValid(); }
 
 	void AddModifier(uint8 Level);
 	void RemoveModifier(uint8 Level);
+	void AddModifier(const FGameplayTag& Level);
+	void RemoveModifier(const FGameplayTag& Level);
 	void RemoveAllModifiers();
 	void RemoveAllModifiersByLevel(uint8 Level);
 	void RemoveAllModifiersExceptLevel(uint8 Level);
+	void RemoveAllModifiersByLevel(const FGameplayTag& Level);
+	void RemoveAllModifiersExceptLevel(const FGameplayTag& Level);
 	
 	void SetModifiers(const TArray<uint8>& NewModifiers);
 	void SetModifierLevel(uint8 Level);
+	void SetModifierLevel(const FGameplayTag& Level);
 
 	void OnModifiersChanged();
 

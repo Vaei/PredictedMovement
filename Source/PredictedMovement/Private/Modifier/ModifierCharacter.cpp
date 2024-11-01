@@ -17,6 +17,7 @@ void AModifierCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProper
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME_CONDITION(AModifierCharacter, SimulatedBoost, COND_SimulatedOnly);
 	DOREPLIFETIME_CONDITION(AModifierCharacter, SimulatedSnare, COND_SimulatedOnly);
 }
 
@@ -52,6 +53,58 @@ void AModifierCharacter::OnModifierRemoved(const FGameplayTag& ModifierType, uin
 
 	K2_OnModifierRemoved(ModifierType, ModifierLevel, PrevModifierLevel);
 }
+
+/* Boost */
+
+void AModifierCharacter::OnRep_SimulatedBoost(uint8 PrevSimulatedBoost)
+{
+	if (ModifierMovement)
+	{
+		ModifierMovement->Boost.ModifierLevel = SimulatedBoost;
+		ModifierMovement->bNetworkUpdateReceived = true;
+		
+		OnModifierChanged(FModifierTags::Modifier_Type_Buff_Boost, SimulatedBoost, PrevSimulatedBoost);
+	}
+}
+
+void AModifierCharacter::Boost(EBoost BoostLevel)
+{
+	if (ModifierMovement)
+	{
+		ModifierMovement->Boost.AddModifier(static_cast<uint8>(BoostLevel));
+	}
+}
+
+void AModifierCharacter::RemoveBoost(EBoost BoostLevel)
+{
+	if (ModifierMovement)
+	{
+		ModifierMovement->Boost.RemoveModifier(static_cast<uint8>(BoostLevel));
+	}
+}
+
+bool AModifierCharacter::IsBoosted() const
+{
+	return ModifierMovement && ModifierMovement->Boost.HasModifier();
+}
+
+EBoost AModifierCharacter::GetBoostLevel() const
+{
+	return ModifierMovement ? ModifierMovement->Boost.GetModifierLevel<EBoost>() : EBoost::None;
+}
+
+int32 AModifierCharacter::GetNumBoosts() const
+{
+	return ModifierMovement ? ModifierMovement->Boost.GetNumModifiers() : 0;
+}
+
+int32 AModifierCharacter::GetNumBoostsByLevel(EBoost BoostLevel) const
+{
+	return ModifierMovement ? ModifierMovement->Boost.GetNumModifiersByLevel(static_cast<uint8>(BoostLevel)) : 0;
+}
+
+
+/* Snare */
 
 void AModifierCharacter::OnRep_SimulatedSnare(uint8 PrevSimulatedSnare)
 {

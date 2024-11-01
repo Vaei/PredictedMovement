@@ -10,10 +10,15 @@
 class AModifierCharacter;
 class UModifierMovement;
 
-namespace FModifierTags
+/**
+ * The source of the modifier, such as whether it was applied externally or predicted
+ */
+UENUM(BlueprintType)
+enum class EModifierSource : uint8
 {
-	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Debuff_Snare);
-}
+	External		UMETA(ToolTip="The modifier was applied externally, such as from a server event"),
+	Predicted		UMETA(ToolTip="The modifier was applied predictively, such as from a self-activated event"),
+};
 
 /**
  * The method used to calculate modifier levels
@@ -34,18 +39,41 @@ struct PREDICTEDMOVEMENT_API FModifierData
 {
 	GENERATED_BODY()
 
-	FModifierData(const FGameplayTag& InModifierType = FModifierTags::Modifier_Type_Debuff_Snare, EModifierLevelMethod InLevelMethod = EModifierLevelMethod::Max, int32 InMaxModifiers = 3)
-		: ModifierType(InModifierType)
+	FModifierData(int32 InMaxModifiers = 3, EModifierLevelMethod InLevelMethod = EModifierLevelMethod::Max)
+		: ModifierType(FGameplayTag::EmptyTag)
 		, LevelMethod(InLevelMethod)
 		, MaxModifiers(InMaxModifiers)
 		, ModifierLevel(0)
 		, CharacterOwner(nullptr)
-		, bHasInitialized(false)
 	{}
 
+	FModifierData(const FModifierData& Clone)
+	{
+		*this = Clone;
+	}
+
+	/** Only copies replicated data */
+	FModifierData& operator<<(const FModifierData& Clone);
+
+	/** We don't check type here, we only want to ensure we're sufficiently matched for prediction purposes */
+	bool operator==(const FModifierData& Other) const
+	{
+		return ModifierLevel == Other.ModifierLevel && Modifiers == Other.Modifiers;
+	}
+
+	/** We don't check type here, we only want to ensure we're sufficiently matched for prediction purposes */
+	bool operator!=(const FModifierData& Other) const
+	{
+		return !(*this == Other);
+	}
+
+protected:
 	/** The type of modifier */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(Categories="Modifier.Type"))
+	UPROPERTY(BlueprintReadOnly, Category=Modifier)
 	FGameplayTag ModifierType;
+
+public:
+	const FGameplayTag& GetModifierType() const { return ModifierType; }
 
 	/** The method used to calculate modifier levels */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier)
@@ -55,9 +83,9 @@ struct PREDICTEDMOVEMENT_API FModifierData
 	 * The maximum number of modifiers that can be applied at a single time
 	 * Set to 0 to disable stacking
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(UIMin="0", ClampMin="0"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Modifier, meta=(UIMin="0", ClampMin="0"))
 	int32 MaxModifiers;
-
+	
 public:
 	/** The current modifier level */
 	UPROPERTY()
@@ -69,9 +97,6 @@ public:
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<AModifierCharacter> CharacterOwner;
-
-	UPROPERTY(Transient)
-	bool bHasInitialized;
 
 public:
 	template<typename T>
@@ -88,7 +113,8 @@ public:
 	int32 GetNumModifiers() const	{ return Modifiers.Num();	}
 	int32 GetNumModifiersByLevel(uint8 Level) const;
 
-	void Initialize(AModifierCharacter* InCharacterOwner);
+	void Initialize(AModifierCharacter* InCharacterOwner, const FGameplayTag& InModifierType);
+	bool HasInitialized() const { return ModifierType.IsValid(); }
 
 	void AddModifier(uint8 Level);
 	void RemoveModifier(uint8 Level);
@@ -102,17 +128,8 @@ public:
 	void OnModifiersChanged();
 
 public:
+	bool ServerCheckClientError(const FModifierData& Data) const { return ModifierLevel != Data.ModifierLevel || Modifiers != Data.Modifiers; }
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
-	
-	bool operator==(const FModifierData& Other) const
-	{
-		return ModifierType == Other.ModifierType && ModifierLevel == Other.ModifierLevel && Modifiers == Other.Modifiers;
-	}
-
-	bool operator!=(const FModifierData& Other) const
-	{
-		return !(*this == Other);
-	}
 };
 
 template<>

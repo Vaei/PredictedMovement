@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "ModifierCharacter.generated.h"
 
+enum class EBoost : uint8;
 enum class ESnare : uint8;
 struct FGameplayTag;
 class UModifierMovement;
@@ -19,7 +20,8 @@ public:
 	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
 	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
 	TObjectPtr<UModifierMovement> ModifierMovement;
-	
+
+	friend class FSavedMove_Character_Modifier;
 protected:
 	FORCEINLINE UModifierMovement* GetModifierCharacterMovement() const { return ModifierMovement; }
 
@@ -39,6 +41,35 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="On Modifier Removed"))
 	void K2_OnModifierRemoved(const FGameplayTag& ModifierType, uint8 ModifierLevel, uint8 PrevModifierLevel);
 
+protected:
+	/* Boost (Non-Generic) Implementation -- Implement per-modifier type */
+	
+	UPROPERTY(ReplicatedUsing=OnRep_SimulatedBoost)
+	uint8 SimulatedBoost;
+
+	UFUNCTION()
+	void OnRep_SimulatedBoost(uint8 PrevSimulatedBoost);
+
+	UFUNCTION(BlueprintCallable, Category=Character)
+	void Boost(EBoost BoostLevel);
+
+	UFUNCTION(BlueprintCallable, Category=Character)
+	void RemoveBoost(EBoost BoostLevel);
+
+	UFUNCTION(BlueprintPure, Category=Character)
+	bool IsBoosted() const;
+
+	UFUNCTION(BlueprintCallable, Category=Character)
+	EBoost GetBoostLevel() const;
+
+	UFUNCTION(BlueprintCallable, Category=Character)
+	int32 GetNumBoosts() const;
+
+	UFUNCTION(BlueprintCallable, Category=Character)
+	int32 GetNumBoostsByLevel(EBoost BoostLevel) const;
+	
+	/* ~Boost (Non-Generic) Implementation */
+	
 protected:
 	/* Snare (Non-Generic) Implementation -- Implement per-modifier type */
 	

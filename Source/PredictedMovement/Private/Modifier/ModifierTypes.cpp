@@ -16,16 +16,6 @@ FModifierData& FModifierData::operator<<(const FModifierData& Clone)
 	return *this;
 }
 
-uint8 FModifierData::GetModifierLevelByte(const FGameplayTag& Level) const
-{
-	// Did you pass the levels as tags in Initialize()?
-	if (ensureAlwaysMsgf(ModifierLevelTags.Contains(Level), TEXT("Modifier level %s is not valid"), *Level.ToString()))
-	{
-		return ModifierLevelTags.IndexOfByKey(Level);
-	}
-	return LEVEL_NONE;
-}
-
 int32 FModifierData::GetNumModifiersByLevel(uint8 Level) const
 {
 	// Did you call initialize?
@@ -46,17 +36,19 @@ int32 FModifierData::GetNumModifiersByLevel(uint8 Level) const
 	}).Num();
 }
 
-void FModifierData::Initialize(AModifierCharacter* InCharacterOwner, const FGameplayTag& InModifierType,
-	const FGameplayTagContainer& InModifierLevels)
+void FModifierData::Initialize(AModifierCharacter* InCharacterOwner, const FGameplayTag& InModifierType)
 {
 	CharacterOwner = InCharacterOwner;
 	ModifierType = InModifierType;
 
 	// Only if we're using gameplay tag levels instead of enum levels
-	if (InModifierLevels.Num() > 0)
+	if (LevelType == EModifierLevelType::FGameplayTag)
 	{
-		InModifierLevels.GetGameplayTagArray(ModifierLevelTags);
-		ModifierLevelTags.Insert(FGameplayTag::EmptyTag, 0);  // Level 0
+		if (ensureAlwaysMsgf(ModifierLevelTags.Num() > 0, TEXT("Modifier %s has no levels set"), *ModifierType.ToString()))
+		{
+			ModifierLevelTags.GetGameplayTagArray(ModifierLevels);
+			ModifierLevels.Insert(FGameplayTag::EmptyTag, 0);  // Level 0
+		}
 	}
 }
 

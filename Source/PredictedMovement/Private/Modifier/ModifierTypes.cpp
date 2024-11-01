@@ -9,9 +9,11 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ModifierTypes)
 
-namespace FModifierTags
+FModifierData& FModifierData::operator<<(const FModifierData& Clone)
 {
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Snare, "Modifier.Type.Debuff.Snare");
+	ModifierLevel = Clone.ModifierLevel;
+	Modifiers = Clone.Modifiers;
+	return *this;
 }
 
 int32 FModifierData::GetNumModifiersByLevel(uint8 Level) const
@@ -33,10 +35,10 @@ int32 FModifierData::GetNumModifiersByLevel(uint8 Level) const
 	}).Num();
 }
 
-void FModifierData::Initialize(AModifierCharacter* InCharacterOwner)
+void FModifierData::Initialize(AModifierCharacter* InCharacterOwner, const FGameplayTag& InModifierType)
 {
 	CharacterOwner = InCharacterOwner;
-	bHasInitialized = true;
+	ModifierType = InModifierType;
 }
 
 void FModifierData::AddModifier(uint8 Level)
@@ -46,7 +48,7 @@ void FModifierData::AddModifier(uint8 Level)
 		return;
 	}
 	
-	if (!ensureAlwaysMsgf(bHasInitialized, TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
+	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
 	}
@@ -84,7 +86,7 @@ void FModifierData::RemoveModifier(uint8 Level)
 		return;
 	}
 	
-	if (!ensureAlwaysMsgf(bHasInitialized, TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
+	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
 	}
@@ -118,7 +120,7 @@ void FModifierData::RemoveAllModifiers()
 		return;
 	}
 	
-	if (!ensureAlwaysMsgf(bHasInitialized, TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
+	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
 	}
@@ -142,7 +144,7 @@ void FModifierData::RemoveAllModifiersByLevel(uint8 Level)
 		return;
 	}
 	
-	if (!ensureAlwaysMsgf(bHasInitialized, TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
+	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
 	}
@@ -166,7 +168,7 @@ void FModifierData::RemoveAllModifiersExceptLevel(uint8 Level)
 		return;
 	}
 	
-	if (!ensureAlwaysMsgf(bHasInitialized, TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
+	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
 	}

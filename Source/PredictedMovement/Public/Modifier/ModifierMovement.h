@@ -81,7 +81,7 @@ public:
 	 * Every tag defined here must also be defined in the FModifierData Boost property
 	 */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
-	TMap<FGameplayTag, float> BoostScalars;
+	TMap<FGameplayTag, FCommonModifierParams> BoostScalars;
 
 	/**
 	 * If True, Boost will affect root motion
@@ -97,7 +97,7 @@ public:
 	 * Every tag defined here must also be defined in the FModifierData Snare property
 	 */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
-	TMap<FGameplayTag, float> SnareScalars;
+	TMap<FGameplayTag, FCommonModifierParams> SnareScalars;
 
 	/**
 	 * If True, Snare will affect root motion
@@ -139,11 +139,33 @@ public:
 		return Boost.HasModifier();
 	}
 
-	virtual float GetBoostScalar() const;
-	virtual float GetSnareScalar() const;
-	virtual float GetMaxSpeedScalar() const;
+	const FCommonModifierParams* GetBoostLevelParams() const { return BoostScalars.Find(GetBoostLevel()); }
+	const FCommonModifierParams* GetSnareLevelParams() const { return SnareScalars.Find(GetSnareLevel()); }
+	virtual float GetBoostSpeedScalar() const { return GetBoostLevelParams() ? GetBoostLevelParams()->MaxWalkSpeed : 1.f; }
+	virtual float GetSnareSpeedScalar() const { return GetSnareLevelParams() ? GetSnareLevelParams()->MaxWalkSpeed : 1.f; }
+	virtual float GetBoostAccelScalar() const { return GetBoostLevelParams() ? GetBoostLevelParams()->MaxAcceleration : 1.f; }
+	virtual float GetSnareAccelScalar() const { return GetSnareLevelParams() ? GetSnareLevelParams()->MaxAcceleration : 1.f; }
+	virtual float GetBoostBrakingScalar() const { return GetBoostLevelParams() ? GetBoostLevelParams()->BrakingDeceleration : 1.f; }
+	virtual float GetSnareBrakingScalar() const { return GetSnareLevelParams() ? GetSnareLevelParams()->BrakingDeceleration : 1.f; }
+	virtual float GetBoostGroundFrictionScalar() const { return GetBoostLevelParams() ? GetBoostLevelParams()->GroundFriction : 1.f; }
+	virtual float GetSnareGroundFrictionScalar() const { return GetSnareLevelParams() ? GetSnareLevelParams()->GroundFriction : 1.f; }
+	virtual float GetBoostBrakingFrictionScalar() const { return GetBoostLevelParams() ? GetBoostLevelParams()->BrakingFriction : 1.f; }
+	virtual float GetSnareBrakingFrictionScalar() const { return GetSnareLevelParams() ? GetSnareLevelParams()->BrakingFriction : 1.f; }
+	virtual float GetMaxSpeedScalar() const { return GetBoostSpeedScalar() * GetSnareSpeedScalar(); }
+	virtual float GetMaxAccelScalar() const { return GetBoostAccelScalar() * GetSnareAccelScalar(); }
+	virtual float GetMaxBrakingScalar() const { return GetBoostBrakingScalar() * GetSnareBrakingScalar(); }
+	virtual float GetMaxGroundFrictionScalar() const { return GetBoostGroundFrictionScalar() * GetSnareGroundFrictionScalar(); }
+	virtual float GetBrakingFrictionScalar() const { return GetBoostBrakingFrictionScalar() * GetSnareBrakingFrictionScalar(); }
+
 	virtual float GetRootMotionTranslationScalar() const;
 	virtual float GetMaxSpeed() const override;
+	virtual float GetMaxAcceleration() const override;
+	virtual float GetMaxBrakingDeceleration() const override;
+	virtual float GetGroundFriction() const;
+	virtual float GetBrakingFriction() const;
+
+	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
+	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
 	
 private:
 	FModifierMoveResponseDataContainer ModifierMoveResponseDataContainer;

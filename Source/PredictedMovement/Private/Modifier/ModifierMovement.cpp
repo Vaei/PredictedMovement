@@ -80,19 +80,23 @@ UModifierMovement::UModifierMovement(const FObjectInitializer& ObjectInitializer
 	SetMoveResponseDataContainer(ModifierMoveResponseDataContainer);
     SetNetworkMoveDataContainer(ModifierMoveDataContainer);
 
+	// Init data types
+	Boost.LevelType = EModifierLevelType::FGameplayTag;
+	Snare.LevelType = EModifierLevelType::FGameplayTag;
+	
 	// Init boost levels
-	BoostLevels.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_25.GetTag());
-	BoostLevels.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_50.GetTag());
-	BoostLevels.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_75.GetTag());
+	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_25.GetTag());
+	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_50.GetTag());
+	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_75.GetTag());
 
 	BoostScalars.Add(FModifierTags::Modifier_Type_Buff_Boost_25, 1.25f);
 	BoostScalars.Add(FModifierTags::Modifier_Type_Buff_Boost_50, 1.50f);
 	BoostScalars.Add(FModifierTags::Modifier_Type_Buff_Boost_75, 1.75f);
 
 	// Init snare levels
-	SnareLevels.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_25.GetTag());
-	SnareLevels.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_50.GetTag());
-	SnareLevels.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_75.GetTag());
+	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_25.GetTag());
+	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_50.GetTag());
+	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_75.GetTag());
 	
 	SnareScalars.Add(FModifierTags::Modifier_Type_Debuff_Snare_25, 0.75f);
 	SnareScalars.Add(FModifierTags::Modifier_Type_Debuff_Snare_50, 0.50f);
@@ -114,8 +118,8 @@ void UModifierMovement::SetUpdatedComponent(USceneComponent* NewUpdatedComponent
 void UModifierMovement::SetUpdatedCharacter()
 {
 	AModifierCharacter* ModifierCharacter = Cast<AModifierCharacter>(PawnOwner);
-	Boost.Initialize(ModifierCharacter, FModifierTags::Modifier_Type_Buff_Boost, BoostLevels);
-	Snare.Initialize(ModifierCharacter, FModifierTags::Modifier_Type_Debuff_Snare, SnareLevels);
+	Boost.Initialize(ModifierCharacter, FModifierTags::Modifier_Type_Buff_Boost);
+	Snare.Initialize(ModifierCharacter, FModifierTags::Modifier_Type_Debuff_Snare);
 }
 
 void FSavedMove_Character_Modifier::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel,

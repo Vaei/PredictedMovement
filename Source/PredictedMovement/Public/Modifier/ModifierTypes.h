@@ -34,6 +34,16 @@ enum class EModifierLevelMethod : uint8
 };
 
 /**
+ * The data type used to represent levels
+ */
+UENUM()
+enum class EModifierLevelType : uint8
+{
+	FGameplayTag,
+	UEnum,
+};
+
+/**
  * Represents a single modifier that can be applied to a character
  */
 USTRUCT(BlueprintType)
@@ -41,10 +51,12 @@ struct PREDICTEDMOVEMENT_API FModifierData
 {
 	GENERATED_BODY()
 
-	FModifierData(int32 InMaxModifiers = 3, EModifierLevelMethod InLevelMethod = EModifierLevelMethod::Max)
+	FModifierData(const EModifierLevelType InLevelType = EModifierLevelType::FGameplayTag, int32 InMaxModifiers = 3,
+		EModifierLevelMethod InLevelMethod = EModifierLevelMethod::Max)
 		: ModifierType(FGameplayTag::EmptyTag)
 		, LevelMethod(InLevelMethod)
 		, MaxModifiers(InMaxModifiers)
+		, LevelType(InLevelType)
 		, ModifierLevel(0)
 		, CharacterOwner(nullptr)
 	{}
@@ -87,7 +99,22 @@ public:
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Modifier, meta=(UIMin="1", ClampMin="1"))
 	int32 MaxModifiers;
+
+	/** Whether to use UEnum or FGameplayTag to represent levels */
+	UPROPERTY()
+	EModifierLevelType LevelType;
 	
+	/**
+	 * When using FGameplayTag instead of Enum for Levels, the levels here will be available for use in CMC
+	 * Any levels not defined here will be considered invalid, all levels utilized by the modifier must be defined here
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Modifier, meta=(EditCondition="LevelType == EModifierLevelType::FGameplayTag", EditConditionHides))
+	FGameplayTagContainer ModifierLevelTags;
+
+protected:
+	UPROPERTY(Transient)
+	TArray<FGameplayTag> ModifierLevels;
+
 public:
 	/** The current modifier level */
 	UPROPERTY()
@@ -97,35 +124,59 @@ public:
 	UPROPERTY()
 	TArray<uint8> Modifiers;
 
-	/** Cached levels used to lookup tags from uint8 */
-	UPROPERTY(Transient)
-	TArray<FGameplayTag> ModifierLevelTags;
-	
 	UPROPERTY(Transient)
 	TWeakObjectPtr<AModifierCharacter> CharacterOwner;
 
 public:
-	// Use either enum or FGameplayTag to represent levels, not both
+	// Use either UEnum or FGameplayTag to represent levels, not both
 	
-	/** Used for enum casting when level is enum based */
+	/** Used for casting when level is UEnum based */
 	template<typename T>
-	T GetModifierLevel() const { return static_cast<T>(ModifierLevel); }
-
-	/** Convert Enum Level Type to byte level */
-	template <typename T>
-	static uint8 GetModifierLevelByte(T EnumLevel)
+	T GetModifierLevel() const
 	{
+		if (!ensureAlwaysMsgf(LevelType == EModifierLevelType::UEnum, TEXT("Should not be called when using FGameplayTag levels")))
+		{
+			return LEVEL_NONE;
+		}
+		return static_cast<T>(ModifierLevel);
+	}
+
+	/** Convert UEnum Level Type to byte level */
+	template <typename T>
+	uint8 GetModifierLevelByte(T EnumLevel) const
+	{
+		if (!ensureAlwaysMsgf(LevelType == EModifierLevelType::UEnum, TEXT("Should not be called when using FGameplayTag levels")))
+		{
+			return LEVEL_NONE;
+		}
 		return static_cast<uint8>(EnumLevel);
 	}
 
 	/** Used for gameplay tag conversion when level is gameplay tag based */
 	const FGameplayTag& GetModifierLevel() const
 	{
-		return ModifierLevelTags.IsValidIndex(ModifierLevel) ? ModifierLevelTags[ModifierLevel] : FGameplayTag::EmptyTag;
+		if (!ensureAlwaysMsgf(LevelType == EModifierLevelType::FGameplayTag, TEXT("Should not be called when using UEnum levels")))
+		{
+			return FGameplayTag::EmptyTag;
+		}
+		return ModifierLevels.IsValidIndex(ModifierLevel) ? ModifierLevels[ModifierLevel] : FGameplayTag::EmptyTag;
 	}
 
 	/** Convert Gameplay Tag Level Type to byte level */
-	uint8 GetModifierLevelByte(const FGameplayTag& Level) const;
+	uint8 GetModifierLevelByte(const FGameplayTag& Level) const
+	{
+		if (!ensureAlwaysMsgf(LevelType == EModifierLevelType::FGameplayTag, TEXT("Should not be called when using UEnum levels")))
+		{
+			return LEVEL_NONE;
+		}
+	
+		// Did you pass the levels as tags in Initialize()?
+		if (ensureAlwaysMsgf(ModifierLevels.Contains(Level), TEXT("Modifier level %s is not valid"), *Level.ToString()))
+		{
+			return ModifierLevels.IndexOfByKey(Level);
+		}
+		return LEVEL_NONE;
+	}
 
 public:
 	bool HasModifier() const
@@ -140,9 +191,8 @@ public:
 	 * Initialization is mandatory
 	 * @param InCharacterOwner The character that owns this modifier
 	 * @param InModifierType The type of modifier
-	 * @param InModifierLevels The levels of the modifier -- not required if using enum based levels
 	 */
-	void Initialize(AModifierCharacter* InCharacterOwner, const FGameplayTag& InModifierType, const FGameplayTagContainer& InModifierLevels);
+	void Initialize(AModifierCharacter* InCharacterOwner, const FGameplayTag& InModifierType);
 	bool HasInitialized() const { return ModifierType.IsValid(); }
 
 	void AddModifier(uint8 Level);

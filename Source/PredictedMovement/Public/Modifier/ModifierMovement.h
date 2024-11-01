@@ -76,22 +76,33 @@ public:
 	virtual void SetUpdatedCharacter();
 
 public:
-	UPROPERTY(Category="Character Movement: Walking", EditDefaultsOnly, BlueprintReadOnly)
-	FGameplayTagContainer BoostLevels;
-
+	/**
+	 * Scaling applied on a per-boost-level basis
+	 * Every tag defined here must also be defined in the FModifierData Boost property
+	 */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
 	TMap<FGameplayTag, float> BoostScalars;
 
+	/**
+	 * If True, Boost will affect root motion
+	 * This allows boosts to scale up root motion translation
+	 * This is disabled by default because it can increase attack range, dodge range, etc.
+	 */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
 	bool bBoostAffectsRootMotion = false;
 	
 public:
-	UPROPERTY(Category="Character Movement: Walking", EditDefaultsOnly, BlueprintReadOnly)
-	FGameplayTagContainer SnareLevels;
-	
+	/**
+	 * Scaling applied on a per-snare-level basis
+	 * Every tag defined here must also be defined in the FModifierData Snare property
+	 */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
 	TMap<FGameplayTag, float> SnareScalars;
 
+	/**
+	 * If True, Snare will affect root motion
+	 * This allows snares to scale down root motion translation
+	 */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
 	bool bSnareAffectsRootMotion = true;
 	

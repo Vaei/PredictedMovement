@@ -51,22 +51,22 @@ protected:
 	void OnRep_SimulatedBoost(uint8 PrevSimulatedBoost);
 
 	UFUNCTION(BlueprintCallable, Category=Character)
-	void Boost(EBoost BoostLevel);
+	void Boost(FGameplayTag BoostLevel);
 
 	UFUNCTION(BlueprintCallable, Category=Character)
-	void RemoveBoost(EBoost BoostLevel);
+	void RemoveBoost(FGameplayTag BoostLevel);
 
 	UFUNCTION(BlueprintPure, Category=Character)
 	bool IsBoosted() const;
 
 	UFUNCTION(BlueprintCallable, Category=Character)
-	EBoost GetBoostLevel() const;
+	FGameplayTag GetBoostLevel() const;
 
 	UFUNCTION(BlueprintCallable, Category=Character)
 	int32 GetNumBoosts() const;
 
 	UFUNCTION(BlueprintCallable, Category=Character)
-	int32 GetNumBoostsByLevel(EBoost BoostLevel) const;
+	int32 GetNumBoostsByLevel(FGameplayTag BoostLevel) const;
 	
 	/* ~Boost (Non-Generic) Implementation */
 	
@@ -80,22 +80,22 @@ protected:
 	void OnRep_SimulatedSnare(uint8 PrevSimulatedSnare);
 
 	UFUNCTION(BlueprintCallable, Category=Character)
-	void Snare(ESnare SnareLevel);
+	void Snare(FGameplayTag SnareLevel);
 
 	UFUNCTION(BlueprintCallable, Category=Character)
-	void RemoveSnare(ESnare SnareLevel);
+	void RemoveSnare(FGameplayTag SnareLevel);
 
 	UFUNCTION(BlueprintPure, Category=Character)
 	bool IsSnared() const;
 
 	UFUNCTION(BlueprintCallable, Category=Character)
-	ESnare GetSnareLevel() const;
+	FGameplayTag GetSnareLevel() const;
 
 	UFUNCTION(BlueprintCallable, Category=Character)
 	int32 GetNumSnares() const;
 
 	UFUNCTION(BlueprintCallable, Category=Character)
-	int32 GetNumSnaresByLevel(ESnare SnareLevel) const;
+	int32 GetNumSnaresByLevel(FGameplayTag SnareLevel) const;
 	
 	/* ~Snare (Non-Generic) Implementation */
 };

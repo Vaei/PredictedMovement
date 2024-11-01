@@ -101,7 +101,7 @@ void FSavedMove_Character_Modifier::SetMoveFor(ACharacter* C, float InDeltaTime,
 
 	if (UModifierMovement* Movement = CastChecked<AModifierCharacter>(C)->GetModifierCharacterMovement())
 	{
-		Boost << Movement->Boost;  // SavedMove doesn't have initialized modifier, so do a full copy
+		Boost = Movement->Boost;
 	}
 }
 

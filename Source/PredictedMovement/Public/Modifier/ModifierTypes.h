@@ -157,7 +157,6 @@ public:
 	void OnModifiersChanged();
 
 public:
-	bool ServerCheckClientError(const FModifierData& Data) const { return ModifierLevel != Data.ModifierLevel || Modifiers != Data.Modifiers; }
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 };
 

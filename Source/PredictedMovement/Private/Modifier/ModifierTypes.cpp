@@ -18,6 +18,7 @@ FModifierData& FModifierData::operator<<(const FModifierData& Clone)
 
 uint8 FModifierData::GetModifierLevelByte(const FGameplayTag& Level) const
 {
+	// Did you pass the levels as tags in Initialize()?
 	if (ensureAlwaysMsgf(ModifierLevelTags.Contains(Level), TEXT("Modifier level %s is not valid"), *Level.ToString()))
 	{
 		return ModifierLevelTags.IndexOfByKey(Level);
@@ -27,6 +28,7 @@ uint8 FModifierData::GetModifierLevelByte(const FGameplayTag& Level) const
 
 int32 FModifierData::GetNumModifiersByLevel(uint8 Level) const
 {
+	// Did you call initialize?
 	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
 	{
 		return 0;
@@ -60,11 +62,6 @@ void FModifierData::Initialize(AModifierCharacter* InCharacterOwner, const FGame
 
 void FModifierData::AddModifier(uint8 Level)
 {
-	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
-	{
-		return;
-	}
-	
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -98,11 +95,6 @@ void FModifierData::AddModifier(uint8 Level)
 
 void FModifierData::RemoveModifier(uint8 Level)
 {
-	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
-	{
-		return;
-	}
-	
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -132,11 +124,6 @@ void FModifierData::RemoveModifier(uint8 Level)
 
 void FModifierData::RemoveAllModifiers()
 {
-	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
-	{
-		return;
-	}
-	
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -156,11 +143,6 @@ void FModifierData::RemoveAllModifiers()
 
 void FModifierData::RemoveAllModifiersByLevel(uint8 Level)
 {
-	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
-	{
-		return;
-	}
-	
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -180,11 +162,6 @@ void FModifierData::RemoveAllModifiersByLevel(uint8 Level)
 
 void FModifierData::RemoveAllModifiersExceptLevel(uint8 Level)
 {
-	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
-	{
-		return;
-	}
-	
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -203,7 +180,7 @@ void FModifierData::RemoveAllModifiersExceptLevel(uint8 Level)
 
 void FModifierData::SetModifiers(const TArray<uint8>& NewModifiers)
 {
-	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
+	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
 	}
@@ -222,7 +199,7 @@ void FModifierData::SetModifiers(const TArray<uint8>& NewModifiers)
 
 void FModifierData::SetModifierLevel(uint8 Level)
 {
-	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
+	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
 	}

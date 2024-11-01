@@ -133,7 +133,6 @@ public:
 	virtual float GetMaxSpeedScalar() const;
 	virtual float GetRootMotionTranslationScalar() const;
 	virtual float GetMaxSpeed() const override;
-	virtual void TickCharacterPose(float DeltaTime) override;
 	
 private:
 	FModifierMoveResponseDataContainer ModifierMoveResponseDataContainer;
@@ -156,6 +155,9 @@ public:
 
 	/** Get prediction data for a client game. Should not be used if not running as a client. Allocates the data on demand and can be overridden to allocate a custom override if desired. Result must be a FNetworkPredictionData_Client_Character. */
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
+
+protected:
+	virtual void TickCharacterPose(float DeltaTime) override;  // ACharacter::GetAnimRootMotionTranslationScale() is non-virtual so we have to duplicate this entire function
 };
 
 class PREDICTEDMOVEMENT_API FSavedMove_Character_Modifier : public FSavedMove_Character

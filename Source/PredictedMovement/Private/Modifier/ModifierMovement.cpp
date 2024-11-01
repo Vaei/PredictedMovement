@@ -214,65 +214,6 @@ float UModifierMovement::GetMaxSpeed() const
 	return Super::GetMaxSpeed() * GetMaxSpeedScalar();
 }
 
-void UModifierMovement::TickCharacterPose(float DeltaTime)
-{
-	/*
-	 * Epic made ACharacter::GetAnimRootMotionTranslationScale() non-virtual which was silly,
-	 * so we have to duplicate the entire function. All we do here is scale
-	 * CharacterOwner->GetAnimRootMotionTranslationScale() by GetRootMotionTranslationScalar()
-	 * 
-	 * This means our snare affects root motion as well.
-	 */
-	
-	if (DeltaTime < UCharacterMovementComponent::MIN_TICK_TIME)
-	{
-		return;
-	}
-
-	check(CharacterOwner && CharacterOwner->GetMesh());
-	USkeletalMeshComponent* CharacterMesh = CharacterOwner->GetMesh();
-
-	// bAutonomousTickPose is set, we control TickPose from the Character's Movement and Networking updates, and bypass the Component's update.
-	// (Or Simulating Root Motion for remote clients)
-	CharacterMesh->bIsAutonomousTickPose = true;
-
-	if (CharacterMesh->ShouldTickPose())
-	{
-		// Keep track of if we're playing root motion, just in case the root motion montage ends this frame.
-		const bool bWasPlayingRootMotion = CharacterOwner->IsPlayingRootMotion();
-
-		CharacterMesh->TickPose(DeltaTime, true);
-
-		// Grab root motion now that we have ticked the pose
-		if (CharacterOwner->IsPlayingRootMotion() || bWasPlayingRootMotion)
-		{
-			FRootMotionMovementParams RootMotion = CharacterMesh->ConsumeRootMotion();
-			if (RootMotion.bHasRootMotion)
-			{
-				RootMotion.ScaleRootMotionTranslation(CharacterOwner->GetAnimRootMotionTranslationScale() * GetRootMotionTranslationScalar());
-				RootMotionParams.Accumulate(RootMotion);
-			}
-
-#if !(UE_BUILD_SHIPPING)
-			// Debugging
-			{
-				FAnimMontageInstance* RootMotionMontageInstance = CharacterOwner->GetRootMotionAnimMontageInstance();
-				UE_LOG(LogRootMotion, Log, TEXT("UCharacterMovementComponent::TickCharacterPose Role: %s, RootMotionMontage: %s, MontagePos: %f, DeltaTime: %f, ExtractedRootMotion: %s, AccumulatedRootMotion: %s")
-					, *UEnum::GetValueAsString(TEXT("Engine.ENetRole"), CharacterOwner->GetLocalRole())
-					, *GetNameSafe(RootMotionMontageInstance ? RootMotionMontageInstance->Montage : NULL)
-					, RootMotionMontageInstance ? RootMotionMontageInstance->GetPosition() : -1.f
-					, DeltaTime
-					, *RootMotion.GetRootMotionTransform().GetTranslation().ToCompactString()
-					, *RootMotionParams.GetRootMotionTransform().GetTranslation().ToCompactString()
-					);
-			}
-#endif // !(UE_BUILD_SHIPPING)
-		}
-	}
-
-	CharacterMesh->bIsAutonomousTickPose = false;
-}
-
 void UModifierMovement::OnClientCorrectionReceived(FNetworkPredictionData_Client_Character& ClientData, float TimeStamp,
 	FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase,
 	bool bBaseRelativePosition, uint8 ServerMovementMode
@@ -326,4 +267,63 @@ FNetworkPredictionData_Client* UModifierMovement::GetPredictionData_Client() con
 FSavedMovePtr FNetworkPredictionData_Client_Character_Modifier::AllocateNewMove()
 {
 	return MakeShared<FSavedMove_Character_Modifier>();
+}
+
+void UModifierMovement::TickCharacterPose(float DeltaTime)
+{
+	/*
+	 * Epic made ACharacter::GetAnimRootMotionTranslationScale() non-virtual which was silly,
+	 * so we have to duplicate the entire function. All we do here is scale
+	 * CharacterOwner->GetAnimRootMotionTranslationScale() by GetRootMotionTranslationScalar()
+	 * 
+	 * This means our snare affects root motion as well.
+	 */
+	
+	if (DeltaTime < MIN_TICK_TIME)
+	{
+		return;
+	}
+
+	check(CharacterOwner && CharacterOwner->GetMesh());
+	USkeletalMeshComponent* CharacterMesh = CharacterOwner->GetMesh();
+
+	// bAutonomousTickPose is set, we control TickPose from the Character's Movement and Networking updates, and bypass the Component's update.
+	// (Or Simulating Root Motion for remote clients)
+	CharacterMesh->bIsAutonomousTickPose = true;
+
+	if (CharacterMesh->ShouldTickPose())
+	{
+		// Keep track of if we're playing root motion, just in case the root motion montage ends this frame.
+		const bool bWasPlayingRootMotion = CharacterOwner->IsPlayingRootMotion();
+
+		CharacterMesh->TickPose(DeltaTime, true);
+
+		// Grab root motion now that we have ticked the pose
+		if (CharacterOwner->IsPlayingRootMotion() || bWasPlayingRootMotion)
+		{
+			FRootMotionMovementParams RootMotion = CharacterMesh->ConsumeRootMotion();
+			if (RootMotion.bHasRootMotion)
+			{
+				RootMotion.ScaleRootMotionTranslation(CharacterOwner->GetAnimRootMotionTranslationScale() * GetRootMotionTranslationScalar());
+				RootMotionParams.Accumulate(RootMotion);
+			}
+
+#if !(UE_BUILD_SHIPPING)
+			// Debugging
+			{
+				FAnimMontageInstance* RootMotionMontageInstance = CharacterOwner->GetRootMotionAnimMontageInstance();
+				UE_LOG(LogRootMotion, Log, TEXT("UCharacterMovementComponent::TickCharacterPose Role: %s, RootMotionMontage: %s, MontagePos: %f, DeltaTime: %f, ExtractedRootMotion: %s, AccumulatedRootMotion: %s")
+					, *UEnum::GetValueAsString(TEXT("Engine.ENetRole"), CharacterOwner->GetLocalRole())
+					, *GetNameSafe(RootMotionMontageInstance ? RootMotionMontageInstance->Montage : NULL)
+					, RootMotionMontageInstance ? RootMotionMontageInstance->GetPosition() : -1.f
+					, DeltaTime
+					, *RootMotion.GetRootMotionTransform().GetTranslation().ToCompactString()
+					, *RootMotionParams.GetRootMotionTransform().GetTranslation().ToCompactString()
+					);
+			}
+#endif // !(UE_BUILD_SHIPPING)
+		}
+	}
+
+	CharacterMesh->bIsAutonomousTickPose = false;
 }

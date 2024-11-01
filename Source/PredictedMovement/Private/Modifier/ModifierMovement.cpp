@@ -7,6 +7,12 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ModifierMovement)
 
+namespace FModifierTags
+{
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_Boost, "Modifier.Type.Buff.Boost");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Snare, "Modifier.Type.Debuff.Snare");
+}
+
 void FModifierMoveResponseDataContainer::ServerFillResponseData(
 	const UCharacterMovementComponent& CharacterMovement, const FClientAdjustment& PendingAdjustment)
 {
@@ -72,17 +78,41 @@ UModifierMovement::UModifierMovement(const FObjectInitializer& ObjectInitializer
 void UModifierMovement::PostLoad()
 {
 	Super::PostLoad();
-
-	AModifierCharacter* ModifierCharacter = Cast<AModifierCharacter>(PawnOwner);
-	Snare.Initialize(ModifierCharacter);
+	SetUpdatedCharacter();
 }
 
 void UModifierMovement::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
 {
 	Super::SetUpdatedComponent(NewUpdatedComponent);
+	SetUpdatedCharacter();
+}
 
+void UModifierMovement::SetUpdatedCharacter()
+{
 	AModifierCharacter* ModifierCharacter = Cast<AModifierCharacter>(PawnOwner);
-	Snare.Initialize(ModifierCharacter);
+	Boost.Initialize(ModifierCharacter, FModifierTags::Modifier_Type_Buff_Boost);
+	Snare.Initialize(ModifierCharacter, FModifierTags::Modifier_Type_Debuff_Snare);
+}
+
+void FSavedMove_Character_Modifier::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel,
+	class FNetworkPredictionData_Client_Character& ClientData)
+{
+	FSavedMove_Character::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
+
+	if (UModifierMovement* Movement = CastChecked<AModifierCharacter>(C)->GetModifierCharacterMovement())
+	{
+		Boost << Movement->Boost;  // SavedMove doesn't have initialized modifier, so do a full copy
+	}
+}
+
+void FSavedMove_Character_Modifier::PrepMoveFor(ACharacter* C)
+{
+	FSavedMove_Character::PrepMoveFor(C);
+
+	if (UModifierMovement* Movement = CastChecked<AModifierCharacter>(C)->GetModifierCharacterMovement())
+	{
+		Movement->Boost = Boost;
+	}
 }
 
 bool FSavedMove_Character_Modifier::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter,
@@ -90,10 +120,8 @@ bool FSavedMove_Character_Modifier::CanCombineWith(const FSavedMovePtr& NewMove,
 {
 	const TSharedPtr<FSavedMove_Character_Modifier>& SavedMove = StaticCastSharedPtr<FSavedMove_Character_Modifier>(NewMove);
 
-	if (Snare != SavedMove->Snare)
-	{
-		return false;
-	}
+	if (Boost != SavedMove->Boost) { return false; }
+	if (Snare != SavedMove->Snare) { return false; }
 
 	return Super::CanCombineWith(NewMove, InCharacter, MaxDelta);
 }
@@ -107,13 +135,14 @@ void FSavedMove_Character_Modifier::CombineWith(const FSavedMove_Character* OldM
 
 	if (UModifierMovement* MoveComp = C ? Cast<UModifierMovement>(C->GetCharacterMovement()) : nullptr)
 	{
-		MoveComp->Snare = SavedOldMove->Snare;
+		MoveComp->Snare << SavedOldMove->Snare;
 	}
 }
 
 void FSavedMove_Character_Modifier::Clear()
 {
 	Super::Clear();
+	Boost = {};
 	Snare = {};
 }
 
@@ -127,7 +156,18 @@ void FSavedMove_Character_Modifier::SetInitialPosition(ACharacter* C)
 	}
 }
 
-float UModifierMovement::GetMaxSpeedScalar() const
+float UModifierMovement::GetBoostScalar() const
+{
+	switch (Boost.GetModifierLevel<EBoost>())
+	{
+	case EBoost::Boost_25: return BoostScalar_25;
+	case EBoost::Boost_50: return BoostScalar_50;
+	case EBoost::Boost_75: return BoostScalar_75;
+	default: return 1.f;
+	}
+}
+
+float UModifierMovement::GetSnareScalar() const
 {
 	switch (Snare.GetModifierLevel<ESnare>())
 	{
@@ -138,9 +178,15 @@ float UModifierMovement::GetMaxSpeedScalar() const
 	}
 }
 
+float UModifierMovement::GetMaxSpeedScalar() const
+{
+	return GetBoostScalar() * GetSnareScalar();
+}
+
 float UModifierMovement::GetRootMotionTranslationScalar() const
 {
-	return bSnareAffectsRootMotion ? GetMaxSpeedScalar() : 1.f;
+	// Allowing boost to affect root motion will increase attack range, dodge range, etc., it is disabled by default
+	return (bSnareAffectsRootMotion ? GetSnareScalar() : 1.f) * (bBoostAffectsRootMotion ? GetBoostScalar() : 1.f);
 }
 
 float UModifierMovement::GetMaxSpeed() const
@@ -219,13 +265,9 @@ void UModifierMovement::OnClientCorrectionReceived(FNetworkPredictionData_Client
 	// ClientHandleMoveResponse() ➜ ClientAdjustPosition_Implementation() ➜ OnClientCorrectionReceived()
 	const FModifierMoveResponseDataContainer& ModifierMoveResponse = static_cast<const FModifierMoveResponseDataContainer&>(GetMoveResponseDataContainer());
 
-	if (Snare != ModifierMoveResponse.Snare)
-	{
-		// Snare has changed, apply correction
-		Snare = ModifierMoveResponse.Snare;
-		Snare.OnModifiersChanged();
-	}
-
+	// If snare changed, apply correction
+	Snare << ModifierMoveResponse.Snare;
+	
 	Super::OnClientCorrectionReceived(ClientData, TimeStamp, NewLocation, NewVelocity, NewBase, NewBaseBoneName,
 	bHasBase, bBaseRelativePosition, ServerMovementMode
 #if UE_5_03_OR_LATER
@@ -244,13 +286,9 @@ bool UModifierMovement::ServerCheckClientError(float ClientTimeStamp, float Delt
 
 	// Trigger client correction if modifiers have different ModifierLevel or Modifiers Array
 	// De-syncs can happen when we set the Modifier directly in Gameplay code (i.e. GAS)
+	const FModifierNetworkMoveData* CurrentMoveData = static_cast<const FModifierNetworkMoveData*>(GetCurrentNetworkMoveData());
+	if (CurrentMoveData->Snare != Snare) {	return true; }
 	
-    const FModifierNetworkMoveData* CurrentMoveData = static_cast<const FModifierNetworkMoveData*>(GetCurrentNetworkMoveData());
-    if (CurrentMoveData->Snare != Snare)
-	{
-		return true;
-	}
-    
     return false;
 }
 

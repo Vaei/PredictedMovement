@@ -468,6 +468,17 @@ void UProneMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 			}
 		}
 	}
+	else
+	{
+		if (!IsProned() && IsCrouching() && CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() != CrouchedHalfHeight)
+		{
+			// Change collision size to crouching dimensions
+			const float OldUnscaledRadius = CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleRadius();
+			// Height is not allowed to be smaller than radius.
+			const float ClampedCrouchedHalfHeight = FMath::Max3(0.f, OldUnscaledRadius, CrouchedHalfHeight);
+			CharacterOwner->GetCapsuleComponent()->SetCapsuleSize(OldUnscaledRadius, ClampedCrouchedHalfHeight);
+		}
+	}
 
 	// Proxies get replicated Prone state.
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)

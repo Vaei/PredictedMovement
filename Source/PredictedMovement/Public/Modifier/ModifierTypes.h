@@ -107,6 +107,7 @@ struct PREDICTEDMOVEMENT_API FModifierData
 		, LevelMethod(InLevelMethod)
 		, MaxModifiers(InMaxModifiers)
 		, LevelType(InLevelType)
+		, RequestedModifierLevel(0)
 		, ModifierLevel(0)
 		, CharacterOwner(nullptr)
 	{}
@@ -122,7 +123,7 @@ struct PREDICTEDMOVEMENT_API FModifierData
 	/** We don't check type here, we only want to ensure we're sufficiently matched for prediction purposes */
 	bool operator==(const FModifierData& Other) const
 	{
-		return ModifierLevel == Other.ModifierLevel && Modifiers == Other.Modifiers;
+		return RequestedModifierLevel == Other.RequestedModifierLevel && ModifierLevel == Other.ModifierLevel && Modifiers == Other.Modifiers;
 	}
 
 	/** We don't check type here, we only want to ensure we're sufficiently matched for prediction purposes */
@@ -166,7 +167,11 @@ protected:
 	TArray<FGameplayTag> ModifierLevels;
 
 public:
-	/** The current modifier level */
+	/** The requested modifier level, similar to the concept of bWantsSprint */
+	UPROPERTY()
+	uint8 RequestedModifierLevel;
+
+	/** The current modifier level, similar to the concept of bIsSprinting */
 	UPROPERTY()
 	uint8 ModifierLevel;
 
@@ -255,6 +260,8 @@ public:
 	void SetModifierLevel(uint8 Level);
 
 	void OnModifiersChanged();
+
+	void UpdateModifierLevel();
 
 public:
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);

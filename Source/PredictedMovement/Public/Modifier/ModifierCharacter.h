@@ -69,6 +69,35 @@ protected:
 	int32 GetNumBoostsByLevel(FGameplayTag ModifierLevel) const;
 	
 	/* ~Boost (Non-Generic) Implementation */
+
+protected:
+	/* Slow Fall (Non-Generic) Implementation -- Implement per-modifier type */
+
+	UPROPERTY(ReplicatedUsing=OnRep_SimulatedSlowFall)
+	uint8 SimulatedSlowFall;
+
+	UFUNCTION()
+	void OnRep_SimulatedSlowFall(uint8 PrevSimulatedSlowFall);
+
+	UFUNCTION(BlueprintCallable, Category=Character)
+	void SlowFall(FGameplayTag ModifierLevel);
+
+	UFUNCTION(BlueprintCallable, Category=Character)
+	void RemoveSlowFall(FGameplayTag ModifierLevel);
+
+	UFUNCTION(BlueprintPure, Category=Character)
+	bool IsSlowFall() const;
+
+	UFUNCTION(BlueprintCallable, Category=Character)
+	FGameplayTag GetSlowFallLevel() const;
+
+	UFUNCTION(BlueprintCallable, Category=Character)
+	int32 GetNumSlowFalls() const;
+
+	UFUNCTION(BlueprintCallable, Category=Character)
+	int32 GetNumSlowFallsByLevel(FGameplayTag ModifierLevel) const;
+	
+	/* ~Slow Fall (Non-Generic) Implementation */
 	
 protected:
 	/* Snare (Non-Generic) Implementation -- Implement per-modifier type */

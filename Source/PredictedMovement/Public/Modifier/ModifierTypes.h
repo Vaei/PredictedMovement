@@ -43,12 +43,16 @@ enum class EModifierLevelType : uint8
 	UEnum,
 };
 
+/**
+ * Parameters for a modifier that affects character movement
+ */
 USTRUCT(BlueprintType)
-struct PREDICTEDMOVEMENT_API FCommonModifierParams
+struct PREDICTEDMOVEMENT_API FMovementModifierParams
 {
 	GENERATED_BODY()
 
-	FCommonModifierParams(float InMaxWalkSpeed = 1.f, float InMaxAcceleration = 1.f, float InBrakingDeceleration = 1.f, float InGroundFriction = 1.f, float InBrakingFriction = 1.f)
+	FMovementModifierParams(float InMaxWalkSpeed = 1.f, float InMaxAcceleration = 1.f, float InBrakingDeceleration = 1.f,
+		float InGroundFriction = 1.f, float InBrakingFriction = 1.f)
 		: MaxWalkSpeed(InMaxWalkSpeed)
 		, MaxAcceleration(InMaxAcceleration)
 		, BrakingDeceleration(InBrakingDeceleration)
@@ -91,6 +95,73 @@ struct PREDICTEDMOVEMENT_API FCommonModifierParams
 	 */
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", EditCondition="bUseSeparateBrakingFriction"))
 	float BrakingFriction;
+};
+
+/**
+ * Parameters for a modifier that affects falling
+ */
+USTRUCT(BlueprintType)
+struct PREDICTEDMOVEMENT_API FFallingModifierParams
+{
+	GENERATED_BODY()
+
+	FFallingModifierParams(float InGravityScalar = 1.f)
+		: bGravityScalarFromVelocity(false)
+		, GravityScalar(InGravityScalar)
+		, GravityScalarFallVelocityCurve(nullptr)
+		, bRemoveVelocityZOnStart(false)
+		, bOverrideAirControl(false)
+		, AirControlScalar(1.f)
+		, AirControlOverride(1.f)
+	{}
+
+	/** If true, use GravityScalarFallVelocityCurve */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier)
+	bool bGravityScalarFromVelocity;
+
+	/** Gravity is multiplied by this amount */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(ClampMin="0", UIMin="0", ForceUnits="x", EditCondition="!bGravityScalarFromVelocity", EditConditionHides))
+	float GravityScalar;
+
+	/** Gravity scale curve based on fall velocity */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(EditCondition="bGravityScalarFromVelocity", EditConditionHides))
+	UCurveFloat* GravityScalarFallVelocityCurve;
+
+	/** Set Velocity.Z = 0.f when air fall starts */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(DisplayName="Remove Velocity Z On Start"))
+	bool bRemoveVelocityZOnStart;
+
+	/** If true, directly set the air control value */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier)
+	bool bOverrideAirControl;
+
+	/**
+	 * When falling, amount of lateral movement control available to the character.
+	 * 0 = no control, 1 = full control at max speed of MaxWalkSpeed.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(ClampMin="0", UIMin="0", ForceUnits="x", EditCondition="!bOverrideAirControl", EditConditionHides))
+	float AirControlScalar;
+
+	/**
+	 * When falling, amount of lateral movement control available to the character.
+	 * 0 = no control, 1 = full control at max speed of MaxWalkSpeed.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(EditCondition="bOverrideAirControl", EditConditionHides))
+	float AirControlOverride;
+
+	float GetGravityScalar(const FVector& Velocity) const
+	{
+		if (!ensureMsgf(!bGravityScalarFromVelocity || GravityScalarFallVelocityCurve != nullptr, TEXT("GravityScalarFallVelocityCurve must be set")))
+		{
+			return 1.f;
+		}
+		return bGravityScalarFromVelocity ? GravityScalarFallVelocityCurve->GetFloatValue(Velocity.Z) : GravityScalar;
+	}
+
+	float GetAirControl(float CurrentAirControl) const
+	{
+		return bOverrideAirControl ? AirControlOverride : AirControlScalar * CurrentAirControl;
+	}
 };
 
 /**
@@ -268,7 +339,66 @@ public:
 };
 
 template<>
-struct TStructOpsTypeTraits<FModifierData> : public TStructOpsTypeTraitsBase2<FModifierData>
+struct TStructOpsTypeTraits<FModifierData> : TStructOpsTypeTraitsBase2<FModifierData>
+{
+	enum
+	{
+		WithNetSerializer = true
+	};
+};
+
+/**
+ * Client auth data for providing client with positional authority
+ */
+USTRUCT()
+struct PREDICTEDMOVEMENT_API FClientAuthData
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	float Alpha;
+
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+};
+
+template<>
+struct TStructOpsTypeTraits<FClientAuthData> : TStructOpsTypeTraitsBase2<FClientAuthData>
+{
+	enum
+	{
+		WithNetSerializer = true
+	};
+};
+
+/**
+ * Stack of client auth data for providing client with positional authority
+ */
+USTRUCT()
+struct PREDICTEDMOVEMENT_API FClientAuthStack
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<FClientAuthData> Stack;
+
+	FClientAuthData* GetLatest()
+	{
+		return Stack.Num() > 0 ? &Stack.Last() : nullptr;
+	}
+
+	void RemoveLatest()
+	{
+		if (Stack.Num() > 0)
+		{
+			Stack.RemoveAt(Stack.Num() - 1);
+		}
+	}
+
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+};
+
+template<>
+struct TStructOpsTypeTraits<FClientAuthStack> : TStructOpsTypeTraitsBase2<FClientAuthStack>
 {
 	enum
 	{

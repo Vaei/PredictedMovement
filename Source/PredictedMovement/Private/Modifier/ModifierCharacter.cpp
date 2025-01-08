@@ -18,6 +18,7 @@ void AModifierCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProper
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(AModifierCharacter, SimulatedBoost, COND_SimulatedOnly);
+	DOREPLIFETIME_CONDITION(AModifierCharacter, SimulatedSlowFall, COND_SimulatedOnly);
 	DOREPLIFETIME_CONDITION(AModifierCharacter, SimulatedSnare, COND_SimulatedOnly);
 }
 
@@ -44,12 +45,43 @@ void AModifierCharacter::OnModifierAdded(const FGameplayTag& ModifierType, uint8
 {
 	// @TIP: Add Loose Gameplay Tag Here (Not Replicated)
 
+	if (!ModifierMovement)
+	{
+		return;
+	}
+
+	if (ModifierType == FModifierTags::Modifier_Type_Buff_Boost)
+	{
+		ModifierMovement->OnStartBoost();
+	}
+	else if (ModifierType == FModifierTags::Modifier_Type_Buff_SlowFall)
+	{
+		ModifierMovement->OnStartSlowFall();
+	}
+	else if (ModifierType == FModifierTags::Modifier_Type_Debuff_Snare)
+	{
+		ModifierMovement->OnStartSnare();
+	}
+
 	K2_OnModifierAdded(ModifierType, ModifierLevel, PrevModifierLevel);
 }
 
 void AModifierCharacter::OnModifierRemoved(const FGameplayTag& ModifierType, uint8 ModifierLevel, uint8 PrevModifierLevel)
 {
 	// @TIP: Remove Loose Gameplay Tag Here (Not Replicated)
+
+	if (ModifierType == FModifierTags::Modifier_Type_Buff_Boost)
+	{
+		ModifierMovement->OnEndBoost();
+	}
+	else if (ModifierType == FModifierTags::Modifier_Type_Buff_SlowFall)
+	{
+		ModifierMovement->OnEndSlowFall();
+	}
+	else if (ModifierType == FModifierTags::Modifier_Type_Debuff_Snare)
+	{
+		ModifierMovement->OnEndSnare();
+	}
 
 	K2_OnModifierRemoved(ModifierType, ModifierLevel, PrevModifierLevel);
 }
@@ -60,7 +92,7 @@ void AModifierCharacter::OnRep_SimulatedBoost(uint8 PrevSimulatedBoost)
 {
 	if (ModifierMovement)
 	{
-		ModifierMovement->Boost.ModifierLevel = SimulatedBoost;
+		ModifierMovement->Boost.RequestedModifierLevel = SimulatedBoost;
 		ModifierMovement->bNetworkUpdateReceived = true;
 		
 		OnModifierChanged(FModifierTags::Modifier_Type_Buff_Boost, SimulatedBoost, PrevSimulatedBoost);
@@ -114,13 +146,71 @@ int32 AModifierCharacter::GetNumBoostsByLevel(FGameplayTag ModifierLevel) const
 	return 0;
 }
 
+void AModifierCharacter::OnRep_SimulatedSlowFall(uint8 PrevSimulatedSlowFall)
+{
+	if (ModifierMovement)
+	{
+		ModifierMovement->SlowFall.RequestedModifierLevel = SimulatedSlowFall;
+		ModifierMovement->bNetworkUpdateReceived = true;
+		
+		OnModifierChanged(FModifierTags::Modifier_Type_Buff_SlowFall, SimulatedSlowFall, PrevSimulatedSlowFall);
+	}
+}
+
+void AModifierCharacter::SlowFall(FGameplayTag ModifierLevel)
+{
+	if (ModifierMovement)
+	{
+		if (const uint8 Level = ModifierMovement->SlowFall.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			ModifierMovement->SlowFall.AddModifier(Level);
+		}
+	}
+}
+
+void AModifierCharacter::RemoveSlowFall(FGameplayTag ModifierLevel)
+{
+	if (ModifierMovement)
+	{
+		if (const uint8 Level = ModifierMovement->SlowFall.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			ModifierMovement->SlowFall.RemoveModifier(Level);
+		}
+	}
+}
+
+bool AModifierCharacter::IsSlowFall() const
+{
+	return ModifierMovement && ModifierMovement->SlowFall.HasModifier();
+}
+
+FGameplayTag AModifierCharacter::GetSlowFallLevel() const
+{
+	return ModifierMovement ? ModifierMovement->SlowFall.GetModifierLevel() : FGameplayTag::EmptyTag;
+}
+
+int32 AModifierCharacter::GetNumSlowFalls() const
+{
+	return ModifierMovement ? ModifierMovement->SlowFall.GetNumModifiers() : 0;
+}
+
+int32 AModifierCharacter::GetNumSlowFallsByLevel(FGameplayTag ModifierLevel) const
+{
+	if (ModifierMovement)
+	{
+		const uint8 Level = ModifierMovement->SlowFall.GetModifierLevelByte(ModifierLevel);
+		return Level != LEVEL_NONE ? ModifierMovement->SlowFall.GetNumModifiersByLevel(Level) : 0;
+	}
+	return 0;
+}
+
 /* Snare */
 
 void AModifierCharacter::OnRep_SimulatedSnare(uint8 PrevSimulatedSnare)
 {
 	if (ModifierMovement)
 	{
-		ModifierMovement->Snare.ModifierLevel = SimulatedSnare;
+		ModifierMovement->Snare.RequestedModifierLevel = SimulatedSnare;
 		ModifierMovement->bNetworkUpdateReceived = true;
 		
 		OnModifierChanged(FModifierTags::Modifier_Type_Debuff_Snare, SimulatedSnare, PrevSimulatedSnare);

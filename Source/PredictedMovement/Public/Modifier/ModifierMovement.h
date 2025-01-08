@@ -4,12 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "System/PredictedMovementVersioning.h"
 #include "ModifierTypes.h"
 #include "ModifierMovement.generated.h"
 
 namespace FModifierTags
 {
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_SlowFall);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_SlowFall_25);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_SlowFall_50);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_SlowFall_75);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_SlowFall_100);
 	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_Boost);
 	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_Boost_25);
 	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_Boost_50);
@@ -25,20 +29,19 @@ struct PREDICTEDMOVEMENT_API FModifierMoveResponseDataContainer : FCharacterMove
 	using Super = FCharacterMoveResponseDataContainer;
 
 	FModifierData Snare;
+	FClientAuthStack ClientAuthStack;
 	
 	virtual void ServerFillResponseData(const UCharacterMovementComponent& CharacterMovement, const FClientAdjustment& PendingAdjustment) override;
 	virtual bool Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap) override;
 };
 
-struct PREDICTEDMOVEMENT_API FModifierNetworkMoveData : public FCharacterNetworkMoveData
+struct PREDICTEDMOVEMENT_API FModifierNetworkMoveData : FCharacterNetworkMoveData
 {  // Client ➜ Server
 public:
     typedef FCharacterNetworkMoveData Super;
  
     FModifierNetworkMoveData()
-    {
-    	
-    }
+    {}
 
 	FModifierData Snare;
  
@@ -46,12 +49,17 @@ public:
     virtual bool Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap, ENetworkMoveType MoveType) override;
 };
  
-struct PREDICTEDMOVEMENT_API FModifierNetworkMoveDataContainer : public FCharacterNetworkMoveDataContainer
+struct PREDICTEDMOVEMENT_API FModifierNetworkMoveDataContainer : FCharacterNetworkMoveDataContainer
 {  // Client ➜ Server
 public:
     typedef FCharacterNetworkMoveDataContainer Super;
  
-    FModifierNetworkMoveDataContainer();
+    FModifierNetworkMoveDataContainer()
+    {
+    	NewMoveData = &MoveData[0];
+    	PendingMoveData = &MoveData[1];
+    	OldMoveData = &MoveData[2];
+    }
  
 private:
     FModifierNetworkMoveData MoveData[3];
@@ -80,32 +88,107 @@ public:
 	 * Scaling applied on a per-boost-level basis
 	 * Every tag defined here must also be defined in the FModifierData Boost property
 	 */
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
-	TMap<FGameplayTag, FCommonModifierParams> BoostScalars;
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
+	TMap<FGameplayTag, FMovementModifierParams> BoostLevels;
 
 	/**
 	 * If True, Boost will affect root motion
 	 * This allows boosts to scale up root motion translation
 	 * This is disabled by default because it can increase attack range, dodge range, etc.
 	 */
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
 	bool bBoostAffectsRootMotion = false;
+	
+public:
+	/**
+	 * Scaling applied on a per-slow-fall-level basis
+	 * Every tag defined here must also be defined in the FModifierData SlowFall property
+	 */
+	UPROPERTY(Category="Character Movement: Jumping / Falling", EditAnywhere, BlueprintReadWrite)
+	TMap<FGameplayTag, FFallingModifierParams> SlowFallLevels;
 	
 public:
 	/**
 	 * Scaling applied on a per-snare-level basis
 	 * Every tag defined here must also be defined in the FModifierData Snare property
 	 */
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
-	TMap<FGameplayTag, FCommonModifierParams> SnareScalars;
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
+	TMap<FGameplayTag, FMovementModifierParams> SnareLevels;
 
 	/**
 	 * If True, Snare will affect root motion
 	 * This allows snares to scale down root motion translation
 	 */
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ForceUnits="x"))
 	bool bSnareAffectsRootMotion = true;
+
+	/**
+	 * If True, the client will be allowed to send position updates to the server
+	 * Useful for short bursts of movement that are difficult to sync over the network
+	 */
+	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="s"))
+	bool bEnableClientAuth = true;
 	
+	/**
+	 * How long to allow client to have positional authority after being Snared
+	 */
+	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="s", EditCondition="bEnableClientAuth", EditConditionHides))
+	float ClientAuthTime = 1.25f;
+
+	/**
+	 * Maximum distance between client and server that will be accepted by server
+	 * Values above this will be scaled to the maximum distance
+	 */
+	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="s", EditCondition="bEnableClientAuth", EditConditionHides))
+	float MaxClientAuthDistance = 150.f;
+
+	/**
+	 * Maximum distance between client and server that will be accepted by server
+	 * Values above this will be rejected entirely, on suspicion of cheating, or excessive error
+	 */
+	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="s", EditCondition="bEnableClientAuth", EditConditionHides))
+	float RejectClientAuthDistance = 800.f;
+
+public:
+	/** Example implementation of a local predicted buff modifier that can stack */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
+	FModifierData Boost;
+	
+	UFUNCTION(BlueprintCallable, Category="Character Movement: Walking")
+	const FGameplayTag& GetBoostLevel() const
+	{
+		return Boost.GetModifierLevel();
+	}
+
+	UFUNCTION(BlueprintPure, Category="Character Movement: Walking")
+	bool IsBoosted() const
+	{
+		return Boost.HasModifier();
+	}
+
+	virtual void OnStartBoost() {}
+	virtual void OnEndBoost() {}
+
+public:
+	/** Example implementation of a local predicted buff modifier that can stack */
+	UPROPERTY(Category="Character Movement: Jumping / Falling", EditAnywhere, BlueprintReadWrite)
+	FModifierData SlowFall;
+	
+	UFUNCTION(BlueprintCallable, Category="Character Movement: Jumping / Falling")
+	const FGameplayTag& GetSlowFallLevel() const
+	{
+		return SlowFall.GetModifierLevel();
+	}
+
+	UFUNCTION(BlueprintPure, Category="Character Movement: Jumping / Falling")
+	bool IsSlowFall() const
+	{
+		return SlowFall.HasModifier();
+	}
+
+	virtual void OnStartSlowFall();
+	virtual void OnEndSlowFall() {}
+
 public:
 	/** Example implementation of an externally applied debuff modifier that can stack */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
@@ -123,24 +206,13 @@ public:
 		return Snare.HasModifier();
 	}
 
-	/** Example implementation of a local predicted buff modifier that can stack */
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
-	FModifierData Boost;
-	
-	UFUNCTION(BlueprintCallable, Category="Character Movement: Walking")
-	const FGameplayTag& GetBoostLevel() const
-	{
-		return Boost.GetModifierLevel();
-	}
+	virtual void OnStartSnare() {}
+	virtual void OnEndSnare() {}
 
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking")
-	bool IsBoosted() const
-	{
-		return Boost.HasModifier();
-	}
-
-	const FCommonModifierParams* GetBoostLevelParams() const { return BoostScalars.Find(GetBoostLevel()); }
-	const FCommonModifierParams* GetSnareLevelParams() const { return SnareScalars.Find(GetSnareLevel()); }
+public:
+	const FMovementModifierParams* GetBoostLevelParams() const { return BoostLevels.Find(GetBoostLevel()); }
+	const FFallingModifierParams* GetSlowFallLevelParams() const { return SlowFallLevels.Find(GetSlowFallLevel()); }
+	const FMovementModifierParams* GetSnareLevelParams() const { return SnareLevels.Find(GetSnareLevel()); }
 	virtual float GetBoostSpeedScalar() const { return GetBoostLevelParams() ? GetBoostLevelParams()->MaxWalkSpeed : 1.f; }
 	virtual float GetSnareSpeedScalar() const { return GetSnareLevelParams() ? GetSnareLevelParams()->MaxWalkSpeed : 1.f; }
 	virtual float GetBoostAccelScalar() const { return GetBoostLevelParams() ? GetBoostLevelParams()->MaxAcceleration : 1.f; }
@@ -166,6 +238,60 @@ public:
 
 	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
 	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
+
+	virtual float GetGravityZ() const override;
+	virtual FVector GetAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration) override;
+
+	virtual void UpdateMovementModifiers(float DeltaTime);
+	virtual void UpdateCharacterStateBeforeMovement(float DeltaTime) override;
+	virtual void UpdateCharacterStateAfterMovement(float DeltaTime) override;
+
+public:
+	UPROPERTY()
+	FClientAuthStack ClientAuthStack;
+
+	FClientAuthData* GetClientAuthData() { return IsClientAuthEnabled() ? ClientAuthStack.GetLatest() : nullptr; }
+
+protected:
+	UPROPERTY(Transient)
+	float ClientAuthTimeRemaining = 0.f;
+
+	UPROPERTY(Transient)
+	FVector ClientAuthStartLocation = FVector::ZeroVector;
+
+	/**
+	 * Maximum distance between client and server that will be accepted by server
+	 * Values above this will be scaled to the maximum distance
+	 */
+	virtual float GetMaxClientAuthDistance() const { return MaxClientAuthDistance; }
+	
+	/**
+	 * Maximum distance between client and server that will be accepted by server
+	 * Values above this will be rejected entirely, on suspicion of cheating, or excessive error
+	 */
+	virtual float GetRejectClientAuthDistance() const { return RejectClientAuthDistance; }
+
+	/**
+	 * Called when the client's position is rejected by the server entirely due to excessive difference
+	 * @param ClientLoc The client's location
+	 * @param ServerLoc The server's location
+	 * @param LocDiff The difference between the client and server locations
+	 */
+	virtual void OnClientAuthRejected(const FVector& ClientLoc, const FVector& ServerLoc, const FVector& LocDiff) {}
+
+	virtual float GetClientAuthTime() const;
+
+	virtual bool IsClientAuthEnabled() const;
+
+	/** 
+	 * Grant the client position authority, based on the current state of the character.
+	 * @param ClientAuthState What the client is requesting authority for, not used by default, requires override
+	 * @param OverrideDuration Override the default client authority time, -1.f to use default
+	 */
+	UFUNCTION(BlueprintCallable, Category="Character Movement (Networking)")
+	virtual void InitClientAuth(FGameplayTag ClientAuthState, float OverrideDuration = -1.f);
+	
+	virtual bool ServerShouldGrantClientPositionAuthority(FVector& ClientLoc);
 	
 private:
 	FModifierMoveResponseDataContainer ModifierMoveResponseDataContainer;
@@ -173,19 +299,16 @@ private:
 	FModifierNetworkMoveDataContainer ModifierMoveDataContainer;
 	
 public:
-	virtual void OnClientCorrectionReceived(FNetworkPredictionData_Client_Character& ClientData, float TimeStamp,
-	FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase,
-	bool bBaseRelativePosition, uint8 ServerMovementMode
-#if UE_5_03_OR_LATER
-	, FVector ServerGravityDirection) override;
-#else
-	) override;
-#endif
-	
+	virtual void ClientHandleMoveResponse(const FCharacterMoveResponseDataContainer& MoveResponse) override;
+
 	virtual bool ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
 		const FVector& ClientWorldLocation, const FVector& RelativeClientLocation,
 		UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode) override;
 
+	virtual void ServerMoveHandleClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
+		const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName,
+		uint8 ClientMovementMode) override;
+	
 	/** Get prediction data for a client game. Should not be used if not running as a client. Allocates the data on demand and can be overridden to allocate a custom override if desired. Result must be a FNetworkPredictionData_Client_Character. */
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 
@@ -206,10 +329,12 @@ public:
 	{}
 
 	FModifierData Boost;
+	FModifierData SlowFall;
 	FModifierData Snare;
 
 	virtual void SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character& ClientData) override;
 	virtual void PrepMoveFor(ACharacter* C) override;
+	virtual bool IsImportantMove(const FSavedMovePtr& LastAckedMove) const override;
 	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const override;
 	virtual void CombineWith(const FSavedMove_Character* OldMove, ACharacter* InCharacter, APlayerController* PC, const FVector& OldStartLocation) override;
 	virtual void Clear() override;

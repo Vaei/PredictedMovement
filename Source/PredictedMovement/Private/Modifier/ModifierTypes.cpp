@@ -285,3 +285,26 @@ bool FModifierData::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOu
 
 	return !Ar.IsError();
 }
+
+bool FClientAuthData::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+	Ar << Alpha;
+	
+	return !Ar.IsError();
+}
+
+bool FClientAuthStack::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+	// Serialize the number of elements
+	int32 StackNum = Stack.Num();
+	
+	// Serialize the elements
+	for (int32 i = 0; i < StackNum; ++i)
+	{
+		Stack[i].NetSerialize(Ar, Map, bOutSuccess);
+	}
+	
+	Ar << StackNum;
+
+	return !Ar.IsError();
+}

@@ -50,12 +50,16 @@ protected:
 	UFUNCTION()
 	void OnRep_SimulatedBoost(uint8 PrevSimulatedBoost);
 
+public:
 	UFUNCTION(BlueprintCallable, Category=Character)
 	void Boost(FGameplayTag ModifierLevel);
 
 	UFUNCTION(BlueprintCallable, Category=Character)
 	void RemoveBoost(FGameplayTag ModifierLevel);
 
+	UFUNCTION(BlueprintCallable, Category=Character)
+	void RemoveAllBoosts();
+	
 	UFUNCTION(BlueprintPure, Category=Character)
 	bool IsBoosted() const;
 
@@ -79,11 +83,15 @@ protected:
 	UFUNCTION()
 	void OnRep_SimulatedSlowFall(uint8 PrevSimulatedSlowFall);
 
+public:
 	UFUNCTION(BlueprintCallable, Category=Character)
 	void SlowFall(FGameplayTag ModifierLevel);
 
 	UFUNCTION(BlueprintCallable, Category=Character)
 	void RemoveSlowFall(FGameplayTag ModifierLevel);
+	
+	UFUNCTION(BlueprintCallable, Category=Character)
+	void RemoveAllSlowFall();
 
 	UFUNCTION(BlueprintPure, Category=Character)
 	bool IsSlowFall() const;
@@ -108,12 +116,16 @@ protected:
 	UFUNCTION()
 	void OnRep_SimulatedSnare(uint8 PrevSimulatedSnare);
 
+public:
 	UFUNCTION(BlueprintCallable, Category=Character)
 	void Snare(FGameplayTag ModifierLevel);
 
 	UFUNCTION(BlueprintCallable, Category=Character)
 	void RemoveSnare(FGameplayTag ModifierLevel);
 
+	UFUNCTION(BlueprintCallable, Category=Character)
+	void RemoveAllSnares();
+	
 	UFUNCTION(BlueprintPure, Category=Character)
 	bool IsSnared() const;
 

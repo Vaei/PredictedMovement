@@ -121,6 +121,14 @@ void AModifierCharacter::RemoveBoost(FGameplayTag ModifierLevel)
 	}
 }
 
+void AModifierCharacter::RemoveAllBoosts()
+{
+	if (ModifierMovement)
+	{
+		ModifierMovement->Boost.RemoveAllModifiers();
+	}
+}
+
 bool AModifierCharacter::IsBoosted() const
 {
 	return ModifierMovement && ModifierMovement->Boost.HasModifier();
@@ -159,7 +167,7 @@ void AModifierCharacter::OnRep_SimulatedSlowFall(uint8 PrevSimulatedSlowFall)
 
 void AModifierCharacter::SlowFall(FGameplayTag ModifierLevel)
 {
-	if (ModifierMovement)
+	if (ModifierMovement && ModifierMovement->CanSlowFall())
 	{
 		if (const uint8 Level = ModifierMovement->SlowFall.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
 		{
@@ -176,6 +184,14 @@ void AModifierCharacter::RemoveSlowFall(FGameplayTag ModifierLevel)
 		{
 			ModifierMovement->SlowFall.RemoveModifier(Level);
 		}
+	}
+}
+
+void AModifierCharacter::RemoveAllSlowFall()
+{
+	if (ModifierMovement)
+	{
+		ModifierMovement->SlowFall.RemoveAllModifiers();
 	}
 }
 
@@ -236,6 +252,14 @@ void AModifierCharacter::RemoveSnare(FGameplayTag ModifierLevel)
 		{
 			ModifierMovement->Snare.RemoveModifier(Level);
 		}
+	}
+}
+
+void AModifierCharacter::RemoveAllSnares()
+{
+	if (ModifierMovement)
+	{
+		ModifierMovement->Snare.RemoveAllModifiers();
 	}
 }
 

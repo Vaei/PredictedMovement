@@ -28,6 +28,8 @@ struct PREDICTEDMOVEMENT_API FModifierMoveResponseDataContainer : FCharacterMove
 {  // Server ➜ Client
 	using Super = FCharacterMoveResponseDataContainer;
 
+	FModifierData Boost;
+	FModifierData SlowFall;
 	FModifierData Snare;
 	FClientAuthStack ClientAuthStack;
 	
@@ -43,7 +45,11 @@ public:
     FModifierNetworkMoveData()
     {}
 
+	FModifierData Boost;
+	FModifierData SlowFall;
 	FModifierData Snare;
+	
+	bool bWantsSprint = false;
  
     virtual void ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove, ENetworkMoveType MoveType) override;
     virtual bool Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap, ENetworkMoveType MoveType) override;
@@ -83,6 +89,11 @@ public:
 	virtual void SetUpdatedComponent(USceneComponent* NewUpdatedComponent) override;
 	virtual void SetUpdatedCharacter();
 
+protected:
+	/** Character movement component belongs to */
+	UPROPERTY(Transient, DuplicateTransient)
+	TObjectPtr<AModifierCharacter> ModifierCharacterOwner;
+	
 public:
 	/**
 	 * Scaling applied on a per-boost-level basis
@@ -150,6 +161,22 @@ public:
 	float RejectClientAuthDistance = 800.f;
 
 public:
+	bool bWantsSprint = false;
+	bool bIsSprinting = false;
+
+	UFUNCTION(BlueprintCallable, Category="Character Movement: Walking")
+	void RequestSprintStart()
+	{
+		bWantsSprint = true;
+	}
+
+	UFUNCTION(BlueprintCallable, Category="Character Movement: Walking")
+	void RequestSprintStop()
+	{
+		bWantsSprint = false;
+	}
+	
+public:
 	/** Example implementation of a local predicted buff modifier that can stack */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
 	FModifierData Boost;
@@ -165,6 +192,8 @@ public:
 	{
 		return Boost.HasModifier();
 	}
+
+	bool CanBoost() const;
 
 	virtual void OnStartBoost() {}
 	virtual void OnEndBoost() {}
@@ -186,6 +215,8 @@ public:
 		return SlowFall.HasModifier();
 	}
 
+	virtual bool CanSlowFall() const;
+
 	virtual void OnStartSlowFall();
 	virtual void OnEndSlowFall() {}
 
@@ -205,6 +236,8 @@ public:
 	{
 		return Snare.HasModifier();
 	}
+	
+	virtual bool CanBeSnared() const;
 
 	virtual void OnStartSnare() {}
 	virtual void OnEndSnare() {}
@@ -242,7 +275,6 @@ public:
 	virtual float GetGravityZ() const override;
 	virtual FVector GetAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration) override;
 
-	virtual void UpdateMovementModifiers(float DeltaTime);
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaTime) override;
 	virtual void UpdateCharacterStateAfterMovement(float DeltaTime) override;
 
@@ -253,12 +285,6 @@ public:
 	FClientAuthData* GetClientAuthData() { return IsClientAuthEnabled() ? ClientAuthStack.GetLatest() : nullptr; }
 
 protected:
-	UPROPERTY(Transient)
-	float ClientAuthTimeRemaining = 0.f;
-
-	UPROPERTY(Transient)
-	FVector ClientAuthStartLocation = FVector::ZeroVector;
-
 	/**
 	 * Maximum distance between client and server that will be accepted by server
 	 * Values above this will be scaled to the maximum distance
@@ -285,11 +311,11 @@ protected:
 
 	/** 
 	 * Grant the client position authority, based on the current state of the character.
-	 * @param ClientAuthState What the client is requesting authority for, not used by default, requires override
+	 * @param ClientAuthSource What the client is requesting authority for, not used by default, requires override
 	 * @param OverrideDuration Override the default client authority time, -1.f to use default
 	 */
 	UFUNCTION(BlueprintCallable, Category="Character Movement (Networking)")
-	virtual void InitClientAuth(FGameplayTag ClientAuthState, float OverrideDuration = -1.f);
+	virtual void InitClientAuth(FGameplayTag ClientAuthSource, float OverrideDuration = -1.f);
 	
 	virtual bool ServerShouldGrantClientPositionAuthority(FVector& ClientLoc);
 	
@@ -297,8 +323,12 @@ private:
 	FModifierMoveResponseDataContainer ModifierMoveResponseDataContainer;
 
 	FModifierNetworkMoveDataContainer ModifierMoveDataContainer;
+
+protected:
+	virtual bool ClientUpdatePositionAfterServerUpdate() override;
 	
 public:
+	virtual void ServerMove_PerformMovement(const FCharacterNetworkMoveData& MoveData) override;
 	virtual void ClientHandleMoveResponse(const FCharacterMoveResponseDataContainer& MoveResponse) override;
 
 	virtual bool ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
@@ -331,6 +361,7 @@ public:
 	FModifierData Boost;
 	FModifierData SlowFall;
 	FModifierData Snare;
+	bool bWantsSprint;
 
 	virtual void SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character& ClientData) override;
 	virtual void PrepMoveFor(ACharacter* C) override;

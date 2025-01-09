@@ -203,7 +203,6 @@ void FModifierData::SetModifierLevel(uint8 Level)
 	
 	if (Level != RequestedModifierLevel)
 	{
-		const uint8 PrevLevel = RequestedModifierLevel;
 		RequestedModifierLevel = Level;
 	}
 }
@@ -236,14 +235,29 @@ void FModifierData::OnModifiersChanged()
 	SetModifierLevel(NewLevel);
 }
 
-void FModifierData::UpdateModifierLevel()
+void FModifierData::PreUpdateModifierLevel()
 {
 	if (ModifierLevel != RequestedModifierLevel)
 	{
 		const uint8 PrevLevel = ModifierLevel;
+
 		ModifierLevel = RequestedModifierLevel;
-		
 		CharacterOwner->OnModifierChanged(ModifierType, RequestedModifierLevel, PrevLevel);
+	}
+}
+
+void FModifierData::PostUpdateModifierLevel()
+{
+	if (ModifierLevel != RequestedModifierLevel)
+	{
+		const uint8 PrevLevel = ModifierLevel;
+
+		// We can only end modifiers here, not start or change them
+		if (RequestedModifierLevel == 0)
+		{
+			ModifierLevel = RequestedModifierLevel;
+			CharacterOwner->OnModifierChanged(ModifierType, RequestedModifierLevel, PrevLevel);
+		}
 	}
 }
 
@@ -251,6 +265,7 @@ bool FModifierData::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOu
 {
 	// Serialize the modifier level
 	SerializeOptionalValue<uint8>(Ar.IsSaving(), Ar, RequestedModifierLevel, 0);
+	// SerializeOptionalValue<uint8>(Ar.IsSaving(), Ar, ModifierLevel, 0);
 
 	// Don't serialize modifier stack if the max is 0
 	if (MaxModifiers <= 1)

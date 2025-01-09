@@ -332,7 +332,8 @@ public:
 
 	void OnModifiersChanged();
 
-	void UpdateModifierLevel();
+	void PreUpdateModifierLevel();
+	void PostUpdateModifierLevel();
 
 public:
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
@@ -355,9 +356,42 @@ struct PREDICTEDMOVEMENT_API FClientAuthData
 {
 	GENERATED_BODY()
 
+	FClientAuthData()
+		: Alpha(0.f)
+		, TimeRemaining(0.f)
+		, Id(FGuid())
+		, Source(FGameplayTag::EmptyTag)
+	{}
+
+	FClientAuthData(const FGameplayTag& InSource, float InTimeRemaining)
+		: Alpha(0.f)
+		, TimeRemaining(InTimeRemaining)
+		, Id(FGuid::NewGuid())
+		, Source(InSource)
+	{}
+
 	UPROPERTY()
 	float Alpha;
+	
+	UPROPERTY(NotReplicated)
+	float TimeRemaining;
 
+	UPROPERTY(NotReplicated)
+	FGuid Id;
+	
+	UPROPERTY(NotReplicated)
+	FGameplayTag Source;
+
+	bool operator==(const FClientAuthData& Other) const
+	{
+		return Id.IsValid() && Id == Other.Id;
+	}
+
+	bool operator!=(const FClientAuthData& Other) const
+	{
+		return !(*this == Other);
+	}
+	
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 };
 
@@ -378,6 +412,9 @@ struct PREDICTEDMOVEMENT_API FClientAuthStack
 {
 	GENERATED_BODY()
 
+	FClientAuthStack()
+	{}
+
 	UPROPERTY()
 	TArray<FClientAuthData> Stack;
 
@@ -392,6 +429,31 @@ struct PREDICTEDMOVEMENT_API FClientAuthStack
 		{
 			Stack.RemoveAt(Stack.Num() - 1);
 		}
+	}
+
+	void RemoveData(const FClientAuthData* Data)
+	{
+		if (Data)
+		{
+			Stack.Remove(*Data);
+		}
+	}
+
+	void RemoveAllDataForSource(const FGameplayTag& Source)
+	{
+		Stack.RemoveAll([Source](const FClientAuthData& Data)
+		{
+			return Data.Source == Source;
+		});
+	}
+
+	void Update(float DeltaTime)
+	{
+		Stack.RemoveAll([DeltaTime](FClientAuthData& Data)
+		{
+			Data.TimeRemaining -= DeltaTime;
+			return Data.TimeRemaining <= 0.f;
+		});
 	}
 
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);

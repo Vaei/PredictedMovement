@@ -168,11 +168,11 @@ struct PREDICTEDMOVEMENT_API FFallingModifierParams
  * Represents a single modifier that can be applied to a character
  */
 USTRUCT(BlueprintType)
-struct PREDICTEDMOVEMENT_API FModifierData
+struct PREDICTEDMOVEMENT_API FMovementModifier
 {
 	GENERATED_BODY()
 
-	FModifierData(const EModifierLevelType InLevelType = EModifierLevelType::FGameplayTag, int32 InMaxModifiers = 3,
+	FMovementModifier(const EModifierLevelType InLevelType = EModifierLevelType::FGameplayTag, int32 InMaxModifiers = 3,
 		EModifierLevelMethod InLevelMethod = EModifierLevelMethod::Max)
 		: ModifierType(FGameplayTag::EmptyTag)
 		, LevelMethod(InLevelMethod)
@@ -183,22 +183,22 @@ struct PREDICTEDMOVEMENT_API FModifierData
 		, CharacterOwner(nullptr)
 	{}
 
-	FModifierData(const FModifierData& Clone)
+	FMovementModifier(const FMovementModifier& Clone)
 	{
 		*this = Clone;
 	}
 
 	/** Only copies replicated data */
-	FModifierData& operator<<(const FModifierData& Clone);
+	FMovementModifier& operator<<(const FMovementModifier& Clone);
 
 	/** We don't check type here, we only want to ensure we're sufficiently matched for prediction purposes */
-	bool operator==(const FModifierData& Other) const
+	bool operator==(const FMovementModifier& Other) const
 	{
 		return RequestedModifierLevel == Other.RequestedModifierLevel && ModifierLevel == Other.ModifierLevel && Modifiers == Other.Modifiers;
 	}
 
 	/** We don't check type here, we only want to ensure we're sufficiently matched for prediction purposes */
-	bool operator!=(const FModifierData& Other) const
+	bool operator!=(const FMovementModifier& Other) const
 	{
 		return !(*this == Other);
 	}
@@ -340,7 +340,7 @@ public:
 };
 
 template<>
-struct TStructOpsTypeTraits<FModifierData> : TStructOpsTypeTraitsBase2<FModifierData>
+struct TStructOpsTypeTraits<FMovementModifier> : TStructOpsTypeTraitsBase2<FMovementModifier>
 {
 	enum
 	{

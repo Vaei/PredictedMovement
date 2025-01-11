@@ -9,14 +9,14 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ModifierTypes)
 
-FModifierData& FModifierData::operator<<(const FModifierData& Clone)
+FMovementModifier& FMovementModifier::operator<<(const FMovementModifier& Clone)
 {
 	RequestedModifierLevel = Clone.RequestedModifierLevel;
 	Modifiers = Clone.Modifiers;
 	return *this;
 }
 
-int32 FModifierData::GetNumModifiersByLevel(uint8 Level) const
+int32 FMovementModifier::GetNumModifiersByLevel(uint8 Level) const
 {
 	// Did you call initialize?
 	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
@@ -36,7 +36,7 @@ int32 FModifierData::GetNumModifiersByLevel(uint8 Level) const
 	}).Num();
 }
 
-void FModifierData::Initialize(AModifierCharacter* InCharacterOwner, const FGameplayTag& InModifierType)
+void FMovementModifier::Initialize(AModifierCharacter* InCharacterOwner, const FGameplayTag& InModifierType)
 {
 	CharacterOwner = InCharacterOwner;
 	ModifierType = InModifierType;
@@ -52,7 +52,7 @@ void FModifierData::Initialize(AModifierCharacter* InCharacterOwner, const FGame
 	}
 }
 
-void FModifierData::AddModifier(uint8 Level)
+void FMovementModifier::AddModifier(uint8 Level)
 {
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
@@ -85,7 +85,7 @@ void FModifierData::AddModifier(uint8 Level)
 	OnModifiersChanged();
 }
 
-void FModifierData::RemoveModifier(uint8 Level)
+void FMovementModifier::RemoveModifier(uint8 Level)
 {
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
@@ -114,7 +114,7 @@ void FModifierData::RemoveModifier(uint8 Level)
 	}
 }
 
-void FModifierData::RemoveAllModifiers()
+void FMovementModifier::RemoveAllModifiers()
 {
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
@@ -133,7 +133,7 @@ void FModifierData::RemoveAllModifiers()
 	}
 }
 
-void FModifierData::RemoveAllModifiersByLevel(uint8 Level)
+void FMovementModifier::RemoveAllModifiersByLevel(uint8 Level)
 {
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
@@ -152,7 +152,7 @@ void FModifierData::RemoveAllModifiersByLevel(uint8 Level)
 	}
 }
 
-void FModifierData::RemoveAllModifiersExceptLevel(uint8 Level)
+void FMovementModifier::RemoveAllModifiersExceptLevel(uint8 Level)
 {
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
@@ -170,7 +170,7 @@ void FModifierData::RemoveAllModifiersExceptLevel(uint8 Level)
 	});
 }
 
-void FModifierData::SetModifiers(const TArray<uint8>& NewModifiers)
+void FMovementModifier::SetModifiers(const TArray<uint8>& NewModifiers)
 {
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
@@ -189,7 +189,7 @@ void FModifierData::SetModifiers(const TArray<uint8>& NewModifiers)
 	}
 }
 
-void FModifierData::SetModifierLevel(uint8 Level)
+void FMovementModifier::SetModifierLevel(uint8 Level)
 {
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
@@ -207,7 +207,7 @@ void FModifierData::SetModifierLevel(uint8 Level)
 	}
 }
 
-void FModifierData::OnModifiersChanged()
+void FMovementModifier::OnModifiersChanged()
 {
 	if (MaxModifiers <= 1)
 	{
@@ -235,7 +235,7 @@ void FModifierData::OnModifiersChanged()
 	SetModifierLevel(NewLevel);
 }
 
-void FModifierData::PreUpdateModifierLevel()
+void FMovementModifier::PreUpdateModifierLevel()
 {
 	if (ModifierLevel != RequestedModifierLevel)
 	{
@@ -246,7 +246,7 @@ void FModifierData::PreUpdateModifierLevel()
 	}
 }
 
-void FModifierData::PostUpdateModifierLevel()
+void FMovementModifier::PostUpdateModifierLevel()
 {
 	if (ModifierLevel != RequestedModifierLevel)
 	{
@@ -261,7 +261,7 @@ void FModifierData::PostUpdateModifierLevel()
 	}
 }
 
-bool FModifierData::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+bool FMovementModifier::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
 	// Serialize the modifier level
 	SerializeOptionalValue<uint8>(Ar.IsSaving(), Ar, RequestedModifierLevel, 0);

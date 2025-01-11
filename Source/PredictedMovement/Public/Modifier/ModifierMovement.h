@@ -28,9 +28,7 @@ struct PREDICTEDMOVEMENT_API FModifierMoveResponseDataContainer : FCharacterMove
 {  // Server ➜ Client
 	using Super = FCharacterMoveResponseDataContainer;
 
-	FModifierData Boost;
-	FModifierData SlowFall;
-	FModifierData Snare;
+	FMovementModifier Snare;
 	FClientAuthStack ClientAuthStack;
 	
 	virtual void ServerFillResponseData(const UCharacterMovementComponent& CharacterMovement, const FClientAdjustment& PendingAdjustment) override;
@@ -45,12 +43,10 @@ public:
     FModifierNetworkMoveData()
     {}
 
-	FModifierData Boost;
-	FModifierData SlowFall;
-	FModifierData Snare;
+	FMovementModifier Boost;
+	FMovementModifier SlowFall;
+	FMovementModifier Snare;
 	
-	bool bWantsSprint = false;
- 
     virtual void ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove, ENetworkMoveType MoveType) override;
     virtual bool Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap, ENetworkMoveType MoveType) override;
 };
@@ -161,25 +157,9 @@ public:
 	float RejectClientAuthDistance = 800.f;
 
 public:
-	bool bWantsSprint = false;
-	bool bIsSprinting = false;
-
-	UFUNCTION(BlueprintCallable, Category="Character Movement: Walking")
-	void RequestSprintStart()
-	{
-		bWantsSprint = true;
-	}
-
-	UFUNCTION(BlueprintCallable, Category="Character Movement: Walking")
-	void RequestSprintStop()
-	{
-		bWantsSprint = false;
-	}
-	
-public:
 	/** Example implementation of a local predicted buff modifier that can stack */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
-	FModifierData Boost;
+	FMovementModifier Boost;
 	
 	UFUNCTION(BlueprintCallable, Category="Character Movement: Walking")
 	const FGameplayTag& GetBoostLevel() const
@@ -193,7 +173,7 @@ public:
 		return Boost.HasModifier();
 	}
 
-	bool CanBoost() const;
+	bool CanBoostInCurrentState() const;
 
 	virtual void OnStartBoost() {}
 	virtual void OnEndBoost() {}
@@ -201,7 +181,7 @@ public:
 public:
 	/** Example implementation of a local predicted buff modifier that can stack */
 	UPROPERTY(Category="Character Movement: Jumping / Falling", EditAnywhere, BlueprintReadWrite)
-	FModifierData SlowFall;
+	FMovementModifier SlowFall;
 	
 	UFUNCTION(BlueprintCallable, Category="Character Movement: Jumping / Falling")
 	const FGameplayTag& GetSlowFallLevel() const
@@ -215,15 +195,16 @@ public:
 		return SlowFall.HasModifier();
 	}
 
-	virtual bool CanSlowFall() const;
+	virtual bool CanSlowFallInCurrentState() const;
 
+	bool bDeferStartSlowFall = false;
 	virtual void OnStartSlowFall();
 	virtual void OnEndSlowFall() {}
 
 public:
 	/** Example implementation of an externally applied debuff modifier that can stack */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
-	FModifierData Snare;
+	FMovementModifier Snare;
 
 	UFUNCTION(BlueprintCallable, Category="Character Movement: Walking")
 	const FGameplayTag& GetSnareLevel() const
@@ -237,7 +218,7 @@ public:
 		return Snare.HasModifier();
 	}
 	
-	virtual bool CanBeSnared() const;
+	virtual bool CanBeSnaredInCurrentState() const;
 
 	virtual void OnStartSnare() {}
 	virtual void OnEndSnare() {}
@@ -274,7 +255,7 @@ public:
 
 	virtual float GetGravityZ() const override;
 	virtual FVector GetAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration) override;
-
+	
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaTime) override;
 	virtual void UpdateCharacterStateAfterMovement(float DeltaTime) override;
 
@@ -358,13 +339,11 @@ public:
 	virtual ~FSavedMove_Character_Modifier() override
 	{}
 
-	FModifierData Boost;
-	FModifierData SlowFall;
-	FModifierData Snare;
-	bool bWantsSprint;
+	FMovementModifier Boost;
+	FMovementModifier SlowFall;
+	FMovementModifier Snare;
 
 	virtual void SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character& ClientData) override;
-	virtual void PrepMoveFor(ACharacter* C) override;
 	virtual bool IsImportantMove(const FSavedMovePtr& LastAckedMove) const override;
 	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const override;
 	virtual void CombineWith(const FSavedMove_Character* OldMove, ACharacter* InCharacter, APlayerController* PC, const FVector& OldStartLocation) override;

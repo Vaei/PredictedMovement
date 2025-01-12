@@ -10,19 +10,19 @@
 
 namespace FModifierTags
 {
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_SlowFall, "Modifier.Type.Buff.SlowFall");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_SlowFall_25, "Modifier.Type.Buff.SlowFall.25");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_SlowFall_50, "Modifier.Type.Buff.SlowFall.50");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_SlowFall_75, "Modifier.Type.Buff.SlowFall.75");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_SlowFall,		"Modifier.Type.Buff.SlowFall");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_SlowFall_25,	"Modifier.Type.Buff.SlowFall.25");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_SlowFall_50,	"Modifier.Type.Buff.SlowFall.50");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_SlowFall_75,	"Modifier.Type.Buff.SlowFall.75");
 	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_SlowFall_100, "Modifier.Type.Buff.SlowFall.100");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_Boost, "Modifier.Type.Buff.Boost");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_Boost_25, "Modifier.Type.Buff.Boost.25");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_Boost_50, "Modifier.Type.Buff.Boost.50");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_Boost_75, "Modifier.Type.Buff.Boost.75");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Snare, "Modifier.Type.Debuff.Snare");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Snare_25, "Modifier.Type.Debuff.Snare.25");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Snare_50, "Modifier.Type.Debuff.Snare.50");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Snare_75, "Modifier.Type.Debuff.Snare.75");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_Boost,		"Modifier.Type.Buff.Boost");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_Boost_25,		"Modifier.Type.Buff.Boost.25");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_Boost_50,		"Modifier.Type.Buff.Boost.50");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_Boost_75,		"Modifier.Type.Buff.Boost.75");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Snare,		"Modifier.Type.Debuff.Snare");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Snare_25,	"Modifier.Type.Debuff.Snare.25");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Snare_50,	"Modifier.Type.Debuff.Snare.50");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Snare_75,	"Modifier.Type.Debuff.Snare.75");
 }
 
 namespace FModifierCVars

@@ -342,3 +342,5 @@ int32 AModifierCharacter::GetNumSnaresByLevel(FGameplayTag ModifierLevel) const
 	}
 	return 0;
 }
+
+/* ~Snare (Non-Generic) Implementation */

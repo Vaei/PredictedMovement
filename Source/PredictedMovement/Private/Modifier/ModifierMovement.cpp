@@ -112,9 +112,9 @@ UModifierMovement::UModifierMovement(const FObjectInitializer& ObjectInitializer
     SetNetworkMoveDataContainer(ModifierMoveDataContainer);
 
 	// Init data types
-	Boost.LevelType = EModifierLevelType::FGameplayTag;
-	SlowFall.LevelType = EModifierLevelType::FGameplayTag;
-	Snare.LevelType = EModifierLevelType::FGameplayTag;
+	Boost.LevelType		= EModifierLevelType::FGameplayTag;
+	SlowFall.LevelType	= EModifierLevelType::FGameplayTag;
+	Snare.LevelType		= EModifierLevelType::FGameplayTag;
 
 	// Init boost levels
 	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_25);

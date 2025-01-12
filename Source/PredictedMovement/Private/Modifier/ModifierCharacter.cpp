@@ -181,6 +181,10 @@ int32 AModifierCharacter::GetNumBoostsByLevel(FGameplayTag ModifierLevel) const
 	return 0;
 }
 
+/* ~Boost (Non-Generic) Implementation */
+
+/* Slow Fall (Non-Generic) Implementation -- Implement per-modifier type */
+
 void AModifierCharacter::OnRep_SimulatedSlowFall(uint8 PrevSimulatedSlowFall)
 {
 	if (ModifierMovement)
@@ -261,7 +265,9 @@ int32 AModifierCharacter::GetNumSlowFallsByLevel(FGameplayTag ModifierLevel) con
 	return 0;
 }
 
-/* Snare */
+/* ~Slow Fall (Non-Generic) Implementation -- Implement per-modifier type */
+
+/* Snare (Non-Generic) Implementation */
 
 void AModifierCharacter::OnRep_SimulatedSnare(uint8 PrevSimulatedSnare)
 {

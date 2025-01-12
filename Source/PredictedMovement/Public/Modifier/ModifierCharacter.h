@@ -38,6 +38,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="On Modifier Added"))
 	void K2_OnModifierAdded(const FGameplayTag& ModifierType, uint8 ModifierLevel, uint8 PrevModifierLevel);
 
+	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="On Modifier Added"))
+	void K2_OnModifierChanged(const FGameplayTag& ModifierType, uint8 ModifierLevel, uint8 PrevModifierLevel);
+
 	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="On Modifier Removed"))
 	void K2_OnModifierRemoved(const FGameplayTag& ModifierType, uint8 ModifierLevel, uint8 PrevModifierLevel);
 
@@ -62,6 +65,9 @@ public:
 	
 	UFUNCTION(BlueprintPure, Category=Character)
 	bool IsBoosted() const;
+	
+	UFUNCTION(BlueprintPure, Category=Character)
+	bool WantsBoost() const;
 
 	UFUNCTION(BlueprintCallable, Category=Character)
 	FGameplayTag GetBoostLevel() const;
@@ -96,6 +102,9 @@ public:
 	UFUNCTION(BlueprintPure, Category=Character)
 	bool IsSlowFall() const;
 
+	UFUNCTION(BlueprintPure, Category=Character)
+	bool WantsSlowFall() const;
+
 	UFUNCTION(BlueprintCallable, Category=Character)
 	FGameplayTag GetSlowFallLevel() const;
 
@@ -128,6 +137,9 @@ public:
 	
 	UFUNCTION(BlueprintPure, Category=Character)
 	bool IsSnared() const;
+	
+	UFUNCTION(BlueprintPure, Category=Character)
+	bool WantsSnare() const;
 
 	UFUNCTION(BlueprintCallable, Category=Character)
 	FGameplayTag GetSnareLevel() const;

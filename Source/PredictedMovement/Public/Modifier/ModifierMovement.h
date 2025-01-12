@@ -173,6 +173,12 @@ public:
 		return Boost.HasModifier();
 	}
 
+	UFUNCTION(BlueprintCallable, Category="Character Movement: Walking")
+	bool WantsBoost() const
+	{
+		return Boost.WantsModifier();
+	}
+
 	bool CanBoostInCurrentState() const;
 
 	virtual void OnStartBoost() {}
@@ -194,10 +200,15 @@ public:
 	{
 		return SlowFall.HasModifier();
 	}
+	
+	UFUNCTION(BlueprintPure, Category="Character Movement: Jumping / Falling")
+	bool WantsSlowFall() const
+	{
+		return SlowFall.WantsModifier();
+	}
 
 	virtual bool CanSlowFallInCurrentState() const;
 
-	bool bDeferStartSlowFall = false;
 	virtual void OnStartSlowFall();
 	virtual void OnEndSlowFall() {}
 
@@ -216,6 +227,12 @@ public:
 	bool IsSnared() const
 	{
 		return Snare.HasModifier();
+	}
+	
+	UFUNCTION(BlueprintPure, Category="Character Movement: Walking")
+	bool WantsSnare() const
+	{
+		return Snare.WantsModifier();
 	}
 	
 	virtual bool CanBeSnaredInCurrentState() const;

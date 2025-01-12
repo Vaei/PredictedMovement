@@ -194,6 +194,12 @@ public:
 
 	/** Called to set up this saved move (when initially created) to make a predictive correction. */
 	virtual void SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character & ClientData) override;
+
+	/** Returns true if this move can be combined with NewMove for replication without changing any behavior */
+	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const override;
+
+	/** Set the properties describing the position, etc. of the moved pawn at the start of the move. */
+	virtual void SetInitialPosition(ACharacter* C) override;
 };
 
 class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Sprint : public FNetworkPredictionData_Client_Character

@@ -207,7 +207,7 @@ void AModifierCharacter::OnRep_SimulatedSlowFall(uint8 PrevSimulatedSlowFall)
 
 void AModifierCharacter::SlowFall(FGameplayTag ModifierLevel)
 {
-	if (ModifierMovement && ModifierMovement->CanSlowFallInCurrentState())
+	if (ModifierMovement)
 	{
 		if (const uint8 Level = ModifierMovement->SlowFall.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
 		{

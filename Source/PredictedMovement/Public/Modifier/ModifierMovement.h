@@ -179,7 +179,7 @@ public:
 		return Boost.WantsModifier();
 	}
 
-	bool CanBoostInCurrentState() const;
+	virtual bool CanBoostInCurrentState() const;
 
 	virtual void OnStartBoost() {}
 	virtual void OnEndBoost() {}

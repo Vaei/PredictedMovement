@@ -253,6 +253,9 @@ public:
 	UPROPERTY(Transient)
 	TWeakObjectPtr<AModifierCharacter> CharacterOwner;
 
+protected:
+	bool HasValidData() const { return CharacterOwner.IsValid(); }
+
 public:
 	// Use either UEnum or FGameplayTag to represent levels, not both
 	
@@ -310,6 +313,11 @@ public:
 		return ModifierLevel > 0;
 	}
 
+	bool WantsModifier() const
+	{
+		return RequestedModifierLevel > 0;
+	}
+
 	int32 GetNumModifiers() const	{ return Modifiers.Num();	}
 	int32 GetNumModifiersByLevel(uint8 Level) const;
 
@@ -332,8 +340,11 @@ public:
 
 	void OnModifiersChanged();
 
-	void PreUpdateModifierLevel();
-	void PostUpdateModifierLevel();
+	void StartModifier(uint8 Level, bool bCanApplyModifier, bool bClientSimulation = false);
+	void EndModifier(bool bClientSimulation = false);
+
+	void UpdateCharacterStateBeforeMovement(bool bCanApplyModifier);
+	void UpdateCharacterStateAfterMovement(bool bCanApplyModifier);
 
 public:
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);

@@ -363,57 +363,18 @@ FVector UModifierMovement::GetAirControl(float DeltaTime, float TickAirControl, 
 
 void UModifierMovement::UpdateCharacterStateBeforeMovement(float DeltaTime)
 {
-	if (!ModifierCharacterOwner)
-	{
-		return;
-	}
-
-	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
-	{
-		if (IsBoosted() && !CanBoostInCurrentState())
-		{
-			ModifierCharacterOwner->RemoveAllBoosts();
-		}
-		Boost.PreUpdateModifierLevel();
-
-		if (IsSlowFall() && !CanSlowFallInCurrentState())
-		{
-			ModifierCharacterOwner->RemoveAllSlowFall();
-		}
-		SlowFall.PreUpdateModifierLevel();
-
-		if (IsSnared() && !CanBeSnaredInCurrentState())
-		{
-			ModifierCharacterOwner->RemoveAllSnares();
-		}
-		Snare.PreUpdateModifierLevel();
-	}
+	Boost.UpdateCharacterStateBeforeMovement(CanBoostInCurrentState());
+	SlowFall.UpdateCharacterStateBeforeMovement(CanSlowFallInCurrentState());
+	Snare.UpdateCharacterStateBeforeMovement(CanBeSnaredInCurrentState());
 	
 	Super::UpdateCharacterStateBeforeMovement(DeltaTime);
 }
 
 void UModifierMovement::UpdateCharacterStateAfterMovement(float DeltaTime)
 {
-	if (ModifierCharacterOwner && CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
-	{
-		if (IsBoosted() && !CanBoostInCurrentState())
-		{
-			ModifierCharacterOwner->RemoveAllBoosts();
-			Boost.PostUpdateModifierLevel();
-		}
-
-		if (IsSlowFall() && !CanSlowFallInCurrentState())
-		{
-			ModifierCharacterOwner->RemoveAllSlowFall();
-			SlowFall.PostUpdateModifierLevel();
-		}
-
-		if (IsSnared() && !CanBeSnaredInCurrentState())
-		{
-			ModifierCharacterOwner->RemoveAllSnares();
-			Snare.PostUpdateModifierLevel();
-		}
-	}
+	Boost.UpdateCharacterStateAfterMovement(CanBoostInCurrentState());
+	SlowFall.UpdateCharacterStateAfterMovement(CanSlowFallInCurrentState());
+	Snare.UpdateCharacterStateAfterMovement(CanBeSnaredInCurrentState());
 	
 	Super::UpdateCharacterStateAfterMovement(DeltaTime);
 }

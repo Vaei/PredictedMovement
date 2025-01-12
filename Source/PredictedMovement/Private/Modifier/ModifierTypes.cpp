@@ -59,7 +59,7 @@ void FMovementModifier::AddModifier(uint8 Level)
 		return;
 	}
 	
-	if (!CharacterOwner.IsValid())
+	if (!HasValidData())
 	{
 		return;
 	}
@@ -92,7 +92,7 @@ void FMovementModifier::RemoveModifier(uint8 Level)
 		return;
 	}
 	
-	if (!CharacterOwner.IsValid())
+	if (!HasValidData())
 	{
 		return;
 	}
@@ -196,7 +196,7 @@ void FMovementModifier::SetModifierLevel(uint8 Level)
 		return;
 	}
 	
-	if (!CharacterOwner.IsValid())
+	if (!HasValidData())
 	{
 		return;
 	}
@@ -235,28 +235,72 @@ void FMovementModifier::OnModifiersChanged()
 	SetModifierLevel(NewLevel);
 }
 
-void FMovementModifier::PreUpdateModifierLevel()
+void FMovementModifier::StartModifier(uint8 Level, bool bCanApplyModifier, bool bClientSimulation)
 {
-	if (ModifierLevel != RequestedModifierLevel)
+	if (!HasValidData())
 	{
-		const uint8 PrevLevel = ModifierLevel;
+		return;
+	}
+	
+	if (!bClientSimulation && !bCanApplyModifier)
+	{
+		return;
+	}
+	
+	const uint8 PrevLevel = ModifierLevel;
+	if (!bClientSimulation)
+	{
+		ModifierLevel = Level;
+	}
+	CharacterOwner->OnModifierChanged(ModifierType, Level, PrevLevel);
+}
 
-		ModifierLevel = RequestedModifierLevel;
-		CharacterOwner->OnModifierChanged(ModifierType, RequestedModifierLevel, PrevLevel);
+void FMovementModifier::EndModifier(bool bClientSimulation)
+{
+	if (!HasValidData())
+	{
+		return;
+	}
+	
+	if (!bClientSimulation)
+	{
+		ModifierLevel = 0;
+	}
+	CharacterOwner->OnModifierChanged(ModifierType, 0, ModifierLevel);
+}
+
+void FMovementModifier::UpdateCharacterStateBeforeMovement(bool bCanApplyModifier)
+{
+	if (!HasValidData())
+	{
+		return;
+	}
+	
+	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
+	{
+		if (HasModifier() && (!WantsModifier() || !bCanApplyModifier))
+		{
+			EndModifier();
+		}
+		else if (!HasModifier() && WantsModifier() && bCanApplyModifier)
+		{
+			StartModifier(RequestedModifierLevel, bCanApplyModifier);
+		}
 	}
 }
 
-void FMovementModifier::PostUpdateModifierLevel()
+void FMovementModifier::UpdateCharacterStateAfterMovement(bool bCanApplyModifier)
 {
-	if (ModifierLevel != RequestedModifierLevel)
+	if (!HasValidData())
 	{
-		const uint8 PrevLevel = ModifierLevel;
-
-		// We can only end modifiers here, not start or change them
-		if (RequestedModifierLevel == 0)
+		return;
+	}
+	
+	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
+	{
+		if (HasModifier() && !bCanApplyModifier)
 		{
-			ModifierLevel = RequestedModifierLevel;
-			CharacterOwner->OnModifierChanged(ModifierType, RequestedModifierLevel, PrevLevel);
+			EndModifier();
 		}
 	}
 }

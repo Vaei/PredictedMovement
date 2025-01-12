@@ -99,7 +99,7 @@ void AModifierCharacter::OnModifierRemoved(const FGameplayTag& ModifierType, uin
 	K2_OnModifierRemoved(ModifierType, ModifierLevel, PrevModifierLevel);
 }
 
-/* Boost */
+/* Boost (Non-Generic) Implementation */
 
 void AModifierCharacter::OnRep_SimulatedBoost(uint8 PrevSimulatedBoost)
 {
@@ -183,7 +183,7 @@ int32 AModifierCharacter::GetNumBoostsByLevel(FGameplayTag ModifierLevel) const
 
 /* ~Boost (Non-Generic) Implementation */
 
-/* Slow Fall (Non-Generic) Implementation -- Implement per-modifier type */
+/* Slow Fall (Non-Generic) Implementation */
 
 void AModifierCharacter::OnRep_SimulatedSlowFall(uint8 PrevSimulatedSlowFall)
 {
@@ -265,7 +265,7 @@ int32 AModifierCharacter::GetNumSlowFallsByLevel(FGameplayTag ModifierLevel) con
 	return 0;
 }
 
-/* ~Slow Fall (Non-Generic) Implementation -- Implement per-modifier type */
+/* ~Slow Fall (Non-Generic) Implementation */
 
 /* Snare (Non-Generic) Implementation */
 

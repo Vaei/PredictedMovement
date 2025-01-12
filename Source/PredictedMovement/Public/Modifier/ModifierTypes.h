@@ -106,7 +106,7 @@ struct PREDICTEDMOVEMENT_API FFallingModifierParams
 	GENERATED_BODY()
 
 	FFallingModifierParams(float InGravityScalar = 1.f)
-		: bGravityScalarFromVelocity(false)
+		: bGravityScalarFromVelocityZ(false)
 		, GravityScalar(InGravityScalar)
 		, GravityScalarFallVelocityCurve(nullptr)
 		, bRemoveVelocityZOnStart(false)
@@ -117,7 +117,7 @@ struct PREDICTEDMOVEMENT_API FFallingModifierParams
 
 	/** If true, use GravityScalarFallVelocityCurve */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier)
-	bool bGravityScalarFromVelocity;
+	bool bGravityScalarFromVelocityZ;
 
 	/** Gravity is multiplied by this amount */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(ClampMin="0", UIMin="0", ForceUnits="x", EditCondition="!bGravityScalarFromVelocity", EditConditionHides))
@@ -151,11 +151,11 @@ struct PREDICTEDMOVEMENT_API FFallingModifierParams
 
 	float GetGravityScalar(const FVector& Velocity) const
 	{
-		if (!ensureMsgf(!bGravityScalarFromVelocity || GravityScalarFallVelocityCurve != nullptr, TEXT("GravityScalarFallVelocityCurve must be set")))
+		if (!ensureMsgf(!bGravityScalarFromVelocityZ || GravityScalarFallVelocityCurve != nullptr, TEXT("GravityScalarFallVelocityCurve must be set")))
 		{
 			return 1.f;
 		}
-		return bGravityScalarFromVelocity ? GravityScalarFallVelocityCurve->GetFloatValue(Velocity.Z) : GravityScalar;
+		return bGravityScalarFromVelocityZ ? GravityScalarFallVelocityCurve->GetFloatValue(Velocity.Z) : GravityScalar;
 	}
 
 	float GetAirControl(float CurrentAirControl) const

@@ -17,14 +17,14 @@ void AModifierCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProper
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(AModifierCharacter, SimulatedBoost, COND_SimulatedOnly);
-	DOREPLIFETIME_CONDITION(AModifierCharacter, SimulatedSlowFall, COND_SimulatedOnly);
-	DOREPLIFETIME_CONDITION(AModifierCharacter, SimulatedSnare, COND_SimulatedOnly);
+	DOREPLIFETIME_CONDITION(ThisClass, SimulatedBoost, COND_SimulatedOnly);
+	DOREPLIFETIME_CONDITION(ThisClass, SimulatedSlowFall, COND_SimulatedOnly);
+	DOREPLIFETIME_CONDITION(ThisClass, SimulatedSnare, COND_SimulatedOnly);
 }
 
 void AModifierCharacter::OnModifierChanged(const FGameplayTag& ModifierType, uint8 ModifierLevel, uint8 PrevModifierLevel)
 {
-	// Events for when a modifier is added or removed
+	// Events for when a modifier is added, removed or changed
 	if (ModifierLevel > 0 && PrevModifierLevel == 0)
 	{
 		OnModifierAdded(ModifierType, ModifierLevel, PrevModifierLevel);
@@ -33,6 +33,8 @@ void AModifierCharacter::OnModifierChanged(const FGameplayTag& ModifierType, uin
 	{
 		OnModifierRemoved(ModifierType, ModifierLevel, PrevModifierLevel);
 	}
+
+	K2_OnModifierChanged(ModifierType, ModifierLevel, PrevModifierLevel);
 
 	// Replicate to simulated proxies
 	if (HasAuthority())
@@ -92,7 +94,16 @@ void AModifierCharacter::OnRep_SimulatedBoost(uint8 PrevSimulatedBoost)
 {
 	if (ModifierMovement)
 	{
-		ModifierMovement->Boost.RequestedModifierLevel = SimulatedBoost;
+		if (SimulatedBoost > 0)
+		{
+			ModifierMovement->Boost.RequestedModifierLevel = SimulatedBoost;
+			ModifierMovement->Boost.StartModifier(SimulatedBoost, true, true);
+		}
+		else
+		{
+			ModifierMovement->Boost.RemoveAllModifiers();
+			ModifierMovement->Boost.EndModifier(true);
+		}
 		ModifierMovement->bNetworkUpdateReceived = true;
 		
 		OnModifierChanged(FModifierTags::Modifier_Type_Buff_Boost, SimulatedBoost, PrevSimulatedBoost);
@@ -134,6 +145,11 @@ bool AModifierCharacter::IsBoosted() const
 	return ModifierMovement && ModifierMovement->Boost.HasModifier();
 }
 
+bool AModifierCharacter::WantsBoost() const
+{
+	return ModifierMovement && ModifierMovement->Boost.WantsModifier();
+}
+
 FGameplayTag AModifierCharacter::GetBoostLevel() const
 {
 	return ModifierMovement ? ModifierMovement->Boost.GetModifierLevel() : FGameplayTag::EmptyTag;
@@ -158,7 +174,16 @@ void AModifierCharacter::OnRep_SimulatedSlowFall(uint8 PrevSimulatedSlowFall)
 {
 	if (ModifierMovement)
 	{
-		ModifierMovement->SlowFall.RequestedModifierLevel = SimulatedSlowFall;
+		if (SimulatedSlowFall > 0)
+		{
+			ModifierMovement->SlowFall.RequestedModifierLevel = SimulatedSlowFall;
+			ModifierMovement->SlowFall.StartModifier(SimulatedSlowFall, true, true);
+		}
+		else
+		{
+			ModifierMovement->SlowFall.RemoveAllModifiers();
+			ModifierMovement->SlowFall.EndModifier(true);
+		}
 		ModifierMovement->bNetworkUpdateReceived = true;
 		
 		OnModifierChanged(FModifierTags::Modifier_Type_Buff_SlowFall, SimulatedSlowFall, PrevSimulatedSlowFall);
@@ -200,6 +225,11 @@ bool AModifierCharacter::IsSlowFall() const
 	return ModifierMovement && ModifierMovement->SlowFall.HasModifier();
 }
 
+bool AModifierCharacter::WantsSlowFall() const
+{
+	return ModifierMovement && ModifierMovement->SlowFall.WantsModifier();
+}
+
 FGameplayTag AModifierCharacter::GetSlowFallLevel() const
 {
 	return ModifierMovement ? ModifierMovement->SlowFall.GetModifierLevel() : FGameplayTag::EmptyTag;
@@ -226,7 +256,16 @@ void AModifierCharacter::OnRep_SimulatedSnare(uint8 PrevSimulatedSnare)
 {
 	if (ModifierMovement)
 	{
-		ModifierMovement->Snare.RequestedModifierLevel = SimulatedSnare;
+		if (SimulatedSnare > 0)
+		{
+			ModifierMovement->Snare.RequestedModifierLevel = SimulatedSnare;
+			ModifierMovement->Snare.StartModifier(SimulatedSnare, true, true);
+		}
+		else
+		{
+			ModifierMovement->Snare.RemoveAllModifiers();
+			ModifierMovement->Snare.EndModifier(true);
+		}
 		ModifierMovement->bNetworkUpdateReceived = true;
 		
 		OnModifierChanged(FModifierTags::Modifier_Type_Debuff_Snare, SimulatedSnare, PrevSimulatedSnare);
@@ -266,6 +305,11 @@ void AModifierCharacter::RemoveAllSnares()
 bool AModifierCharacter::IsSnared() const
 {
 	return ModifierMovement && ModifierMovement->Snare.HasModifier();
+}
+
+bool AModifierCharacter::WantsSnare() const
+{
+	return ModifierMovement && ModifierMovement->Snare.WantsModifier();
 }
 
 FGameplayTag AModifierCharacter::GetSnareLevel() const

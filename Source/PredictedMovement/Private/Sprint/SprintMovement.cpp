@@ -283,6 +283,48 @@ void FSavedMove_Character_Sprint::SetMoveFor(ACharacter* C, float InDeltaTime, F
 	bWantsToSprint = Cast<ASprintCharacter>(C)->GetSprintCharacterMovement()->bWantsToSprint;
 }
 
+bool FSavedMove_Character_Sprint::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter,
+	float MaxDelta) const
+{
+	// We combine moves for the purpose of reducing the number of moves sent to the server, especially when exceeding
+	// 60 fps (by default, see ClientNetSendMoveDeltaTime).
+	// By combining moves, we can send fewer moves, but still have the same outcome.
+	
+	// If we didn't handle move combining, and then we used OnStartSprint() to modify our Velocity directly, it would
+	// de-sync if we exceed 60fps. This is where move combining kicks in and starts using Pending Moves instead.
+	
+	// When combining moves, the PendingMove is passed into the NewMove. Locally, before sending a Move to the Server,
+	// the AutonomousProxy Client will already have processed the current PendingMove (it's only pending for being sent,
+	// not processed).
+
+	// Since combining will happen before processing a move, PendingMove might end up being processed twice; once last
+	// frame, and once as part of the new combined move.
+	
+	const TSharedPtr<FSavedMove_Character_Sprint> SavedMove = StaticCastSharedPtr<FSavedMove_Character_Sprint>(NewMove);
+
+	// We can only combine moves if they will result in the same state as if both moves were processed individually,
+	// because the AutonomousProxy Client processes them individually prior to sending them to the server.
+	
+	if (bWantsToSprint != SavedMove->bWantsToSprint)
+	{
+		return false;
+	}
+	
+	return FSavedMove_Character::CanCombineWith(NewMove, InCharacter, MaxDelta);
+}
+
+void FSavedMove_Character_Sprint::SetInitialPosition(ACharacter* C)
+{
+	// To counter the PendingMove potentially being processed twice, we need to make sure to reset the state of the CMC
+	// back to the "InitialPosition" (state) it had before the PendingMove got processed.
+	
+	Super::SetInitialPosition(C);
+
+	// Retrieve the value from our CMC to revert the saved move value back to this.
+	
+	bWantsToSprint = Cast<ASprintCharacter>(C)->GetSprintCharacterMovement()->bWantsToSprint;
+}
+
 FSavedMovePtr FNetworkPredictionData_Client_Character_Sprint::AllocateNewMove()
 {
 	return MakeShared<FSavedMove_Character_Sprint>();

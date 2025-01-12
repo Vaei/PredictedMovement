@@ -193,8 +193,7 @@ void UModifierMovement::OnStartSlowFall()
 	{
 		if (Params->bRemoveVelocityZOnStart)
 		{
-			Velocity.X = 0.f;
-			Velocity.Y = 0.f;
+			Velocity.Z = 0.f;
 		}
 	}
 }

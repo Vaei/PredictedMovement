@@ -213,7 +213,7 @@ public:
 	virtual void OnEndSlowFall() {}
 
 public:
-	/** Example implementation of an externally applied debuff modifier that can stack */
+	/** Example implementation of an externally applied non-predicted debuff modifier that can stack */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
 	FMovementModifier Snare;
 

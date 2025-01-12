@@ -43,7 +43,7 @@ public:
 	void K2_OnModifierRemoved(const FGameplayTag& ModifierType, uint8 ModifierLevel, uint8 PrevModifierLevel);
 
 protected:
-	/* Boost (Non-Generic) Implementation -- Implement per-modifier type */
+	/* Boost (Non-Generic) Implementation */
 	
 	UPROPERTY(ReplicatedUsing=OnRep_SimulatedBoost)
 	uint8 SimulatedBoost;
@@ -52,10 +52,10 @@ protected:
 	void OnRep_SimulatedBoost(uint8 PrevSimulatedBoost);
 
 public:
-	UFUNCTION(BlueprintCallable, Category=Character)
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(Categories="Modifier.Type.Buff.Boost"))
 	void Boost(FGameplayTag ModifierLevel);
-
-	UFUNCTION(BlueprintCallable, Category=Character)
+	
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(Categories="Modifier.Type.Buff.Boost"))
 	void RemoveBoost(FGameplayTag ModifierLevel);
 
 	UFUNCTION(BlueprintCallable, Category=Character)
@@ -73,13 +73,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character)
 	int32 GetNumBoosts() const;
 
-	UFUNCTION(BlueprintCallable, Category=Character)
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(Categories="Modifier.Type.Buff.Boost"))
 	int32 GetNumBoostsByLevel(FGameplayTag ModifierLevel) const;
 	
 	/* ~Boost (Non-Generic) Implementation */
 
 protected:
-	/* Slow Fall (Non-Generic) Implementation -- Implement per-modifier type */
+	/* Slow Fall (Non-Generic) Implementation */
 
 	UPROPERTY(ReplicatedUsing=OnRep_SimulatedSlowFall)
 	uint8 SimulatedSlowFall;
@@ -88,18 +88,18 @@ protected:
 	void OnRep_SimulatedSlowFall(uint8 PrevSimulatedSlowFall);
 
 public:
-	UFUNCTION(BlueprintCallable, Category=Character)
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(Categories="Modifier.Type.Buff.SlowFall"))
 	void SlowFall(FGameplayTag ModifierLevel);
 
-	UFUNCTION(BlueprintCallable, Category=Character)
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(Categories="Modifier.Type.Buff.SlowFall"))
 	void RemoveSlowFall(FGameplayTag ModifierLevel);
-	
+
 	UFUNCTION(BlueprintCallable, Category=Character)
 	void RemoveAllSlowFall();
-
+	
 	UFUNCTION(BlueprintPure, Category=Character)
 	bool IsSlowFall() const;
-
+	
 	UFUNCTION(BlueprintPure, Category=Character)
 	bool WantsSlowFall() const;
 
@@ -109,7 +109,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character)
 	int32 GetNumSlowFalls() const;
 
-	UFUNCTION(BlueprintCallable, Category=Character)
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(Categories="Modifier.Type.Buff.SlowFall"))
 	int32 GetNumSlowFallsByLevel(FGameplayTag ModifierLevel) const;
 	
 	/* ~Slow Fall (Non-Generic) Implementation */
@@ -124,10 +124,10 @@ protected:
 	void OnRep_SimulatedSnare(uint8 PrevSimulatedSnare);
 
 public:
-	UFUNCTION(BlueprintCallable, Category=Character)
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(Categories="Modifier.Type.Debuff.Snare"))
 	void Snare(FGameplayTag ModifierLevel);
 
-	UFUNCTION(BlueprintCallable, Category=Character)
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(Categories="Modifier.Type.Debuff.Snare"))
 	void RemoveSnare(FGameplayTag ModifierLevel);
 
 	UFUNCTION(BlueprintCallable, Category=Character)
@@ -145,7 +145,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character)
 	int32 GetNumSnares() const;
 
-	UFUNCTION(BlueprintCallable, Category=Character)
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(Categories="Modifier.Type.Debuff.Snare"))
 	int32 GetNumSnaresByLevel(FGameplayTag ModifierLevel) const;
 	
 	/* ~Snare (Non-Generic) Implementation */

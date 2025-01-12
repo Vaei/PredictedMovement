@@ -173,7 +173,7 @@ public:
 		return Boost.HasModifier();
 	}
 
-	UFUNCTION(BlueprintCallable, Category="Character Movement: Walking")
+	UFUNCTION(BlueprintPure, Category="Character Movement: Walking")
 	bool WantsBoost() const
 	{
 		return Boost.WantsModifier();

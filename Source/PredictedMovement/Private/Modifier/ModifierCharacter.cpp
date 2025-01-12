@@ -39,7 +39,18 @@ void AModifierCharacter::OnModifierChanged(const FGameplayTag& ModifierType, uin
 	// Replicate to simulated proxies
 	if (HasAuthority())
 	{
-		 SimulatedSnare = ModifierLevel;
+		if (ModifierType == FModifierTags::Modifier_Type_Buff_Boost)
+		{
+			SimulatedBoost = ModifierLevel;
+		}
+		else if (ModifierType == FModifierTags::Modifier_Type_Buff_SlowFall)
+		{
+			SimulatedSlowFall = ModifierLevel;
+		}
+		else if (ModifierType == FModifierTags::Modifier_Type_Debuff_Snare)
+		{
+			SimulatedSnare = ModifierLevel;
+		}
 	}
 }
 

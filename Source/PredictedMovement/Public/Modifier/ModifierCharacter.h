@@ -6,8 +6,6 @@
 #include "GameFramework/Character.h"
 #include "ModifierCharacter.generated.h"
 
-enum class EBoost : uint8;
-enum class ESnare : uint8;
 struct FGameplayTag;
 class UModifierMovement;
 

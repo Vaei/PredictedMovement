@@ -86,6 +86,7 @@ void FModifierNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Charac
 	// CallServerMovePacked ➜ ClientFillNetworkMoveData ➜ ServerMovePacked_ClientSend >> Server
 	// >> ServerMovePacked_ServerReceive ➜ ServerMove_HandleMoveData ➜ ServerMove_PerformMovement
 	// ➜ MoveAutonomous (UpdateFromCompressedFlags)
+	
 	const FSavedMove_Character_Modifier& SavedMove = static_cast<const FSavedMove_Character_Modifier&>(ClientMove);
 	Boost = SavedMove.Boost;
 	SlowFall = SavedMove.SlowFall;

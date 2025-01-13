@@ -198,7 +198,7 @@ struct PREDICTEDMOVEMENT_API FMovementModifier
 	 */
 	bool operator==(const FMovementModifier& Other) const
 	{
-		return RequestedModifierLevel == Other.RequestedModifierLevel && ModifierLevel == Other.ModifierLevel && Modifiers == Other.Modifiers;
+		return RequestedModifierLevel == Other.RequestedModifierLevel && Modifiers == Other.Modifiers;
 	}
 
 	bool operator!=(const FMovementModifier& Other) const

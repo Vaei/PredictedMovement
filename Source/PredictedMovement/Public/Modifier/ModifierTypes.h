@@ -227,7 +227,7 @@ public:
 
 	/**
 	 * Whether the modifier was activated by the character itself or externally
-	 * Useful for wrapping entry functions with an Instigator to prevent user-error from designers
+	 * This can be checked against for wrapper functions that apply modifiers if needed, otherwise it isn't used
 	 */
 	UPROPERTY()
 	EModifierActivationSource ActivationSource;

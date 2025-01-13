@@ -13,13 +13,13 @@ class UModifierMovement;
 #define LEVEL_NONE UINT8_MAX
 
 /**
- * The source of the modifier, such as whether it was applied externally or predicted
+ * The source of the modifier, such as whether it was applied externally or predicted internally
  */
 UENUM(BlueprintType)
-enum class EModifierSource : uint8
+enum class EModifierActivationSource : uint8
 {
-	External		UMETA(ToolTip="The modifier was applied externally, such as from a server event"),
-	Predicted		UMETA(ToolTip="The modifier was applied predictively, such as from a self-activated event"),
+	SelfActivation			UMETA(ToolTip="The modifier was applied to self predictively, from a self-activated event such as input"),
+	ExternalActivation		UMETA(ToolTip="The modifier was applied externally, such as from a server event"),
 };
 
 /**
@@ -177,6 +177,7 @@ struct PREDICTEDMOVEMENT_API FMovementModifier
 		: ModifierType(FGameplayTag::EmptyTag)
 		, LevelMethod(InLevelMethod)
 		, MaxModifiers(InMaxModifiers)
+		, ActivationSource(EModifierActivationSource::SelfActivation)
 		, LevelType(InLevelType)
 		, RequestedModifierLevel(0)
 		, ModifierLevel(0)
@@ -191,13 +192,15 @@ struct PREDICTEDMOVEMENT_API FMovementModifier
 	/** Only copies replicated data */
 	FMovementModifier& operator<<(const FMovementModifier& Clone);
 
-	/** We don't check type here, we only want to ensure we're sufficiently matched for prediction purposes */
+	/**
+	 * We don't check type here, we only want to ensure we're sufficiently matched for prediction purposes.
+	 * We also don't serialize the actual ModifierLevel, which is updated from RequestedModifierLevel.
+	 */
 	bool operator==(const FMovementModifier& Other) const
 	{
 		return RequestedModifierLevel == Other.RequestedModifierLevel && ModifierLevel == Other.ModifierLevel && Modifiers == Other.Modifiers;
 	}
 
-	/** We don't check type here, we only want to ensure we're sufficiently matched for prediction purposes */
 	bool operator!=(const FMovementModifier& Other) const
 	{
 		return !(*this == Other);
@@ -221,6 +224,13 @@ public:
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Modifier, meta=(UIMin="1", ClampMin="1"))
 	int32 MaxModifiers;
+
+	/**
+	 * Whether the modifier was activated by the character itself or externally
+	 * Useful for wrapping entry functions with an Instigator to prevent user-error from designers
+	 */
+	UPROPERTY()
+	EModifierActivationSource ActivationSource;
 
 	/** Whether to use UEnum or FGameplayTag to represent levels */
 	UPROPERTY()

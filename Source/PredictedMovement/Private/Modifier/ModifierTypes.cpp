@@ -354,15 +354,31 @@ bool FClientAuthData::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& b
 bool FClientAuthStack::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
 	// Serialize the number of elements
+	static constexpr int32 MaxStack = 8;
+
 	int32 StackNum = Stack.Num();
+	if (Ar.IsSaving())
+	{
+		StackNum = FMath::Min(MaxStack, StackNum);
+	}
+	Ar << StackNum;
 	
+	// Resize the array if needed
+	if (Ar.IsLoading())
+	{
+		if (!ensureMsgf(StackNum <= MaxStack,
+			TEXT("Deserializing client auth stack array with %d elements when max is %d -- Check packet serialization logic"), StackNum, MaxStack))
+		{
+			StackNum = MaxStack;
+		}
+		Stack.SetNum(StackNum);
+	}
+
 	// Serialize the elements
 	for (int32 i = 0; i < StackNum; ++i)
 	{
 		Stack[i].NetSerialize(Ar, Map, bOutSuccess);
 	}
-	
-	Ar << StackNum;
 
 	return !Ar.IsError();
 }

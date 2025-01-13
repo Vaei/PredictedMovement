@@ -112,25 +112,30 @@ UModifierMovement::UModifierMovement(const FObjectInitializer& ObjectInitializer
 	SetMoveResponseDataContainer(ModifierMoveResponseDataContainer);
     SetNetworkMoveDataContainer(ModifierMoveDataContainer);
 
-	// Init data types
+	// Init activation sources
+	Boost.ActivationSource		= EModifierActivationSource::SelfActivation;		// We apply this to ourselves
+	SlowFall.ActivationSource	= EModifierActivationSource::SelfActivation;		// We apply this to ourselves
+	Snare.ActivationSource		= EModifierActivationSource::ExternalActivation;	// Others apply this to us
+
+	// Init data types used for levels as gameplay tags instead of enums
 	Boost.LevelType		= EModifierLevelType::FGameplayTag;
 	SlowFall.LevelType	= EModifierLevelType::FGameplayTag;
 	Snare.LevelType		= EModifierLevelType::FGameplayTag;
 
 	// Init boost levels
-	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_25);
-	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_50);
-	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_75);
+	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_25);		// 1.25x Speed Boost
+	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_50); 		// 1.50x Speed Boost
+	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_75); 		// 1.75x Speed Boost
 
 	BoostLevels.Add(FModifierTags::Modifier_Type_Buff_Boost_25, { 1.25f });
 	BoostLevels.Add(FModifierTags::Modifier_Type_Buff_Boost_50, { 1.50f });
 	BoostLevels.Add(FModifierTags::Modifier_Type_Buff_Boost_75, { 1.75f });
 
 	// Init slow fall levels
-	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_SlowFall_25);
-	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_SlowFall_50);
-	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_SlowFall_75);
-	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_SlowFall_100);
+	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_SlowFall_25);	// 0.25x Reduction from 0.75x Gravity
+	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_SlowFall_50); 	// 0.50x Reduction from 0.50x Gravity
+	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_SlowFall_75); 	// 0.75x Reduction from 0.25x Gravity
+	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_SlowFall_100); 	// 1.00x Reduction from 0.00x Gravity
 
 	SlowFallLevels.Add(FModifierTags::Modifier_Type_Buff_SlowFall_25, { 0.75f });
 	SlowFallLevels.Add(FModifierTags::Modifier_Type_Buff_SlowFall_50, { 0.50f });
@@ -138,9 +143,9 @@ UModifierMovement::UModifierMovement(const FObjectInitializer& ObjectInitializer
 	SlowFallLevels.Add(FModifierTags::Modifier_Type_Buff_SlowFall_100, { 0.00f });
 	
 	// Init snare levels
-	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_25);
-	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_50);
-	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_75);
+	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_25); 	// 0.25x Speed Snare
+	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_50); 	// 0.50x Speed Snare
+	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_75); 	// 0.75x Speed Snare
 	
 	SnareLevels.Add(FModifierTags::Modifier_Type_Debuff_Snare_25, { 0.75f });
 	SnareLevels.Add(FModifierTags::Modifier_Type_Debuff_Snare_50, { 0.50f });

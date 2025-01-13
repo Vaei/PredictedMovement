@@ -129,32 +129,9 @@ public:
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ForceUnits="x"))
 	bool bSnareAffectsRootMotion = true;
 
-	/**
-	 * If True, the client will be allowed to send position updates to the server
-	 * Useful for short bursts of movement that are difficult to sync over the network
-	 */
-	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="s"))
-	bool bEnableClientAuth = true;
-	
-	/**
-	 * How long to allow client to have positional authority after being Snared
-	 */
-	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="s", EditCondition="bEnableClientAuth", EditConditionHides))
-	float ClientAuthTime = 1.25f;
-
-	/**
-	 * Maximum distance between client and server that will be accepted by server
-	 * Values above this will be scaled to the maximum distance
-	 */
-	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="cm", EditCondition="bEnableClientAuth", EditConditionHides))
-	float MaxClientAuthDistance = 150.f;
-
-	/**
-	 * Maximum distance between client and server that will be accepted by server
-	 * Values above this will be rejected entirely, on suspicion of cheating, or excessive error
-	 */
-	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="cm", EditCondition="bEnableClientAuth", EditConditionHides))
-	float RejectClientAuthDistance = 800.f;
+	/** Client auth parameters mapped to a source gameplay tag */
+	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadOnly)
+	TMap<FGameplayTag, FClientAuthParams> ClientAuthParams;
 
 public:
 	/** Example implementation of a local predicted buff modifier that can stack */
@@ -283,21 +260,10 @@ public:
 	UPROPERTY()
 	FClientAuthStack ClientAuthStack;
 
-	FClientAuthData* GetClientAuthData() { return IsClientAuthEnabled() ? ClientAuthStack.GetLatest() : nullptr; }
+	FClientAuthData* GetClientAuthData() { return ClientAuthStack.GetLatest(); }
+	FClientAuthParams* GetClientAuthParams(const FGameplayTag& Source) { return ClientAuthParams.Find(Source); }
 
 protected:
-	/**
-	 * Maximum distance between client and server that will be accepted by server
-	 * Values above this will be scaled to the maximum distance
-	 */
-	virtual float GetMaxClientAuthDistance() const { return MaxClientAuthDistance; }
-	
-	/**
-	 * Maximum distance between client and server that will be accepted by server
-	 * Values above this will be rejected entirely, on suspicion of cheating, or excessive error
-	 */
-	virtual float GetRejectClientAuthDistance() const { return RejectClientAuthDistance; }
-
 	/**
 	 * Called when the client's position is rejected by the server entirely due to excessive difference
 	 * @param ClientLoc The client's location
@@ -306,16 +272,12 @@ protected:
 	 */
 	virtual void OnClientAuthRejected(const FVector& ClientLoc, const FVector& ServerLoc, const FVector& LocDiff) {}
 
-	virtual float GetClientAuthTime() const;
-
-	virtual bool IsClientAuthEnabled() const;
-
 	/** 
 	 * Grant the client position authority, based on the current state of the character.
 	 * @param ClientAuthSource What the client is requesting authority for, not used by default, requires override
 	 * @param OverrideDuration Override the default client authority time, -1.f to use default
 	 */
-	UFUNCTION(BlueprintCallable, Category="Character Movement (Networking)")
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Character Movement (Networking)")
 	virtual void InitClientAuth(FGameplayTag ClientAuthSource, float OverrideDuration = -1.f);
 	
 	virtual bool ServerShouldGrantClientPositionAuthority(FVector& ClientLoc);

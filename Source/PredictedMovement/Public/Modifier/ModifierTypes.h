@@ -369,6 +369,46 @@ struct TStructOpsTypeTraits<FMovementModifier> : TStructOpsTypeTraitsBase2<FMove
 	};
 };
 
+USTRUCT(BlueprintType)
+struct PREDICTEDMOVEMENT_API FClientAuthParams
+{
+	GENERATED_BODY()
+
+	FClientAuthParams()
+		: bEnableClientAuth(true)
+		, ClientAuthTime(1.25f)
+		, MaxClientAuthDistance(150.f)
+		, RejectClientAuthDistance(800.f)
+	{}
+
+	/**
+	 * If True, the client will be allowed to send position updates to the server
+	 * Useful for short bursts of movement that are difficult to sync over the network
+	 */
+	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadOnly)
+	bool bEnableClientAuth;
+	
+	/**
+	 * How long to allow client to have positional authority after being Snared
+	 */
+	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadOnly, meta=(ClampMin="0", UIMin="0", ForceUnits="s", EditCondition="bEnableClientAuth", EditConditionHides))
+	float ClientAuthTime;
+
+	/**
+	 * Maximum distance between client and server that will be accepted by server
+	 * Values above this will be scaled to the maximum distance
+	 */
+	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadOnly, meta=(ClampMin="0", UIMin="0", ForceUnits="cm", EditCondition="bEnableClientAuth", EditConditionHides))
+	float MaxClientAuthDistance;
+
+	/**
+	 * Maximum distance between client and server that will be accepted by server
+	 * Values above this will be rejected entirely, on suspicion of cheating, or excessive error
+	 */
+	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadOnly, meta=(ClampMin="0", UIMin="0", ForceUnits="cm", EditCondition="bEnableClientAuth", EditConditionHides))
+	float RejectClientAuthDistance;
+};
+
 /**
  * Client auth data for providing client with positional authority
  */

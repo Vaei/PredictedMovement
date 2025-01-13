@@ -8,6 +8,8 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ModifierMovement)
 
+DEFINE_LOG_CATEGORY_STATIC(LogModifierMovement, Log, All);
+
 namespace FModifierTags
 {
 	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_SlowFall,		"Modifier.Type.Buff.SlowFall");
@@ -27,21 +29,15 @@ namespace FModifierTags
 
 namespace FModifierCVars
 {
-	static int32 ClientAuthEnableOverride = 0;
-	FAutoConsoleVariableRef CVarClientAuthOverride(
-		TEXT("p.ClientAuth.Enable.Override"),
-		ClientAuthEnableOverride,
-		TEXT("Override client authority enabled.\n")
-		TEXT("0: Ignore Override, 1: Override to Enable, 2: Override to Disable"),
+#if !UE_BUILD_SHIPPING
+	static bool bClientAuthDisabled = false;
+	FAutoConsoleVariableRef CVarClientAuthDisabled(
+		TEXT("p.ClientAuth.Disabled"),
+		bClientAuthDisabled,
+		TEXT("Override client authority to disabled.\n")
+		TEXT("If true, disable client authority"),
 		ECVF_Default);
-	
-	static float ClientAuthTimeOverride = 0.f;
-	FAutoConsoleVariableRef CVarClientAuthTimeOverride(
-		TEXT("p.ClientAuth.Time.Override"),
-		ClientAuthTimeOverride,
-		TEXT("Override client authority time.\n")
-		TEXT("Set 0 to disable the override and use character movement defaults"),
-		ECVF_Default);
+#endif
 }
 
 void FModifierMoveResponseDataContainer::ServerFillResponseData(
@@ -54,8 +50,8 @@ void FModifierMoveResponseDataContainer::ServerFillResponseData(
 	if (Snare != MoveComp->Snare)
 	{
 		Snare = MoveComp->Snare;
-		ClientAuthStack = MoveComp->ClientAuthStack;
 	}
+	ClientAuthStack = MoveComp->ClientAuthStack;
 }
 
 bool FModifierMoveResponseDataContainer::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,
@@ -150,6 +146,12 @@ UModifierMovement::UModifierMovement(const FObjectInitializer& ObjectInitializer
 	SnareLevels.Add(FModifierTags::Modifier_Type_Debuff_Snare_25, { 0.75f });
 	SnareLevels.Add(FModifierTags::Modifier_Type_Debuff_Snare_50, { 0.50f });
 	SnareLevels.Add(FModifierTags::Modifier_Type_Debuff_Snare_75, { 0.25f });
+
+	// Auth params for Snare
+	FClientAuthParams& SnareParams = ClientAuthParams.Add(FModifierTags::Modifier_Type_Debuff_Snare);
+	SnareParams.bEnableClientAuth = true;
+	SnareParams.MaxClientAuthDistance = 150.f;  // For something like a knockback, a greater distance would be sensible
+	SnareParams.RejectClientAuthDistance = 800.f;
 }
 
 void UModifierMovement::PostLoad()
@@ -418,28 +420,30 @@ void UModifierMovement::UpdateCharacterStateAfterMovement(float DeltaTime)
 	Super::UpdateCharacterStateAfterMovement(DeltaTime);
 }
 
-float UModifierMovement::GetClientAuthTime() const
-{
-	if (FModifierCVars::ClientAuthTimeOverride > 0.f)
-	{
-		return FModifierCVars::ClientAuthTimeOverride;
-	}
-	return ClientAuthTime;
-}
-
-bool UModifierMovement::IsClientAuthEnabled() const
-{
-	if (FModifierCVars::ClientAuthEnableOverride > 0)
-	{
-		return FModifierCVars::ClientAuthEnableOverride == 1;
-	}
-	return bEnableClientAuth;
-}
-
 void UModifierMovement::InitClientAuth(FGameplayTag ClientAuthSource, float OverrideDuration)
 {
-	const float Duration = OverrideDuration > 0.f ? OverrideDuration : GetClientAuthTime();
-	ClientAuthStack.Stack.Add(FClientAuthData(ClientAuthSource, Duration));
+	if (const FClientAuthParams* Params = GetClientAuthParams(ClientAuthSource))
+	{
+		if (Params->bEnableClientAuth)
+		{
+			const float Duration = OverrideDuration > 0.f ? OverrideDuration : Params->ClientAuthTime;
+			ClientAuthStack.Stack.Add(FClientAuthData(ClientAuthSource, Duration));
+
+			// Limit the number of auth data entries
+			if (ClientAuthStack.Stack.Num() > 8)
+			{
+				ClientAuthStack.Stack.RemoveAt(0);
+			}
+		}
+	}
+	else
+	{
+#if !UE_BUILD_SHIPPING
+		FMessageLog("PIE").Error(FText::FromString(FString::Printf(TEXT("ClientAuthSource '%s' not found in ClientAuthParams"), *ClientAuthSource.ToString())));
+#else
+		UE_LOG(LogModifierMovement, Error, TEXT("ClientAuthSource '%s' not found"), *ClientAuthSource.ToString());
+#endif
+	}
 }
 
 bool UModifierMovement::ServerShouldGrantClientPositionAuthority(FVector& ClientLoc)
@@ -451,16 +455,31 @@ bool UModifierMovement::ServerShouldGrantClientPositionAuthority(FVector& Client
 	}
 
 	// Abort if client authority is not enabled
-	if (!IsClientAuthEnabled())
+#if !UE_BUILD_SHIPPING
+	if (FModifierCVars::bClientAuthDisabled)
 	{
 		return false;
 	}
+#endif
 
 	// Get auth data
 	FClientAuthData* ClientAuthData = GetClientAuthData();
 	if (!ClientAuthData)
 	{
 		// No auth data, can't do anything
+		return false;
+	}
+
+	// Get auth params
+	FClientAuthParams* Params = GetClientAuthParams(ClientAuthData->Source);
+	if (!Params)
+	{
+		// No auth params, can't do anything
+		return false;
+	}
+
+	if (!Params->bEnableClientAuth)
+	{
 		return false;
 	}
 
@@ -490,18 +509,17 @@ bool UModifierMovement::ServerShouldGrantClientPositionAuthority(FVector& Client
 	}
 
 	// If the client is too far away from the server, reject the client position entirely, potential cheater
-	const float RejectDistance = GetRejectClientAuthDistance();
-	if (LocDiff.SizeSquared() >= FMath::Square(RejectDistance))
+	if (LocDiff.SizeSquared() >= FMath::Square(Params->RejectClientAuthDistance))
 	{
 		OnClientAuthRejected(ClientLoc, ServerLoc, LocDiff);
 		return false;
 	}
 
 	// If the client is not within the maximum allowable distance, accept the client position, but only partially
-	if (LocDiff.Size() >= GetMaxClientAuthDistance())
+	if (LocDiff.Size() >= Params->MaxClientAuthDistance)
 	{
 		// Accept only a portion of the client's location
-		ClientAuthData->Alpha = GetMaxClientAuthDistance() / LocDiff.Size();
+		ClientAuthData->Alpha = Params->MaxClientAuthDistance / LocDiff.Size();
 		ClientLoc = FMath::Lerp<FVector>(ServerLoc, ClientLoc, ClientAuthData->Alpha);
 		LocDiff = ServerLoc - ClientLoc;
 	}
@@ -661,7 +679,9 @@ void UModifierMovement::ServerMoveHandleClientError(float ClientTimeStamp, float
 	const FModifierNetworkMoveData* CurrentMoveData = static_cast<const FModifierNetworkMoveData*>(GetCurrentNetworkMoveData());
 
 	// Initialize client authority when the client is about to receive a correction that applies Snare
-	if (IsClientAuthEnabled())
+#if !UE_BUILD_SHIPPING
+	if (!FModifierCVars::bClientAuthDisabled)
+#endif
 	{
 		if (CurrentMoveData->Snare != Snare)
 		{

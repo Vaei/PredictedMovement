@@ -430,6 +430,7 @@ void UModifierMovement::InitClientAuth(FGameplayTag ClientAuthSource, float Over
 			ClientAuthStack.Stack.Add(FClientAuthData(ClientAuthSource, Duration));
 
 			// Limit the number of auth data entries
+			// IMPORTANT: We do not allow serializing more than 8, if this changes, update the serialization code too
 			if (ClientAuthStack.Stack.Num() > 8)
 			{
 				ClientAuthStack.Stack.RemoveAt(0);

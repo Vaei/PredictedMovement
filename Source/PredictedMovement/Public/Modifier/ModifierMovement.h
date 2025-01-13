@@ -146,14 +146,14 @@ public:
 	 * Maximum distance between client and server that will be accepted by server
 	 * Values above this will be scaled to the maximum distance
 	 */
-	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="s", EditCondition="bEnableClientAuth", EditConditionHides))
+	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="cm", EditCondition="bEnableClientAuth", EditConditionHides))
 	float MaxClientAuthDistance = 150.f;
 
 	/**
 	 * Maximum distance between client and server that will be accepted by server
 	 * Values above this will be rejected entirely, on suspicion of cheating, or excessive error
 	 */
-	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="s", EditCondition="bEnableClientAuth", EditConditionHides))
+	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="cm", EditCondition="bEnableClientAuth", EditConditionHides))
 	float RejectClientAuthDistance = 800.f;
 
 public:

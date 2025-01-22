@@ -566,7 +566,6 @@ void UModifierMovement::ServerMove_PerformMovement(const FCharacterNetworkMoveDa
 void UModifierMovement::ClientHandleMoveResponse(const FCharacterMoveResponseDataContainer& MoveResponse)
 {
 	// This occurs on AutonomousProxy, when the server sends the move response
-	
 	// This is where we receive the snare, and can override the server's location, assuming it has given us authority
 
 	// Server >> SendClientAdjustment() ➜ ServerSendMoveResponse

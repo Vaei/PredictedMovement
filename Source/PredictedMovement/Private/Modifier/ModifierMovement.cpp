@@ -109,9 +109,9 @@ UModifierMovement::UModifierMovement(const FObjectInitializer& ObjectInitializer
     SetNetworkMoveDataContainer(ModifierMoveDataContainer);
 
 	// Init activation sources
-	Boost.ActivationSource		= EModifierActivationSource::SelfActivation;		// We apply this to ourselves
-	SlowFall.ActivationSource	= EModifierActivationSource::SelfActivation;		// We apply this to ourselves
-	Snare.ActivationSource		= EModifierActivationSource::ExternalActivation;	// Others apply this to us
+	Boost.ActivationSource		= EModifierActivationSource::LocalPredicted;		// We apply this to ourselves
+	SlowFall.ActivationSource	= EModifierActivationSource::LocalPredicted;		// We apply this to ourselves
+	Snare.ActivationSource		= EModifierActivationSource::ServerInitiated;		// Others apply this to us
 
 	// Init data types used for levels as gameplay tags instead of enums
 	Boost.LevelType		= EModifierLevelType::FGameplayTag;

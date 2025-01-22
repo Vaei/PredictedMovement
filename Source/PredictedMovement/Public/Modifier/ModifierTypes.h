@@ -275,7 +275,7 @@ public:
 	{
 		if (!ensureAlwaysMsgf(LevelType == EModifierLevelType::UEnum, TEXT("Should not be called when using FGameplayTag levels")))
 		{
-			return LEVEL_NONE;
+			return static_cast<T>(LEVEL_NONE);
 		}
 		return static_cast<T>(ModifierLevel);
 	}

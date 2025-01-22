@@ -191,6 +191,8 @@ bool UModifierMovement::CanSlowFallInCurrentState(FGameplayTag ModifierLevel) co
 		return false;
 	}
 
+	// This is simplistic for demonstration purposes, but if a mage casts a 'slow fall' spell,
+	// they should be able to slow fall regardless of their current state, consider returning true here
 	return IsFalling();
 }
 

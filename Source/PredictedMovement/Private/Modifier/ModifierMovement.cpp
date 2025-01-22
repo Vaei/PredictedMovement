@@ -174,7 +174,7 @@ void UModifierMovement::SetUpdatedCharacter()
 	Snare.Initialize(ModifierCharacterOwner, FModifierTags::Modifier_Type_Debuff_Snare);
 }
 
-bool UModifierMovement::CanBoostInCurrentState() const
+bool UModifierMovement::CanBoostInCurrentState(FGameplayTag ModifierLevel) const
 {
 	if (!UpdatedComponent || UpdatedComponent->IsSimulatingPhysics())
 	{
@@ -184,7 +184,7 @@ bool UModifierMovement::CanBoostInCurrentState() const
 	return true;
 }
 
-bool UModifierMovement::CanSlowFallInCurrentState() const
+bool UModifierMovement::CanSlowFallInCurrentState(FGameplayTag ModifierLevel) const
 {
 	if (!UpdatedComponent || UpdatedComponent->IsSimulatingPhysics())
 	{
@@ -205,7 +205,7 @@ void UModifierMovement::OnStartSlowFall()
 	}
 }
 
-bool UModifierMovement::CanBeSnaredInCurrentState() const
+bool UModifierMovement::CanBeSnaredInCurrentState(FGameplayTag ModifierLevel) const
 {
 	if (!UpdatedComponent || UpdatedComponent->IsSimulatingPhysics())
 	{
@@ -404,18 +404,18 @@ FVector UModifierMovement::GetAirControl(float DeltaTime, float TickAirControl, 
 
 void UModifierMovement::UpdateCharacterStateBeforeMovement(float DeltaTime)
 {
-	Boost.UpdateCharacterStateBeforeMovement(CanBoostInCurrentState());
-	SlowFall.UpdateCharacterStateBeforeMovement(CanSlowFallInCurrentState());
-	Snare.UpdateCharacterStateBeforeMovement(CanBeSnaredInCurrentState());
+	Boost.UpdateCharacterStateBeforeMovement(CanBoostInCurrentState(FGameplayTag::EmptyTag));
+	SlowFall.UpdateCharacterStateBeforeMovement(CanSlowFallInCurrentState(FGameplayTag::EmptyTag));
+	Snare.UpdateCharacterStateBeforeMovement(CanBeSnaredInCurrentState(FGameplayTag::EmptyTag));
 	
 	Super::UpdateCharacterStateBeforeMovement(DeltaTime);
 }
 
 void UModifierMovement::UpdateCharacterStateAfterMovement(float DeltaTime)
 {
-	Boost.UpdateCharacterStateAfterMovement(CanBoostInCurrentState());
-	SlowFall.UpdateCharacterStateAfterMovement(CanSlowFallInCurrentState());
-	Snare.UpdateCharacterStateAfterMovement(CanBeSnaredInCurrentState());
+	Boost.UpdateCharacterStateAfterMovement(CanBoostInCurrentState(FGameplayTag::EmptyTag));
+	SlowFall.UpdateCharacterStateAfterMovement(CanSlowFallInCurrentState(FGameplayTag::EmptyTag));
+	Snare.UpdateCharacterStateAfterMovement(CanBeSnaredInCurrentState(FGameplayTag::EmptyTag));
 	
 	Super::UpdateCharacterStateAfterMovement(DeltaTime);
 }

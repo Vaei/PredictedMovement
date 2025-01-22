@@ -304,6 +304,7 @@ private:
 
 protected:
 	virtual bool ClientUpdatePositionAfterServerUpdate() override;
+	virtual bool CanDelaySendingMove(const FSavedMovePtr& NewMove) override;
 	
 public:
 	virtual void ServerMove_PerformMovement(const FCharacterNetworkMoveData& MoveData) override;
@@ -337,10 +338,14 @@ public:
 	{}
 
 	FMovementModifier Boost;
+	FMovementModifier EndBoost;
 	FMovementModifier SlowFall;
+	FMovementModifier EndSlowFall;
 	FMovementModifier Snare;
+	FMovementModifier EndSnare;
 
 	virtual void SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character& ClientData) override;
+	virtual void PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode) override;
 	virtual bool IsImportantMove(const FSavedMovePtr& LastAckedMove) const override;
 	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const override;
 	virtual void CombineWith(const FSavedMove_Character* OldMove, ACharacter* InCharacter, APlayerController* PC, const FVector& OldStartLocation) override;

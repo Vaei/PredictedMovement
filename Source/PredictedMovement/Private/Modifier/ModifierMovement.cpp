@@ -229,20 +229,54 @@ void FSavedMove_Character_Modifier::SetMoveFor(ACharacter* C, float InDeltaTime,
 	}
 }
 
+void FSavedMove_Character_Modifier::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
+{
+	// When considering whether to delay moves, we need to compare the move at the start and the end
+	if (UModifierMovement* Movement = CastChecked<AModifierCharacter>(C)->GetModifierCharacterMovement())
+	{
+		EndBoost = Movement->Boost;
+		EndSlowFall = Movement->SlowFall;
+		EndSnare = Movement->Snare;
+	}
+
+	if (PostUpdateMode == PostUpdate_Record)
+	{
+		// Don't delay sending moves if the modifiers changed over the course of the move
+		// ^= is the same as != but it also evaluates the current level rather than only the requested level
+
+		if (Boost ^= EndBoost)
+		{
+			bForceNoCombine = true;
+		}
+
+		if (SlowFall ^= EndSlowFall)
+		{
+			bForceNoCombine = true;
+		}
+
+		if (Snare ^= EndSnare)
+		{
+			bForceNoCombine = true;
+		}
+	}
+	
+	Super::PostUpdate(C, PostUpdateMode);
+}
+
 bool FSavedMove_Character_Modifier::IsImportantMove(const FSavedMovePtr& LastAckedMove) const
 {
 	const TSharedPtr<FSavedMove_Character_Modifier>& SavedMove = StaticCastSharedPtr<FSavedMove_Character_Modifier>(LastAckedMove);
-	if (Boost != SavedMove->Boost)
+	if (Boost != SavedMove->Boost || Boost != SavedMove->EndBoost)
 	{
 		return true;
 	}
 
-	if (SlowFall != SavedMove->SlowFall)
+	if (SlowFall != SavedMove->SlowFall || SlowFall != SavedMove->EndSlowFall)
 	{
 		return true;
 	}
 
-	if (Snare != SavedMove->Snare)
+	if (Snare != SavedMove->Snare || Snare != SavedMove->EndSnare)
 	{
 		return true;
 	}
@@ -546,6 +580,31 @@ bool UModifierMovement::ClientUpdatePositionAfterServerUpdate()
 	Snare = SavedSnare;
 	
 	return bResult;
+}
+
+bool UModifierMovement::CanDelaySendingMove(const FSavedMovePtr& NewMove)
+{
+	// Don't delay sending moves if the modifiers changed over the course of the move
+	// ^= is the same as != but it also evaluates the current level rather than only the requested level
+	
+	const TSharedPtr<FSavedMove_Character_Modifier>& SavedMove = StaticCastSharedPtr<FSavedMove_Character_Modifier>(NewMove);
+
+	if (SavedMove->Boost ^= SavedMove->EndBoost)
+	{
+		return false;
+	}
+
+	if (SavedMove->SlowFall ^= SavedMove->EndSlowFall)
+	{
+		return false;
+	}
+
+	if (SavedMove->Snare ^= SavedMove->EndSnare)
+	{
+		return false;
+	}
+	
+	return Super::CanDelaySendingMove(NewMove);
 }
 
 void UModifierMovement::ServerMove_PerformMovement(const FCharacterNetworkMoveData& MoveData)

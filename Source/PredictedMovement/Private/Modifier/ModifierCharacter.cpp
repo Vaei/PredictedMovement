@@ -151,6 +151,17 @@ void AModifierCharacter::RemoveAllBoosts()
 	}
 }
 
+void AModifierCharacter::RemoveAllBoostsOfLevel(FGameplayTag ModifierLevel)
+{
+	if (ModifierMovement)
+	{
+		if (const uint8 Level = ModifierMovement->Boost.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			ModifierMovement->Boost.RemoveAllModifiersByLevel(Level);
+		}
+	}
+}
+
 bool AModifierCharacter::IsBoosted() const
 {
 	return ModifierMovement && ModifierMovement->Boost.HasModifier();
@@ -235,6 +246,17 @@ void AModifierCharacter::RemoveAllSlowFall()
 	}
 }
 
+void AModifierCharacter::RemoveAllSlowFallOfLevel(FGameplayTag ModifierLevel)
+{
+	if (ModifierMovement)
+	{
+		if (const uint8 Level = ModifierMovement->SlowFall.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			ModifierMovement->SlowFall.RemoveAllModifiersByLevel(Level);
+		}
+	}
+}
+
 bool AModifierCharacter::IsSlowFall() const
 {
 	return ModifierMovement && ModifierMovement->SlowFall.HasModifier();
@@ -316,6 +338,17 @@ void AModifierCharacter::RemoveAllSnares()
 	if (ModifierMovement)
 	{
 		ModifierMovement->Snare.RemoveAllModifiers();
+	}
+}
+
+void AModifierCharacter::RemoveAllSnaresOfLevel(FGameplayTag ModifierLevel)
+{
+	if (ModifierMovement)
+	{
+		if (const uint8 Level = ModifierMovement->Snare.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			ModifierMovement->Snare.RemoveAllModifiersByLevel(Level);
+		}
 	}
 }
 

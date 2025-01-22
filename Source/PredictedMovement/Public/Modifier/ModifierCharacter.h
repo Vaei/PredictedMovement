@@ -61,6 +61,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character)
 	void RemoveAllBoosts();
 	
+	UFUNCTION(BlueprintCallable, Category=Character)
+	void RemoveAllBoostsOfLevel(FGameplayTag ModifierLevel);
+	
 	UFUNCTION(BlueprintPure, Category=Character)
 	bool IsBoosted() const;
 	
@@ -97,6 +100,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character)
 	void RemoveAllSlowFall();
 	
+	UFUNCTION(BlueprintCallable, Category=Character)
+	void RemoveAllSlowFallOfLevel(FGameplayTag ModifierLevel);
+	
 	UFUNCTION(BlueprintPure, Category=Character)
 	bool IsSlowFall() const;
 	
@@ -132,6 +138,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category=Character)
 	void RemoveAllSnares();
+	
+	UFUNCTION(BlueprintCallable, Category=Character)
+	void RemoveAllSnaresOfLevel(FGameplayTag ModifierLevel);
 	
 	UFUNCTION(BlueprintPure, Category=Character)
 	bool IsSnared() const;

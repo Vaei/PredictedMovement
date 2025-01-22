@@ -18,8 +18,8 @@ class UModifierMovement;
 UENUM(BlueprintType)
 enum class EModifierActivationSource : uint8
 {
-	SelfActivation			UMETA(ToolTip="The modifier was applied to self predictively, from a self-activated event such as input"),
-	ExternalActivation		UMETA(ToolTip="The modifier was applied externally, such as from a server event"),
+	LocalPredicted		UMETA(ToolTip="The modifier was applied to self predictively, from a self-activated event such as input"),
+	ServerInitiated		UMETA(ToolTip="The modifier was applied externally, such as from a server event or a different character"),
 };
 
 /**
@@ -177,7 +177,7 @@ struct PREDICTEDMOVEMENT_API FMovementModifier
 		: ModifierType(FGameplayTag::EmptyTag)
 		, LevelMethod(InLevelMethod)
 		, MaxModifiers(InMaxModifiers)
-		, ActivationSource(EModifierActivationSource::SelfActivation)
+		, ActivationSource(EModifierActivationSource::LocalPredicted)
 		, LevelType(InLevelType)
 		, RequestedModifierLevel(0)
 		, ModifierLevel(0)

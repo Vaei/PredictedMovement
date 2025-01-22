@@ -156,7 +156,12 @@ public:
 		return Boost.WantsModifier();
 	}
 
-	virtual bool CanBoostInCurrentState() const;
+	/**
+	 * @param ModifierLevel The level to check for - optional, leave empty if check is generic
+	 * @return True if we can boost
+	 */
+	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(Categories="Modifier.Type.Buff.Boost"))
+	virtual bool CanBoostInCurrentState(FGameplayTag ModifierLevel) const;
 
 	virtual void OnStartBoost() {}
 	virtual void OnEndBoost() {}
@@ -184,7 +189,12 @@ public:
 		return SlowFall.WantsModifier();
 	}
 
-	virtual bool CanSlowFallInCurrentState() const;
+	/**
+	 * @param ModifierLevel The level to check for - optional, leave empty if check is generic
+	 * @return True if we can slow fall
+	 */
+	UFUNCTION(BlueprintPure, Category="Character Movement: Jumping / Falling", meta=(Categories="Modifier.Type.Buff.SlowFall"))
+	virtual bool CanSlowFallInCurrentState(FGameplayTag ModifierLevel) const;
 
 	virtual void OnStartSlowFall();
 	virtual void OnEndSlowFall() {}
@@ -211,8 +221,13 @@ public:
 	{
 		return Snare.WantsModifier();
 	}
-	
-	virtual bool CanBeSnaredInCurrentState() const;
+
+	/**
+	 * @param ModifierLevel The level to check for - optional, leave empty if check is generic
+	 * @return True if we can be snared
+	 */
+	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(Categories="Modifier.Type.Debuff.Snare"))
+	virtual bool CanBeSnaredInCurrentState(FGameplayTag ModifierLevel) const;
 
 	virtual void OnStartSnare() {}
 	virtual void OnEndSnare() {}

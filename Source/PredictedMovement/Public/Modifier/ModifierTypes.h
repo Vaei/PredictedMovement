@@ -206,6 +206,12 @@ struct PREDICTEDMOVEMENT_API FMovementModifier
 		return !(*this == Other);
 	}
 
+	/** ^= is the same as != but it also evaluates the current level rather than only the requested level */
+	bool operator^=(const FMovementModifier& Other) const
+	{
+		return ModifierLevel != Other.ModifierLevel || RequestedModifierLevel != Other.RequestedModifierLevel || Modifiers != Other.Modifiers;
+	}
+
 protected:
 	/** The type of modifier */
 	UPROPERTY(BlueprintReadOnly, Category=Modifier)

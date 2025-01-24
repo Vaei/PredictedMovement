@@ -23,6 +23,17 @@ enum class EModifierActivationSource : uint8
 };
 
 /**
+ * The source of the modifier, such as whether it was applied externally or predicted internally
+ */
+UENUM(BlueprintType)
+enum class EModifierActivationSources : uint8
+{
+	LocalPredicted		UMETA(ToolTip="The modifier was applied to self predictively, from a self-activated event such as input"),
+	ServerInitiated		UMETA(ToolTip="The modifier was applied externally, such as from a server event"),
+	Both				UMETA(DisplayName = "Both", ToolTip = "Apply to both Self and External activations"),
+};
+
+/**
  * The method used to calculate modifier levels
  */
 UENUM(BlueprintType)

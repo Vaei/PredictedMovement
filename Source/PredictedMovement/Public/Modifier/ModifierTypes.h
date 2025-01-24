@@ -39,9 +39,9 @@ enum class EModifierActivationSources : uint8
 UENUM(BlueprintType)
 enum class EModifierLevelMethod : uint8
 {
-	Max				UMETA(ToolTip="The highest active modifier level will be applied"),
-	Stack			UMETA(ToolTip="Level stacks by each modifier that is added. e.g. add a level 1 modifier and a level 4 modifier, and it applies level 5"),
-	Average 		UMETA(ToolTip="The average modifier level will be applied"),
+	Max					UMETA(ToolTip="The highest active modifier level will be applied"),
+	Stack				UMETA(ToolTip="Level stacks by each modifier that is added. e.g. add a level 1 modifier and a level 4 modifier, and it applies level 5"),
+	Average 			UMETA(ToolTip="The average modifier level will be applied"),
 };
 
 /**

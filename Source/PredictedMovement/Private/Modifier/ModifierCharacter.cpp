@@ -4,6 +4,7 @@
 
 #include "Modifier/ModifierMovement.h"
 #include "Net/UnrealNetwork.h"
+#include "Net/Core/PushModel/PushModel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ModifierCharacter)
 
@@ -17,9 +18,19 @@ void AModifierCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProper
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(ThisClass, SimulatedBoost, COND_SimulatedOnly);
-	DOREPLIFETIME_CONDITION(ThisClass, SimulatedSlowFall, COND_SimulatedOnly);
-	DOREPLIFETIME_CONDITION(ThisClass, SimulatedSnare, COND_SimulatedOnly);
+	// Legacy
+	// DOREPLIFETIME_CONDITION(ThisClass, SimulatedBoost, COND_SimulatedOnly);
+	// DOREPLIFETIME_CONDITION(ThisClass, SimulatedSlowFall, COND_SimulatedOnly);
+	// DOREPLIFETIME_CONDITION(ThisClass, SimulatedSnare, COND_SimulatedOnly);
+	
+	// Push Model
+	FDoRepLifetimeParams SharedParams;
+	SharedParams.bIsPushBased = true;
+	SharedParams.Condition = COND_SimulatedOnly;
+
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedBoost, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedSlowFall, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedSnare, SharedParams);
 }
 
 void AModifierCharacter::OnModifierChanged(const FGameplayTag& ModifierType, uint8 ModifierLevel, uint8 PrevModifierLevel)
@@ -42,14 +53,17 @@ void AModifierCharacter::OnModifierChanged(const FGameplayTag& ModifierType, uin
 		if (ModifierType == FModifierTags::Modifier_Type_Buff_Boost)
 		{
 			SimulatedBoost = ModifierLevel;
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedBoost, this);			// Push-model
 		}
 		else if (ModifierType == FModifierTags::Modifier_Type_Buff_SlowFall)
 		{
 			SimulatedSlowFall = ModifierLevel;
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedSlowFall, this);		// Push-model
 		}
 		else if (ModifierType == FModifierTags::Modifier_Type_Debuff_Snare)
 		{
 			SimulatedSnare = ModifierLevel;
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedSnare, this);			// Push-model
 		}
 	}
 }

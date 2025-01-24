@@ -183,7 +183,7 @@ struct PREDICTEDMOVEMENT_API FMovementModifier
 {
 	GENERATED_BODY()
 
-	FMovementModifier(const EModifierLevelType InLevelType = EModifierLevelType::FGameplayTag, int32 InMaxModifiers = 3,
+	FMovementModifier(const EModifierLevelType InLevelType = EModifierLevelType::FGameplayTag, uint8 InMaxModifiers = 3,
 		EModifierLevelMethod InLevelMethod = EModifierLevelMethod::Max)
 		: ModifierType(FGameplayTag::EmptyTag)
 		, LevelMethod(InLevelMethod)
@@ -240,7 +240,7 @@ public:
 	 * Set to 1 to disable stacking
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Modifier, meta=(UIMin="1", ClampMin="1"))
-	int32 MaxModifiers;
+	uint8 MaxModifiers;
 
 	/**
 	 * Whether the modifier was activated by the character itself or externally
@@ -345,8 +345,8 @@ public:
 		return RequestedModifierLevel > 0;
 	}
 
-	int32 GetNumModifiers() const	{ return Modifiers.Num();	}
-	int32 GetNumModifiersByLevel(uint8 Level) const;
+	uint8 GetNumModifiers() const { return Modifiers.Num();	}
+	uint8 GetNumModifiersByLevel(uint8 Level) const;
 
 	/**
 	 * Initialization is mandatory

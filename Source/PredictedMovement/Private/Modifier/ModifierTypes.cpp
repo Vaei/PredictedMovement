@@ -16,7 +16,7 @@ FMovementModifier& FMovementModifier::operator<<(const FMovementModifier& Clone)
 	return *this;
 }
 
-int32 FMovementModifier::GetNumModifiersByLevel(uint8 Level) const
+uint8 FMovementModifier::GetNumModifiersByLevel(uint8 Level) const
 {
 	// Did you call initialize?
 	if (!ensureAlwaysMsgf(ModifierType.IsValid(), TEXT("Modifier type %s is not valid"), *ModifierType.ToString()))
@@ -317,7 +317,7 @@ bool FMovementModifier::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool&
 	}
 	
 	// Serialize the number of elements
-	int32 NumModifiers = Modifiers.Num();
+	uint8 NumModifiers = Modifiers.Num();
 	if (Ar.IsSaving())
 	{
 		NumModifiers = FMath::Min(MaxModifiers, NumModifiers);
@@ -336,7 +336,7 @@ bool FMovementModifier::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool&
 	}
 
 	// Serialize the elements
-	for (int32 i = 0; i < NumModifiers; ++i)
+	for (uint8 i = 0; i < NumModifiers; ++i)
 	{
 		Ar << Modifiers[i];
 	}
@@ -354,9 +354,9 @@ bool FClientAuthData::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& b
 bool FClientAuthStack::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
 	// Serialize the number of elements
-	static constexpr int32 MaxStack = 8;
+	static constexpr uint8 MaxStack = 8;
 
-	int32 StackNum = Stack.Num();
+	uint8 StackNum = Stack.Num();
 	if (Ar.IsSaving())
 	{
 		StackNum = FMath::Min(MaxStack, StackNum);
@@ -375,7 +375,7 @@ bool FClientAuthStack::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& 
 	}
 
 	// Serialize the elements
-	for (int32 i = 0; i < StackNum; ++i)
+	for (uint8 i = 0; i < StackNum; ++i)
 	{
 		Stack[i].NetSerialize(Ar, Map, bOutSuccess);
 	}

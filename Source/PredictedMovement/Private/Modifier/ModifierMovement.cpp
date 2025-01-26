@@ -4,6 +4,7 @@
 #include "Modifier/ModifierMovement.h"
 
 #include "Modifier/ModifierCharacter.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Net/NetPing.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ModifierMovement)

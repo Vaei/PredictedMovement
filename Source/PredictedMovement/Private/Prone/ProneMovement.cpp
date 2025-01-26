@@ -5,6 +5,7 @@
 
 #include "Components/CapsuleComponent.h"
 #include "Prone/ProneCharacter.h"
+#include "Engine/World.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ProneMovement)
 

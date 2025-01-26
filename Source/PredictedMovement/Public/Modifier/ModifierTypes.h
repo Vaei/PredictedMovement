@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "NativeGameplayTags.h"
+#include "Curves/CurveFloat.h"
 #include "ModifierTypes.generated.h"
 
 class AModifierCharacter;

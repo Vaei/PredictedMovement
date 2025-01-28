@@ -7,7 +7,8 @@
 > [Read the Wiki for instructions](https://github.com/Vaei/PredictedMovement/wiki/How-to-Use)
 
 > [!TIP]
-> [Third Person Template Example Project here for PredictedMovement version 1](https://github.com/Vaei/PredictedMovementExample)
+> [Third Person Template Example Project here for PredictedMovement 1.0.0](https://github.com/Vaei/PredictedMovementExample)
+> <br>_Coming Soon-ish for 2.0.0_
 
 # Abilities
 

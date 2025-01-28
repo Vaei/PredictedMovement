@@ -4,10 +4,10 @@
 > PredictedMovement offers several shells usually with a derived `UCharacterMovementComponent` and `ACharacter` which form a single net predicted movement state.
 
 > [!NOTE]
-> [Read the Wiki for instructions](https://github.com/Vaei/PredictedMovement/wiki)
+> [Read the Wiki for instructions](https://github.com/Vaei/PredictedMovement/wiki/How-to-Use)
 
 > [!TIP]
-> [Third Person Template Example Project here](https://github.com/Vaei/PredictedMovementExample)
+> [Third Person Template Example Project here for PredictedMovement version 1](https://github.com/Vaei/PredictedMovementExample)
 
 # Abilities
 
@@ -25,12 +25,31 @@ It makes you sprint by changing your movement properties when activated.
 ## Stamina
 Net predicted stamina and drain state. It also includes a correction mechanism.
 
+## Modifiers
+_Added in version 2.0.0 of PredictedMovement_
+
+Modifiers are similar to states such as sprinting, however instead of a single on/off state, they contain multiple levels, e.g. `Boost Level 1-5` (or more, or less).
+
+Included Modifiers: `Boost`, `Snare`, `SlowFall`
+
+Modifiers come in two formats: `Local Predicted` (applied to self, e.g. a buff) and `Server Initiated` (applied to another, e.g. a debuff).
+
+Furthermore, `Server Initiated` modifiers include a functional and production tested client authority solution, that allows limited/partial location authority for the client when the server applies a Modifier to your character, to prevent problematic de-sync.
+
+The included modifiers can be duplicated to achieve plenty of other modifications.
+
 # Demonstration
 I used this in my own project, here you can see the character sprinting, consuming stamina, strafing, and proning with high latency (>220ms) and `p.netshowcorrections 1`. As you can see, there is no desync.
 
 https://youtu.be/SHVm57AMruc
 
 # Changelog
+
+### 2.0.0
+* Movement Modifiers added
+  * Boost, SlowFall, Snare included by default
+* Client Authority solution added
+* Wiki added
 
 ### 1.5.2
 * Version number follows Unreal format 1.0.5.2 > 1.5.2

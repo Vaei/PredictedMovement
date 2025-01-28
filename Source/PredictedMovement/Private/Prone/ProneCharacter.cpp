@@ -5,6 +5,7 @@
 
 #include "Net/UnrealNetwork.h"
 #include "Prone/ProneMovement.h"
+#include "Components/SkeletalMeshComponent.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ProneCharacter)
 

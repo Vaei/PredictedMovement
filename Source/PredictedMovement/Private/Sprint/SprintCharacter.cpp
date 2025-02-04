@@ -4,6 +4,7 @@
 #include "Sprint/SprintCharacter.h"
 
 #include "Net/UnrealNetwork.h"
+#include "Net/Core/PushModel/PushModel.h"
 #include "Sprint/SprintMovement.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(SprintCharacter)
@@ -18,7 +19,33 @@ void ASprintCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(ThisClass, bIsSprinting, COND_SimulatedOnly);
+	// Legacy
+	// DOREPLIFETIME_CONDITION(ThisClass, bIsSprinting, COND_SimulatedOnly);
+
+	// Push Model
+	FDoRepLifetimeParams SharedParams;
+	SharedParams.bIsPushBased = true;
+	SharedParams.Condition = COND_SimulatedOnly;
+
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsSprinting, SharedParams);
+}
+
+void ASprintCharacter::SetIsSprinting(bool bNewSprinting)
+{
+	if (bIsSprinting != bNewSprinting)
+	{
+		bIsSprinting = bNewSprinting;
+
+		if (HasAuthority())
+		{
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, bIsSprinting, this);  // Push-model
+		}
+	}
+}
+
+bool ASprintCharacter::IsSprintingAtSpeed() const
+{
+	return SprintMovement && SprintMovement->IsSprintingAtSpeed();
 }
 
 void ASprintCharacter::OnRep_IsSprinting()

@@ -134,7 +134,7 @@ void USprintMovement::ApplyVelocityBraking(float DeltaTime, float Friction, floa
 
 bool USprintMovement::IsSprinting() const
 {
-	return SprintCharacterOwner && SprintCharacterOwner->bIsSprinting;
+	return SprintCharacterOwner && SprintCharacterOwner->IsSprinting();
 }
 
 void USprintMovement::Sprint(bool bClientSimulation)
@@ -151,7 +151,7 @@ void USprintMovement::Sprint(bool bClientSimulation)
 
 	if (!bClientSimulation)
 	{
-		SprintCharacterOwner->bIsSprinting = true;
+		SprintCharacterOwner->SetIsSprinting(true);
 	}
 	SprintCharacterOwner->OnStartSprint();
 }
@@ -165,7 +165,7 @@ void USprintMovement::UnSprint(bool bClientSimulation)
 
 	if (!bClientSimulation)
 	{
-		SprintCharacterOwner->bIsSprinting = false;
+		SprintCharacterOwner->SetIsSprinting(false);
 	}
 	SprintCharacterOwner->OnEndSprint();
 }

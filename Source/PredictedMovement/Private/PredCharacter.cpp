@@ -5,6 +5,7 @@
 
 #include "Net/UnrealNetwork.h"
 #include "PredMovement.h"
+#include "Net/Core/PushModel/PushModel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(PredCharacter)
 
@@ -19,6 +20,13 @@ void APredCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(ThisClass, bIsSprinting, COND_SimulatedOnly);
+
+	// Push Model
+	FDoRepLifetimeParams SharedParams;
+	SharedParams.bIsPushBased = true;
+	SharedParams.Condition = COND_SimulatedOnly;
+
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsAimingDownSights, SharedParams);
 }
 
 void APredCharacter::OnRep_IsSprinting()
@@ -78,6 +86,71 @@ float APredCharacter::GetMaxStamina() const
 float APredCharacter::GetStaminaPct() const
 {
 	return PredMovement ? PredMovement->GetStaminaPct() : 0.f;
+}
+
+void APredCharacter::SetIsAimingDownSights(bool bNewAimingDownSights)
+{
+	if (bIsAimingDownSights != bNewAimingDownSights)
+	{
+		bIsAimingDownSights = bNewAimingDownSights;
+
+		if (HasAuthority())
+		{
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, bIsAimingDownSights, this);  // Push-model
+		}
+	}
+}
+
+void APredCharacter::OnRep_IsAimingDownSights()
+{
+	if (PredMovement)
+	{
+		if (bIsAimingDownSights)
+		{
+			PredMovement->bWantsToAimDownSights = true;
+			PredMovement->AimDownSights(true);
+		}
+		else
+		{
+			PredMovement->bWantsToAimDownSights = false;
+			PredMovement->UnAimDownSights(true);
+		}
+		PredMovement->bNetworkUpdateReceived = true;
+	}
+}
+
+void APredCharacter::AimDownSights(bool bClientSimulation)
+{
+	if (PredMovement)
+	{
+		if (CanAimDownSights())
+		{
+			PredMovement->bWantsToAimDownSights = true;
+		}
+	}
+}
+
+void APredCharacter::UnAimDownSights(bool bClientSimulation)
+{
+	if (PredMovement)
+	{
+		PredMovement->bWantsToAimDownSights = false;
+	}
+}
+
+bool APredCharacter::CanAimDownSights() const
+{
+	return !bIsAimingDownSights && GetRootComponent() && !GetRootComponent()->IsSimulatingPhysics();
+}
+
+void APredCharacter::OnEndAimDownSights()
+{
+	K2_OnEndAimDownSights();
+}
+
+void APredCharacter::OnStartAimDownSights()
+{
+	K2_OnStartAimDownSights();
 }
 
 void APredCharacter::FlushServerMoves()

@@ -93,6 +93,58 @@ public:
 	UFUNCTION(BlueprintPure, Category=Character)
 	float GetStaminaPct() const;
 
+protected:
+	/** Set by character movement to specify that this Character is currently AimingDownSights. */
+	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsAimingDownSights, Category=Character)
+	uint32 bIsAimingDownSights:1;
+
+public:
+	virtual void SetIsAimingDownSights(bool bNewAimingDownSights);
+
+	/** @return true if this character is currently AimingDownSights */
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual bool IsAimingDownSights() const { return bIsAimingDownSights; }
+	
+	/** Handle AimingDownSights replicated from server */
+	UFUNCTION()
+	virtual void OnRep_IsAimingDownSights();
+
+	/**
+	 * Request the character to start AimingDownSights. The request is processed on the next update of the CharacterMovementComponent.
+	 * @see OnStartAimDownSights
+	 * @see IsAimingDownSights
+	 * @see CharacterMovement->WantsToAimDownSights
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
+	virtual void AimDownSights(bool bClientSimulation = false);
+
+	/**
+	 * Request the character to stop AimingDownSights. The request is processed on the next update of the CharacterMovementComponent.
+	 * @see OnEndAimDownSights
+	 * @see IsAimingDownSights
+	 * @see CharacterMovement->WantsToAimDownSights
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
+	virtual void UnAimDownSights(bool bClientSimulation = false);
+
+	/** @return true if this character is currently able to AimDownSights (and is not currently AimingDownSights) */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	virtual bool CanAimDownSights() const;
+	
+	/** Called when Character stops AimingDownSights. Called on non-owned Characters through bIsAimingDownSights replication. */
+	virtual void OnEndAimDownSights();
+
+	/** Event when Character stops AimingDownSights. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndAimDownSights", ScriptName="OnEndAimDownSights"))
+	void K2_OnEndAimDownSights();
+
+	/** Called when Character AimDownSightses. Called on non-owned Characters through bIsAimingDownSights replication. */
+	virtual void OnStartAimDownSights();
+
+	/** Event when Character AimDownSightses. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnStartAimDownSights", ScriptName="OnStartAimDownSights"))
+	void K2_OnStartAimDownSights();
+
 public:
 	/**
 	 * Consume the PendingMove if it exists, by sending it to the server and clearing it

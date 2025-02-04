@@ -21,7 +21,7 @@ private:
 protected:
 	FORCEINLINE USprintMovement* GetSprintCharacterMovement() const { return SprintMovement; }
 	
-public:
+protected:
 	/** Set by character movement to specify that this Character is currently Sprinting. */
 	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsSprinting, Category=Character)
 	uint32 bIsSprinting:1;
@@ -32,6 +32,16 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 public:
+	void SetIsSprinting(bool bNewSprinting);
+
+	/** @return true if this character is currently Sprinting */
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual bool IsSprinting() const { return bIsSprinting; }
+
+	/** @return True if the character is currently Sprinting at or above sprint speed */
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual bool IsSprintingAtSpeed() const;
+	
 	/** Handle Crouching replicated from server */
 	UFUNCTION()
 	virtual void OnRep_IsSprinting();

@@ -24,7 +24,7 @@ protected:
 	FORCEINLINE UModifierMovement* GetModifierCharacterMovement() const { return ModifierMovement; }
 
 public:
-	AModifierCharacter(const FObjectInitializer& FObjectInitializer);
+	AModifierCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 

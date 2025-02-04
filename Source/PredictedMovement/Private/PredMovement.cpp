@@ -140,7 +140,9 @@ void UPredMovement::BeginPlay()
 
 	// Broadcast events to initialize UI, etc.
 	OnMaxStaminaChanged(GetMaxStamina(), GetMaxStamina());
-	OnStaminaChanged(GetStamina(), GetStamina());
+
+	// Set stamina to max
+	SetStamina(GetMaxStamina());
 }
 
 bool UPredMovement::IsSprintingAtSpeed() const
@@ -275,6 +277,8 @@ void UPredMovement::CalcVelocity(float DeltaTime, float Friction, bool bFluid, f
 	{
 		Friction = GetGroundFriction(Friction);
 	}
+	
+	CalcStamina(DeltaTime);
 	Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
 }
 

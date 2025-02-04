@@ -125,6 +125,18 @@ public:
 	uint8 bWantsToSprint:1;
 
 public:
+	/** Modify maximum speed when stamina is drained. */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
+	float MaxWalkSpeedScalarStaminaDrained;
+
+	/** Modify maximum acceleration when stamina is drained. */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
+	float MaxAccelerationScalarStaminaDrained;
+
+	/** Modify maximum braking deceleration when stamina is drained. */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
+	float MaxBrakingDecelerationScalarStaminaDrained;
+	
 	/** The rate at which stamina is drained while sprinting */
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite)
 	float SprintStaminaDrainRate;
@@ -146,8 +158,12 @@ public:
 	float StaminaRecoveryAmount;
 
 	/** Percentage of Stamina to recover before being considered recovered */
-	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ClampMax="1", UIMax="1", EditCondition="bStaminaRecoveryFromPct", EditConditionHides))
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ClampMax="1", UIMax="1", ForceUnits="%", EditCondition="bStaminaRecoveryFromPct", EditConditionHides))
 	float StaminaRecoveryPct;
+
+	/** If Stamina Pct is below this value then cannot start sprinting */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ClampMax="1", UIMax="1", ForceUnits="%", EditCondition="bStaminaRecoveryFromPct", EditConditionHides))
+	float StartSprintStaminaPct;
 	
 public:
 	/** Maximum stamina difference that is allowed between client and server before a correction occurs. */
@@ -177,6 +193,9 @@ public:
 	
 public:
 	virtual bool IsSprintingAtSpeed() const;
+	virtual float GetMaxAccelerationMultiplier() const;
+	virtual float GetMaxSpeedMultiplier() const;
+	virtual float GetMaxBrakingDecelerationMultiplier() const;
 	virtual float GetMaxAcceleration() const override;
 	virtual float GetMaxSpeed() const override;
 	virtual float GetMaxBrakingDeceleration() const override;

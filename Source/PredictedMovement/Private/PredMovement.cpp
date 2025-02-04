@@ -83,7 +83,8 @@ UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
 {
 	SetNetworkMoveDataContainer(PredMoveDataContainer);
 	SetMoveResponseDataContainer(PredMoveResponseDataContainer);
-	
+
+	// Sprinting
 	bUseMaxAccelerationSprintingOnlyAtSpeed = true;
 	MaxAccelerationSprinting = 1024.f;
 	MaxWalkSpeedSprinting = 600.f;
@@ -95,14 +96,25 @@ UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
 
 	bWantsToSprint = false;
 
-	NetworkStaminaCorrectionThreshold = 2.f;
-
+	// Enable crouch
 	NavAgentProps.bCanCrouch = true;
-	
+
+	// Stamina drained scalars
+	MaxWalkSpeedScalarStaminaDrained = 0.25f;
+	MaxAccelerationScalarStaminaDrained = 0.5f;
+	MaxBrakingDecelerationScalarStaminaDrained = 0.5f;
+
+	// Stamina
 	SetMaxStamina(100.f);
-	SprintStaminaDrainRate = 35.f;
-	StaminaRegenRate = 20.f;
-	StaminaDrainedRegenRate = 50.f;
+	SprintStaminaDrainRate = 65.f;
+	StaminaRegenRate = 60.f;
+	StaminaDrainedRegenRate = 120.f;
+	bStaminaRecoveryFromPct = true;
+	StaminaRecoveryAmount = 20.f;
+	StaminaRecoveryPct = 0.2f;
+	StartSprintStaminaPct = 0.05f;  // 5% stamina to start sprinting
+	
+	NetworkStaminaCorrectionThreshold = 2.f;
 }
 
 bool UPredMovement::HasValidData() const
@@ -150,31 +162,46 @@ bool UPredMovement::IsSprintingAtSpeed() const
 	return Vel >= (WalkSpeed * WalkSpeed * VelocityCheckMitigatorSprinting);
 }
 
+float UPredMovement::GetMaxAccelerationMultiplier() const
+{
+	return IsStaminaDrained() ? MaxAccelerationScalarStaminaDrained : 1.f;
+}
+
+float UPredMovement::GetMaxSpeedMultiplier() const
+{
+	return IsStaminaDrained() ? MaxWalkSpeedScalarStaminaDrained : 1.f;
+}
+
+float UPredMovement::GetMaxBrakingDecelerationMultiplier() const
+{
+	return IsStaminaDrained() ? MaxBrakingDecelerationScalarStaminaDrained : 1.f;
+}
+
 float UPredMovement::GetMaxAcceleration() const
 {
 	if (IsSprinting() && (!bUseMaxAccelerationSprintingOnlyAtSpeed || IsSprintingAtSpeed()))
 	{
-		return MaxAccelerationSprinting;
+		return MaxAccelerationSprinting * GetMaxAccelerationMultiplier();
 	}
-	return Super::GetMaxAcceleration();
+	return Super::GetMaxAcceleration() * GetMaxAccelerationMultiplier();
 }
 
 float UPredMovement::GetMaxSpeed() const
 {
 	if (IsSprinting())
 	{
-		return MaxWalkSpeedSprinting;
+		return MaxWalkSpeedSprinting * GetMaxSpeedMultiplier();
 	}
-	return Super::GetMaxSpeed();
+	return Super::GetMaxSpeed() * GetMaxSpeedMultiplier();
 }
 
 float UPredMovement::GetMaxBrakingDeceleration() const
 {
 	if (IsSprinting() && IsSprintingAtSpeed())
 	{
-		return BrakingDecelerationSprinting;
+		return BrakingDecelerationSprinting * GetMaxBrakingDecelerationMultiplier();
 	}
-	return Super::GetMaxBrakingDeceleration();
+	return Super::GetMaxBrakingDeceleration() * GetMaxBrakingDecelerationMultiplier();
 }
 
 void UPredMovement::CalcStamina(float DeltaTime)
@@ -259,11 +286,31 @@ bool UPredMovement::CanSprintInCurrentState() const
 		return false;
 	}
 
+	// Cannot sprint if stamina is drained
+	if (IsStaminaDrained())
+	{
+		return false;
+	}
+
+	// Cannot sprint if stamina is at 0
+	if (GetStaminaPct() <= 0.f)
+	{
+		return false;
+	}
+
+	// Cannot start to sprint if stamina is below threshold
+	if (!IsSprinting() && GetStaminaPct() < StartSprintStaminaPct)
+	{
+		return false;
+	}
+
+	// Cannot sprint if in an invalid movement mode
 	if (!IsFalling() && !IsMovingOnGround())
 	{
 		return false;
 	}
-	
+
+	// Cannot sprint backwards or sideways (ish)
 	if (!IsSprintWithinAllowableInputAngle())
 	{
 		return false;

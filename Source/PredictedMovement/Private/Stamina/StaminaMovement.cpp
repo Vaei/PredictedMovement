@@ -36,13 +36,6 @@ bool FStaminaMoveResponseDataContainer::Serialize(UCharacterMovementComponent& C
 	return !Ar.IsError();
 }
 
-FStaminaNetworkMoveDataContainer::FStaminaNetworkMoveDataContainer()
-{
-    NewMoveData = &MoveData[0];
-    PendingMoveData = &MoveData[1];
-    OldMoveData = &MoveData[2];
-}
-
 void FStaminaNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove, ENetworkMoveType MoveType)
 {
     Super::ClientFillNetworkMoveData(ClientMove, MoveType);

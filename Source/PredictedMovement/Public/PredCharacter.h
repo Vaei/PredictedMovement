@@ -43,7 +43,7 @@ public:
 	UFUNCTION(BlueprintPure, Category=Character)
 	bool IsSprintingAtSpeed() const;
 	
-	/** Handle Crouching replicated from server */
+	/** Handle Sprinting replicated from server */
 	UFUNCTION()
 	virtual void OnRep_IsSprinting();
 

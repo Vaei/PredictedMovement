@@ -19,8 +19,6 @@ void APredCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(ThisClass, bIsSprinting, COND_SimulatedOnly);
-
 	// Push Model
 	FDoRepLifetimeParams SharedParams;
 	SharedParams.bIsPushBased = true;

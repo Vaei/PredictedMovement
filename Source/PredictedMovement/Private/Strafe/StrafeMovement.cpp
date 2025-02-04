@@ -85,7 +85,7 @@ void UStrafeMovement::ApplyVelocityBraking(float DeltaTime, float Friction, floa
 
 bool UStrafeMovement::IsStrafing() const
 {
-	return StrafeCharacterOwner && StrafeCharacterOwner->bIsStrafing;
+	return StrafeCharacterOwner && StrafeCharacterOwner->IsStrafing();
 }
 
 void UStrafeMovement::Strafe(bool bClientSimulation)
@@ -94,7 +94,7 @@ void UStrafeMovement::Strafe(bool bClientSimulation)
 	{
 		return;
 	}
-
+	
 	if (!bClientSimulation && !CanStrafeInCurrentState())
 	{
 		return;
@@ -102,7 +102,7 @@ void UStrafeMovement::Strafe(bool bClientSimulation)
 
 	if (!bClientSimulation)
 	{
-		StrafeCharacterOwner->bIsStrafing = true;
+		StrafeCharacterOwner->SetIsStrafing(true);
 	}
 	StrafeCharacterOwner->OnStartStrafe();
 }
@@ -116,7 +116,7 @@ void UStrafeMovement::UnStrafe(bool bClientSimulation)
 
 	if (!bClientSimulation)
 	{
-		StrafeCharacterOwner->bIsStrafing = false;
+		StrafeCharacterOwner->SetIsStrafing(false);
 	}
 	StrafeCharacterOwner->OnEndStrafe();
 }

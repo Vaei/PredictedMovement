@@ -33,7 +33,7 @@ private:
 protected:
 	FORCEINLINE UStrafeMovement* GetStrafeCharacterMovement() const { return StrafeMovement; }
 	
-public:
+protected:
 	/** Set by character movement to specify that this Character is currently Strafing. */
 	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsStrafing, Category=Character)
 	uint32 bIsStrafing:1;
@@ -44,6 +44,12 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 public:
+	virtual void SetIsStrafing(bool bNewStrafing);
+
+	/** @return true if this character is currently Strafing */
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual bool IsStrafing() const { return bIsStrafing; }
+	
 	/** Handle Crouching replicated from server */
 	UFUNCTION()
 	virtual void OnRep_IsStrafing();

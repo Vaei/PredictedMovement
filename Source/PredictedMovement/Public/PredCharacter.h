@@ -15,11 +15,11 @@ class PREDICTEDMOVEMENT_API APredCharacter : public ACharacter
 private:
 	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
 	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
-	TObjectPtr<UPredMovement> SprintMovement;
+	TObjectPtr<UPredMovement> PredMovement;
 
 	friend class FSavedMove_Character_Pred;
 protected:
-	FORCEINLINE UPredMovement* GetSprintCharacterMovement() const { return SprintMovement; }
+	FORCEINLINE UPredMovement* GetPredCharacterMovement() const { return PredMovement; }
 	
 public:
 	/** Set by character movement to specify that this Character is currently Sprinting. */

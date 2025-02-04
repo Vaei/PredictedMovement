@@ -136,6 +136,12 @@ void UStaminaMovement::OnStaminaChanged(float PrevValue, float NewValue)
 	}
 }
 
+void UStaminaMovement::OnMaxStaminaChanged(float PrevValue, float NewValue)
+{
+	// If the max stamina is reduced, we need to adjust the current stamina
+	SetStamina(GetStamina());
+}
+
 bool FSavedMove_Character_Stamina::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter,
 	float MaxDelta) const
 {

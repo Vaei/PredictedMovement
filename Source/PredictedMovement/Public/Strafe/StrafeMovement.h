@@ -72,7 +72,7 @@ public:
 	uint8 bWantsToStrafe:1;
 
 public:
-	UStrafeMovement(const FObjectInitializer& ObjectInitializer);
+	UStrafeMovement(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual bool HasValidData() const override;
 	virtual void PostLoad() override;
@@ -125,8 +125,7 @@ class PREDICTEDMOVEMENT_API FSavedMove_Character_Strafe : public FSavedMove_Char
 public:
 	FSavedMove_Character_Strafe()
 		: bWantsToStrafe(0)
-	{
-	}
+	{}
 
 	virtual ~FSavedMove_Character_Strafe() override
 	{}

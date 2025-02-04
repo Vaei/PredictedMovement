@@ -85,7 +85,7 @@ protected:
 	float ProneLockTimestamp = -1.f;
 
 public:
-	UProneMovement(const FObjectInitializer& ObjectInitializer);
+	UProneMovement(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 	virtual bool HasValidData() const override;
 	virtual void PostLoad() override;
@@ -155,8 +155,7 @@ public:
 	FSavedMove_Character_Prone()
 		: bWantsToProne(0)
 		, bProneLocked(0)
-	{
-	}
+	{}
 
 	virtual ~FSavedMove_Character_Prone() override
 	{}

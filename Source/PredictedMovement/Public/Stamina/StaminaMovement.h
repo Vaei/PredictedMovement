@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "System/PredictedMovementVersioning.h"
 #include "StaminaMovement.generated.h"
 
 struct PREDICTEDMOVEMENT_API FStaminaMoveResponseDataContainer : FCharacterMoveResponseDataContainer
@@ -21,13 +20,11 @@ struct PREDICTEDMOVEMENT_API FStaminaMoveResponseDataContainer : FCharacterMoveR
 struct PREDICTEDMOVEMENT_API FStaminaNetworkMoveData : public FCharacterNetworkMoveData
 {  // Client ➜ Server
 public:
-    typedef FCharacterNetworkMoveData Super;
+    using Super = FCharacterNetworkMoveData;
  
     FStaminaNetworkMoveData()
         : Stamina(0)
-    {
-
-    }
+    {}
  
     virtual void ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove, ENetworkMoveType MoveType) override;
     virtual bool Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap, ENetworkMoveType MoveType) override;
@@ -39,7 +36,7 @@ public:
 struct PREDICTEDMOVEMENT_API FStaminaNetworkMoveDataContainer : public FCharacterNetworkMoveDataContainer
 {  // Client ➜ Server
 public:
-    typedef FCharacterNetworkMoveDataContainer Super;
+    using Super = FCharacterNetworkMoveDataContainer;
  
     FStaminaNetworkMoveDataContainer();
  
@@ -90,7 +87,7 @@ public:
 	float NetworkStaminaCorrectionThreshold;
 	
 public:
-	UStaminaMovement(const FObjectInitializer& ObjectInitializer);
+	UStaminaMovement(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
 	/** THIS SHOULD ONLY BE MODIFIED IN DERIVED CLASSES FROM OnStaminaChanged AND NOWHERE ELSE */
@@ -151,8 +148,7 @@ public:
 	FSavedMove_Character_Stamina()
 		: bStaminaDrained(0)
 		, Stamina(0)
-	{
-	}
+	{}
 
 	virtual ~FSavedMove_Character_Stamina() override
 	{}

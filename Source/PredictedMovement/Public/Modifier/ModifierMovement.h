@@ -38,7 +38,7 @@ struct PREDICTEDMOVEMENT_API FModifierMoveResponseDataContainer : FCharacterMove
 struct PREDICTEDMOVEMENT_API FModifierNetworkMoveData : FCharacterNetworkMoveData
 {  // Client ➜ Server
 public:
-    typedef FCharacterNetworkMoveData Super;
+    using Super = FCharacterNetworkMoveData;
  
     FModifierNetworkMoveData()
     {}
@@ -54,7 +54,7 @@ public:
 struct PREDICTEDMOVEMENT_API FModifierNetworkMoveDataContainer : FCharacterNetworkMoveDataContainer
 {  // Client ➜ Server
 public:
-    typedef FCharacterNetworkMoveDataContainer Super;
+    using Super = FCharacterNetworkMoveDataContainer;
  
     FModifierNetworkMoveDataContainer()
     {
@@ -79,7 +79,7 @@ class PREDICTEDMOVEMENT_API UModifierMovement : public UCharacterMovementCompone
 	GENERATED_BODY()
 
 public:
-	UModifierMovement(const FObjectInitializer& ObjectInitializer);
+	UModifierMovement(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void PostLoad() override;
 	virtual void SetUpdatedComponent(USceneComponent* NewUpdatedComponent) override;
@@ -331,8 +331,7 @@ class PREDICTEDMOVEMENT_API FSavedMove_Character_Modifier : public FSavedMove_Ch
 	
 public:
 	FSavedMove_Character_Modifier()
-	{
-	}
+	{}
 
 	virtual ~FSavedMove_Character_Modifier() override
 	{}

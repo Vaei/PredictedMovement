@@ -41,7 +41,7 @@ void FStaminaNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Charact
     Super::ClientFillNetworkMoveData(ClientMove, MoveType);
 	
 	// Client ➜ Server
-    Stamina = static_cast<const FSavedMove_Character_Stamina&>(ClientMove).Stamina;
+    Stamina = static_cast<const FSavedMove_Character_Stamina&>(ClientMove).SavedStamina;
 }
 
 bool FStaminaNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap, ENetworkMoveType MoveType)
@@ -146,6 +146,11 @@ bool FSavedMove_Character_Stamina::CanCombineWith(const FSavedMovePtr& NewMove, 
 		return false;
 	}
 
+	// if (bStartStaminaDrained != SavedMove->bStartStaminaDrained || bStartStaminaDrained != SavedMove->bSavedStaminaDrained)
+	// {
+	// 	return false;
+	// }
+
 	return Super::CanCombineWith(NewMove, InCharacter, MaxDelta);
 }
 
@@ -158,7 +163,7 @@ void FSavedMove_Character_Stamina::CombineWith(const FSavedMove_Character* OldMo
 
 	if (UStaminaMovement* MoveComp = C ? Cast<UStaminaMovement>(C->GetCharacterMovement()) : nullptr)
 	{
-		MoveComp->SetStamina(SavedOldMove->Stamina);
+		MoveComp->SetStamina(SavedOldMove->StartStamina);
 		MoveComp->SetStaminaDrained(SavedOldMove->bStaminaDrained);
 	}
 }
@@ -168,7 +173,8 @@ void FSavedMove_Character_Stamina::Clear()
 	Super::Clear();
 
 	bStaminaDrained = false;
-	Stamina = 0.f;
+	StartStamina = 0.f;
+	SavedStamina = 0.f;
 }
 
 void FSavedMove_Character_Stamina::SetInitialPosition(ACharacter* C)
@@ -178,7 +184,25 @@ void FSavedMove_Character_Stamina::SetInitialPosition(ACharacter* C)
 	if (const UStaminaMovement* MoveComp = C ? Cast<UStaminaMovement>(C->GetCharacterMovement()) : nullptr)
 	{
 		bStaminaDrained = MoveComp->IsStaminaDrained();
-		Stamina = MoveComp->GetStamina();
+		StartStamina = MoveComp->GetStamina();
+	}
+}
+
+void FSavedMove_Character_Stamina::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
+{
+	// When considering whether to delay or combine moves, we need to compare the move at the start and the end
+	if (UStaminaMovement* MoveComp = C ? Cast<UStaminaMovement>(C->GetCharacterMovement()) : nullptr)
+	{
+		SavedStamina = MoveComp->GetStamina();
+	
+		if (PostUpdateMode == PostUpdate_Record)
+		{
+			// Don't combine moves if the modifiers changed over the course of the move
+			if (bStaminaDrained != MoveComp->IsStaminaDrained())
+			{
+				bForceNoCombine = true;
+			}
+		}
 	}
 }
 

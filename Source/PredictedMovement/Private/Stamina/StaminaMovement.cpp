@@ -190,6 +190,9 @@ void UStaminaMovement::OnClientCorrectionReceived(class FNetworkPredictionData_C
 #endif
 	)
 {
+	// This occurs on AutonomousProxy, when the server sends the move response
+	// This is where we receive the snare, and can override the server's location, assuming it has given us authority
+
 	// Server >> SendClientAdjustment() ➜ ServerSendMoveResponse ➜ ServerFillResponseData() + MoveResponsePacked_ServerSend() >> Client
 	// >> ClientMoveResponsePacked() ➜ ClientHandleMoveResponse() ➜ ClientAdjustPosition_Implementation() ➜ OnClientCorrectionReceived
 	

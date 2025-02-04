@@ -4,16 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "SprintMovement.generated.h"
+#include "PredMovement.generated.h"
 
-class ASprintCharacter;
+class APredCharacter;
 
-struct PREDICTEDMOVEMENT_API FSprintNetworkMoveData : FCharacterNetworkMoveData
+struct PREDICTEDMOVEMENT_API FPredNetworkMoveData : FCharacterNetworkMoveData
 {  // Client ➜ Server
 public:
 	using Super = FCharacterNetworkMoveData;
  
-	FSprintNetworkMoveData()
+	FPredNetworkMoveData()
 		: bWantsToSprint(false)
 	{}
 
@@ -23,12 +23,12 @@ public:
 	virtual bool Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap, ENetworkMoveType MoveType) override;
 };
  
-struct PREDICTEDMOVEMENT_API FSprintNetworkMoveDataContainer : FCharacterNetworkMoveDataContainer
+struct PREDICTEDMOVEMENT_API FPredNetworkMoveDataContainer : FCharacterNetworkMoveDataContainer
 {  // Client ➜ Server
 public:
 	using Super = FCharacterNetworkMoveDataContainer;
  
-	FSprintNetworkMoveDataContainer()
+	FPredNetworkMoveDataContainer()
 	{
 		NewMoveData = &MoveData[0];
 		PendingMoveData = &MoveData[1];
@@ -36,7 +36,7 @@ public:
 	}
  
 private:
-	FSprintNetworkMoveData MoveData[3];
+	FPredNetworkMoveData MoveData[3];
 };
 
 /**
@@ -46,14 +46,14 @@ private:
  * However, compressed flags are a lot cheaper so we wouldn't typically use move containers for a boolean
  */
 UCLASS()
-class PREDICTEDMOVEMENT_API USprintMovement : public UCharacterMovementComponent
+class PREDICTEDMOVEMENT_API UPredMovement : public UCharacterMovementComponent
 {
 	GENERATED_BODY()
 	
 private:
 	/** Character movement component belongs to */
 	UPROPERTY(Transient, DuplicateTransient)
-	TObjectPtr<ASprintCharacter> SprintCharacterOwner;
+	TObjectPtr<APredCharacter> PredCharacterOwner;
 
 public:
 	/** If true, sprinting acceleration will only be applied when IsSprintingAtSpeed() returns true */
@@ -111,7 +111,7 @@ public:
 	uint8 bWantsToSprint:1;
 
 public:
-	USprintMovement(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	UPredMovement(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual bool HasValidData() const override;
 	virtual void PostLoad() override;
@@ -167,23 +167,23 @@ protected:
 	virtual bool ClientUpdatePositionAfterServerUpdate() override;
 
 private:
-	FSprintNetworkMoveDataContainer SprintMoveDataContainer;
+	FPredNetworkMoveDataContainer PredMoveDataContainer;
 	
 public:
 	/** Get prediction data for a client game. Should not be used if not running as a client. Allocates the data on demand and can be overridden to allocate a custom override if desired. Result must be a FNetworkPredictionData_Client_Character. */
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 };
 
-class PREDICTEDMOVEMENT_API FSavedMove_Character_Sprint : public FSavedMove_Character
+class PREDICTEDMOVEMENT_API FSavedMove_Character_Pred : public FSavedMove_Character
 {
 	using Super = FSavedMove_Character;
 
 public:
-	FSavedMove_Character_Sprint()
+	FSavedMove_Character_Pred()
 		: bWantsToSprint(0)
 	{}
 
-	virtual ~FSavedMove_Character_Sprint() override
+	virtual ~FSavedMove_Character_Pred() override
 	{}
 
 	uint32 bWantsToSprint:1;
@@ -195,12 +195,12 @@ public:
 	virtual void SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character & ClientData) override;
 };
 
-class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Sprint : public FNetworkPredictionData_Client_Character
+class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Pred : public FNetworkPredictionData_Client_Character
 {
 	using Super = FNetworkPredictionData_Client_Character;
 
 public:
-	FNetworkPredictionData_Client_Character_Sprint(const UCharacterMovementComponent& ClientMovement)
+	FNetworkPredictionData_Client_Character_Pred(const UCharacterMovementComponent& ClientMovement)
 	: Super(ClientMovement)
 	{}
 

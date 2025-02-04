@@ -1,13 +1,13 @@
 // Copyright (c) 2023 Jared Taylor. All Rights Reserved.
 
 
-#include "Sprint/SprintMovement.h"
+#include "PredMovement.h"
 
-#include "Sprint/SprintCharacter.h"
+#include "PredCharacter.h"
 
-#include UE_INLINE_GENERATED_CPP_BY_NAME(SprintMovement)
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PredMovement)
 
-void FSprintNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove,
+void FPredNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove,
 	ENetworkMoveType MoveType)
 {
 	// Client packs move data to send to the server
@@ -20,11 +20,11 @@ void FSprintNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Characte
 	// >> ServerMovePacked_ServerReceive ➜ ServerMove_HandleMoveData ➜ ServerMove_PerformMovement
 	// ➜ MoveAutonomous (UpdateFromCompressedFlags)
 	
-	const FSavedMove_Character_Sprint& SavedMove = static_cast<const FSavedMove_Character_Sprint&>(ClientMove);
+	const FSavedMove_Character_Pred& SavedMove = static_cast<const FSavedMove_Character_Pred&>(ClientMove);
 	bWantsToSprint = SavedMove.bWantsToSprint;
 }
 
-bool FSprintNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,
+bool FPredNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,
 	UPackageMap* PackageMap, ENetworkMoveType MoveType)
 {
 	Super::Serialize(CharacterMovement, Ar, PackageMap, MoveType);
@@ -34,10 +34,10 @@ bool FSprintNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMov
 	return !Ar.IsError();
 }
 
-USprintMovement::USprintMovement(const FObjectInitializer& ObjectInitializer)
+UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	SetNetworkMoveDataContainer(SprintMoveDataContainer);
+	SetNetworkMoveDataContainer(PredMoveDataContainer);
 	
 	bUseMaxAccelerationSprintingOnlyAtSpeed = true;
 	MaxAccelerationSprinting = 1024.f;
@@ -51,26 +51,26 @@ USprintMovement::USprintMovement(const FObjectInitializer& ObjectInitializer)
 	bWantsToSprint = false;
 }
 
-bool USprintMovement::HasValidData() const
+bool UPredMovement::HasValidData() const
 {
-	return Super::HasValidData() && IsValid(SprintCharacterOwner);
+	return Super::HasValidData() && IsValid(PredCharacterOwner);
 }
 
-void USprintMovement::PostLoad()
+void UPredMovement::PostLoad()
 {
 	Super::PostLoad();
 
-	SprintCharacterOwner = Cast<ASprintCharacter>(PawnOwner);
+	PredCharacterOwner = Cast<APredCharacter>(PawnOwner);
 }
 
-void USprintMovement::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
+void UPredMovement::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
 {
 	Super::SetUpdatedComponent(NewUpdatedComponent);
 
-	SprintCharacterOwner = Cast<ASprintCharacter>(PawnOwner);
+	PredCharacterOwner = Cast<APredCharacter>(PawnOwner);
 }
 
-bool USprintMovement::IsSprintingAtSpeed() const
+bool UPredMovement::IsSprintingAtSpeed() const
 {
 	if (!IsSprinting())
 	{
@@ -87,7 +87,7 @@ bool USprintMovement::IsSprintingAtSpeed() const
 	return Vel >= (WalkSpeed * WalkSpeed * VelocityCheckMitigatorSprinting);
 }
 
-float USprintMovement::GetMaxAcceleration() const
+float UPredMovement::GetMaxAcceleration() const
 {
 	if (IsSprinting() && (!bUseMaxAccelerationSprintingOnlyAtSpeed || IsSprintingAtSpeed()))
 	{
@@ -96,7 +96,7 @@ float USprintMovement::GetMaxAcceleration() const
 	return Super::GetMaxAcceleration();
 }
 
-float USprintMovement::GetMaxSpeed() const
+float UPredMovement::GetMaxSpeed() const
 {
 	if (IsSprinting())
 	{
@@ -105,7 +105,7 @@ float USprintMovement::GetMaxSpeed() const
 	return Super::GetMaxSpeed();
 }
 
-float USprintMovement::GetMaxBrakingDeceleration() const
+float UPredMovement::GetMaxBrakingDeceleration() const
 {
 	if (IsSprinting() && IsSprintingAtSpeed())
 	{
@@ -114,7 +114,7 @@ float USprintMovement::GetMaxBrakingDeceleration() const
 	return Super::GetMaxBrakingDeceleration();
 }
 
-void USprintMovement::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
+void UPredMovement::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
 {
 	if (IsSprinting() && IsMovingOnGround())
 	{
@@ -123,7 +123,7 @@ void USprintMovement::CalcVelocity(float DeltaTime, float Friction, bool bFluid,
 	Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
 }
 
-void USprintMovement::ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration)
+void UPredMovement::ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration)
 {
 	if (IsSprinting() && IsMovingOnGround())
 	{
@@ -132,12 +132,12 @@ void USprintMovement::ApplyVelocityBraking(float DeltaTime, float Friction, floa
 	Super::ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
 }
 
-bool USprintMovement::IsSprinting() const
+bool UPredMovement::IsSprinting() const
 {
-	return SprintCharacterOwner && SprintCharacterOwner->bIsSprinting;
+	return PredCharacterOwner && PredCharacterOwner->bIsSprinting;
 }
 
-void USprintMovement::Sprint(bool bClientSimulation)
+void UPredMovement::Sprint(bool bClientSimulation)
 {
 	if (!HasValidData())
 	{
@@ -151,12 +151,12 @@ void USprintMovement::Sprint(bool bClientSimulation)
 
 	if (!bClientSimulation)
 	{
-		SprintCharacterOwner->bIsSprinting = true;
+		PredCharacterOwner->bIsSprinting = true;
 	}
-	SprintCharacterOwner->OnStartSprint();
+	PredCharacterOwner->OnStartSprint();
 }
 
-void USprintMovement::UnSprint(bool bClientSimulation)
+void UPredMovement::UnSprint(bool bClientSimulation)
 {
 	if (!HasValidData())
 	{
@@ -165,12 +165,12 @@ void USprintMovement::UnSprint(bool bClientSimulation)
 
 	if (!bClientSimulation)
 	{
-		SprintCharacterOwner->bIsSprinting = false;
+		PredCharacterOwner->bIsSprinting = false;
 	}
-	SprintCharacterOwner->OnEndSprint();
+	PredCharacterOwner->OnEndSprint();
 }
 
-bool USprintMovement::CanSprintInCurrentState() const
+bool UPredMovement::CanSprintInCurrentState() const
 {
 	if (!UpdatedComponent || UpdatedComponent->IsSimulatingPhysics())
 	{
@@ -190,7 +190,7 @@ bool USprintMovement::CanSprintInCurrentState() const
 	return true;
 }
 
-bool USprintMovement::IsSprintWithinAllowableInputAngle() const
+bool UPredMovement::IsSprintWithinAllowableInputAngle() const
 {
 	// This check ensures that we are not sprinting backward or sideways, while allowing leeway 
 	// This angle allows sprinting when holding forward, forward left, forward right
@@ -209,7 +209,7 @@ bool USprintMovement::IsSprintWithinAllowableInputAngle() const
 	return true;
 }
 
-void USprintMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
+void UPredMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 {
 	// Proxies get replicated Sprint state.
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
@@ -229,7 +229,7 @@ void USprintMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
 }
 
-void USprintMovement::UpdateCharacterStateAfterMovement(float DeltaSeconds)
+void UPredMovement::UpdateCharacterStateAfterMovement(float DeltaSeconds)
 {
 	// Proxies get replicated Sprint state.
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
@@ -244,7 +244,7 @@ void USprintMovement::UpdateCharacterStateAfterMovement(float DeltaSeconds)
 	Super::UpdateCharacterStateAfterMovement(DeltaSeconds);
 }
 
-void USprintMovement::ServerMove_PerformMovement(const FCharacterNetworkMoveData& MoveData)
+void UPredMovement::ServerMove_PerformMovement(const FCharacterNetworkMoveData& MoveData)
 {
 	// Server updates from the client's move data
 	// Use this instead of UpdateFromCompressedFlags()
@@ -252,14 +252,14 @@ void USprintMovement::ServerMove_PerformMovement(const FCharacterNetworkMoveData
 	// Client >> CallServerMovePacked ➜ ClientFillNetworkMoveData ➜ ServerMovePacked_ClientSend >> Server
 	// >> ServerMovePacked_ServerReceive ➜ ServerMove_HandleMoveData ➜ ServerMove_PerformMovement
 	
-	const FSprintNetworkMoveData& ModifierMoveData = static_cast<const FSprintNetworkMoveData&>(MoveData);
+	const FPredNetworkMoveData& ModifierMoveData = static_cast<const FPredNetworkMoveData&>(MoveData);
 
 	bWantsToSprint = ModifierMoveData.bWantsToSprint;
 
 	Super::ServerMove_PerformMovement(MoveData);
 }
 
-bool USprintMovement::ClientUpdatePositionAfterServerUpdate()
+bool UPredMovement::ClientUpdatePositionAfterServerUpdate()
 {
 	const bool bRealSprint = bWantsToSprint;
 	const bool bResult = Super::ClientUpdatePositionAfterServerUpdate();
@@ -268,32 +268,32 @@ bool USprintMovement::ClientUpdatePositionAfterServerUpdate()
 	return bResult;
 }
 
-void FSavedMove_Character_Sprint::Clear()
+void FSavedMove_Character_Pred::Clear()
 {
 	Super::Clear();
 
 	bWantsToSprint = false;
 }
 
-void FSavedMove_Character_Sprint::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel,
+void FSavedMove_Character_Pred::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel,
 	FNetworkPredictionData_Client_Character& ClientData)
 {
 	Super::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
 
-	bWantsToSprint = Cast<ASprintCharacter>(C)->GetSprintCharacterMovement()->bWantsToSprint;
+	bWantsToSprint = Cast<APredCharacter>(C)->GetSprintCharacterMovement()->bWantsToSprint;
 }
 
-FSavedMovePtr FNetworkPredictionData_Client_Character_Sprint::AllocateNewMove()
+FSavedMovePtr FNetworkPredictionData_Client_Character_Pred::AllocateNewMove()
 {
-	return MakeShared<FSavedMove_Character_Sprint>();
+	return MakeShared<FSavedMove_Character_Pred>();
 }
 
-FNetworkPredictionData_Client* USprintMovement::GetPredictionData_Client() const
+FNetworkPredictionData_Client* UPredMovement::GetPredictionData_Client() const
 {
 	if (ClientPredictionData == nullptr)
 	{
-		USprintMovement* MutableThis = const_cast<USprintMovement*>(this);
-		MutableThis->ClientPredictionData = new FNetworkPredictionData_Client_Character_Sprint(*this);
+		UPredMovement* MutableThis = const_cast<UPredMovement*>(this);
+		MutableThis->ClientPredictionData = new FNetworkPredictionData_Client_Character_Pred(*this);
 	}
 
 	return ClientPredictionData;

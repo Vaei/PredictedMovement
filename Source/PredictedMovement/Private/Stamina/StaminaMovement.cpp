@@ -204,6 +204,8 @@ void FSavedMove_Character_Stamina::PostUpdate(ACharacter* C, EPostUpdateMode Pos
 			}
 		}
 	}
+
+	Super::PostUpdate(C, PostUpdateMode);
 }
 
 void UStaminaMovement::OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData,

@@ -16,12 +16,16 @@ class PREDICTEDMOVEMENT_API APredCharacter : public ACharacter
 	GENERATED_BODY()
 
 private:
-	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
-	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
+	/**
+	 * Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement.
+	 * Don't expose this to BP to prevent details panel spam, use the getter instead
+	 */
+	UPROPERTY()
 	TObjectPtr<UPredMovement> PredMovement;
 
 	friend class FSavedMove_Character_Pred;
 protected:
+	UFUNCTION(BlueprintPure, Category=Character)
 	FORCEINLINE UPredMovement* GetPredCharacterMovement() const { return PredMovement; }
 	
 protected:

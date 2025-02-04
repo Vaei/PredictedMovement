@@ -81,16 +81,33 @@ public:
 
 public:
 	UPROPERTY(BlueprintAssignable, Category=Character)
-	FStaminaChangeEvent OnStaminaChanged;
+	FStaminaChangeEvent NotifyOnStaminaChanged;
 
 	UPROPERTY(BlueprintAssignable, Category=Character)
-	FStaminaChangeEvent OnMaxStaminaChanged;
+	FStaminaChangeEvent NotifyOnMaxStaminaChanged;
 
 	UPROPERTY(BlueprintAssignable, Category=Character)
-	FStaminaEvent OnStaminaDrained;
+	FStaminaEvent NotifyOnStaminaDrained;
 
 	UPROPERTY(BlueprintAssignable, Category=Character)
-	FStaminaEvent OnStaminaDrainRecovered;
+	FStaminaEvent NotifyOnStaminaDrainRecovered;
+
+	virtual void OnStaminaChanged(float Stamina, float PrevStamina);
+	virtual void OnMaxStaminaChanged(float MaxStamina, float PrevMaxStamina);
+	virtual void OnStaminaDrained();
+	virtual void OnStaminaDrainRecovered();
+
+	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="OnStaminaChanged"))
+	void K2_OnStaminaChanged(float Stamina, float PrevStamina);
+
+	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="OnMaxStaminaChanged"))
+	void K2_OnMaxStaminaChanged(float MaxStamina, float PrevMaxStamina);
+
+	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="OnStaminaDrained"))
+	void K2_OnStaminaDrained();
+
+	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="OnStaminaDrainRecovered"))
+	void K2_OnStaminaDrainRecovered();
 
 	UFUNCTION(BlueprintPure, Category=Character)
 	float GetStamina() const;
@@ -100,6 +117,9 @@ public:
 	
 	UFUNCTION(BlueprintPure, Category=Character)
 	float GetStaminaPct() const;
+
+	UFUNCTION(BlueprintPure, Category=Character)
+	bool IsStaminaDrained() const;
 
 protected:
 	/** Set by character movement to specify that this Character is currently AimingDownSights. */

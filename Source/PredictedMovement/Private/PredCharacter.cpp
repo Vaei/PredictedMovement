@@ -90,6 +90,30 @@ void APredCharacter::OnStartSprint()
 	K2_OnStartSprint();
 }
 
+void APredCharacter::OnStaminaChanged(float Stamina, float PrevStamina)
+{
+	K2_OnStaminaChanged(Stamina, PrevStamina);
+	NotifyOnStaminaChanged.Broadcast(Stamina, PrevStamina);
+}
+
+void APredCharacter::OnMaxStaminaChanged(float MaxStamina, float PrevMaxStamina)
+{
+	K2_OnMaxStaminaChanged(MaxStamina, PrevMaxStamina);
+	NotifyOnMaxStaminaChanged.Broadcast(MaxStamina, PrevMaxStamina);
+}
+
+void APredCharacter::OnStaminaDrained()
+{
+	K2_OnStaminaDrained();
+	NotifyOnStaminaDrained.Broadcast();
+}
+
+void APredCharacter::OnStaminaDrainRecovered()
+{
+	K2_OnStaminaDrainRecovered();
+	NotifyOnStaminaDrainRecovered.Broadcast();
+}
+
 float APredCharacter::GetStamina() const
 {
 	return PredMovement ? PredMovement->GetStamina() : 0.f;
@@ -103,6 +127,11 @@ float APredCharacter::GetMaxStamina() const
 float APredCharacter::GetStaminaPct() const
 {
 	return PredMovement ? PredMovement->GetStaminaPct() : 0.f;
+}
+
+bool APredCharacter::IsStaminaDrained() const
+{
+	return PredMovement ? PredMovement->IsStaminaDrained() : false;
 }
 
 void APredCharacter::SetIsAimingDownSights(bool bNewAimingDownSights)

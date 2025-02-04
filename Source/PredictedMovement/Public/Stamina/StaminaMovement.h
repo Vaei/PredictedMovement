@@ -30,7 +30,6 @@ struct PREDICTEDMOVEMENT_API FStaminaNetworkMoveData : FCharacterNetworkMoveData
     virtual bool Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap, ENetworkMoveType MoveType) override;
  
     float Stamina;
- 
 };
  
 struct PREDICTEDMOVEMENT_API FStaminaNetworkMoveDataContainer : FCharacterNetworkMoveDataContainer

@@ -6,6 +6,9 @@
 #include "GameFramework/Character.h"
 #include "PredCharacter.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FStaminaChangeEvent, float, Stamina, float, PrevStamina);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FStaminaEvent);
+
 class UPredMovement;
 UCLASS()
 class PREDICTEDMOVEMENT_API APredCharacter : public ACharacter
@@ -58,13 +61,44 @@ public:
 	virtual void OnEndSprint();
 
 	/** Event when Character stops Sprinting. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndSprint", ScriptName="OnEndSprint"))
+	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="OnEndSprint", ScriptName="OnEndSprint"))
 	void K2_OnEndSprint();
 
-	/** Called when Character Sprintes. Called on non-owned Characters through bIsSprinting replication. */
+	/** Called when Character Sprints. Called on non-owned Characters through bIsSprinting replication. */
 	virtual void OnStartSprint();
 
-	/** Event when Character Sprintes. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnStartSprint", ScriptName="OnStartSprint"))
+	/** Event when Character Sprints. */
+	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="OnStartSprint", ScriptName="OnStartSprint"))
 	void K2_OnStartSprint();
+
+public:
+	UPROPERTY(BlueprintAssignable, Category=Character)
+	FStaminaChangeEvent OnStaminaChanged;
+
+	UPROPERTY(BlueprintAssignable, Category=Character)
+	FStaminaChangeEvent OnMaxStaminaChanged;
+
+	UPROPERTY(BlueprintAssignable, Category=Character)
+	FStaminaEvent OnStaminaDrained;
+
+	UPROPERTY(BlueprintAssignable, Category=Character)
+	FStaminaEvent OnStaminaDrainRecovered;
+
+	UFUNCTION(BlueprintPure, Category=Character)
+	float GetStamina() const;
+	
+	UFUNCTION(BlueprintPure, Category=Character)
+	float GetMaxStamina() const;
+	
+	UFUNCTION(BlueprintPure, Category=Character)
+	float GetStaminaPct() const;
+
+public:
+	/**
+	 * Consume the PendingMove if it exists, by sending it to the server and clearing it
+	 * Useful for movement in GAS where we need the server to complete anything pending to resolve de-sync that occurs as a result of a delayed move
+	 * @note Doesn't simply trash the PendingMove and there is only ever one, this function is poorly named and comes from Unreal
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	void FlushServerMoves();
 };

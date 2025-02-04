@@ -64,3 +64,26 @@ void APredCharacter::OnStartSprint()
 {
 	K2_OnStartSprint();
 }
+
+float APredCharacter::GetStamina() const
+{
+	return PredMovement ? PredMovement->GetStamina() : 0.f;
+}
+
+float APredCharacter::GetMaxStamina() const
+{
+	return PredMovement ? PredMovement->GetMaxStamina() : 0.f;
+}
+
+float APredCharacter::GetStaminaPct() const
+{
+	return PredMovement ? PredMovement->GetStaminaPct() : 0.f;
+}
+
+void APredCharacter::FlushServerMoves()
+{
+	if (PredMovement)
+	{
+		PredMovement->FlushServerMoves();
+	}
+}

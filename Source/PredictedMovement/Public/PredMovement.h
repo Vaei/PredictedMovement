@@ -125,6 +125,31 @@ public:
 	uint8 bWantsToSprint:1;
 
 public:
+	/** The rate at which stamina is drained while sprinting */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite)
+	float SprintStaminaDrainRate;
+
+	/** The rate at which stamina is regenerated when not being drained */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite)
+	float StaminaRegenRate;
+
+	/** The rate at which stamina is regenerated when in a drained state */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite)
+	float StaminaDrainedRegenRate;
+
+	/** If true, stamina recovery from drained state is based on percentage instead of amount */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite)
+	bool bStaminaRecoveryFromPct;
+	
+	/** Amount of Stamina to recover before being considered recovered */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", EditCondition="!bStaminaRecoveryFromPct", EditConditionHides))
+	float StaminaRecoveryAmount;
+
+	/** Percentage of Stamina to recover before being considered recovered */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ClampMax="1", UIMax="1", EditCondition="bStaminaRecoveryFromPct", EditConditionHides))
+	float StaminaRecoveryPct;
+	
+public:
 	/** Maximum stamina difference that is allowed between client and server before a correction occurs. */
 	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, meta=(ClampMin="0.0", UIMin="0.0"))
 	float NetworkStaminaCorrectionThreshold;
@@ -148,12 +173,15 @@ public:
 	virtual void PostLoad() override;
 	virtual void SetUpdatedComponent(USceneComponent* NewUpdatedComponent) override;
 
+	virtual void BeginPlay() override;
+	
 public:
 	virtual bool IsSprintingAtSpeed() const;
 	virtual float GetMaxAcceleration() const override;
 	virtual float GetMaxSpeed() const override;
 	virtual float GetMaxBrakingDeceleration() const override;
-	
+
+	virtual void CalcStamina(float DeltaTime);
 	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
 	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
 
@@ -191,13 +219,16 @@ public:
 
 public:
 	float GetStamina() const { return Stamina; }
+	float GetStaminaPct() const { return Stamina / MaxStamina; }
 	float GetMaxStamina() const { return MaxStamina; }
 	bool IsStaminaDrained() const { return bStaminaDrained; }
+	bool IsStaminaRecovered() const
+	{
+		return bStaminaRecoveryFromPct ? GetStaminaPct() >= StaminaRecoveryPct : GetStamina() >= StaminaRecoveryAmount;
+	}
 
 	void SetStamina(float NewStamina);
-
 	void SetMaxStamina(float NewMaxStamina);
-
 	void SetStaminaDrained(bool bNewValue);
 	
 protected:
@@ -207,10 +238,9 @@ protected:
 	 * stamina must be regenerated. Consider overriding this, check the implementation's comment for more information.
 	 */
 	virtual void OnStaminaChanged(float PrevValue, float NewValue);
-
-	virtual void OnMaxStaminaChanged(float PrevValue, float NewValue) {}
-	virtual void OnStaminaDrained() {}
-	virtual void OnStaminaDrainRecovered() {}
+	virtual void OnMaxStaminaChanged(float PrevValue, float NewValue);
+	virtual void OnStaminaDrained();
+	virtual void OnStaminaDrainRecovered();
 
 public:
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;

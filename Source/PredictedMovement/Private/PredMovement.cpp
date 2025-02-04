@@ -7,6 +7,19 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(PredMovement)
 
+namespace PredMovementCVars
+{
+#if UE_ENABLE_DEBUG_DRAWING
+	int32 DrawStaminaValues = 0;
+	FAutoConsoleVariableRef CVarDrawStaminaValues(
+		TEXT("p.DrawStaminaValues"),
+		DrawStaminaValues,
+		TEXT("Whether to draw stamina values to screen.\n")
+		TEXT("0: Disable, 1: Enable, 2: Enable Local Client Only, 3: Enable Authority Only"),
+		ECVF_Default);
+#endif
+}
+
 void FPredMoveResponseDataContainer::ServerFillResponseData(const UCharacterMovementComponent& CharacterMovement,
 	const FClientAdjustment& PendingAdjustment)
 {
@@ -83,6 +96,13 @@ UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
 	bWantsToSprint = false;
 
 	NetworkStaminaCorrectionThreshold = 2.f;
+
+	NavAgentProps.bCanCrouch = true;
+	
+	SetMaxStamina(100.f);
+	SprintStaminaDrainRate = 35.f;
+	StaminaRegenRate = 20.f;
+	StaminaDrainedRegenRate = 50.f;
 }
 
 bool UPredMovement::HasValidData() const
@@ -102,6 +122,15 @@ void UPredMovement::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
 	Super::SetUpdatedComponent(NewUpdatedComponent);
 
 	PredCharacterOwner = Cast<APredCharacter>(PawnOwner);
+}
+
+void UPredMovement::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// Broadcast events to initialize UI, etc.
+	OnMaxStaminaChanged(GetMaxStamina(), GetMaxStamina());
+	OnStaminaChanged(GetStamina(), GetStamina());
 }
 
 bool UPredMovement::IsSprintingAtSpeed() const
@@ -146,6 +175,25 @@ float UPredMovement::GetMaxBrakingDeceleration() const
 		return BrakingDecelerationSprinting;
 	}
 	return Super::GetMaxBrakingDeceleration();
+}
+
+void UPredMovement::CalcStamina(float DeltaTime)
+{
+	// Do not update velocity when using root motion or when SimulatedProxy and not simulating root motion - SimulatedProxy are repped their Velocity
+	if (!HasValidData() || HasAnimRootMotion() || DeltaTime < MIN_TICK_TIME || (CharacterOwner && CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy && !bWasSimulatingRootMotion))
+	{
+		return;
+	}
+	
+	if (IsSprintingAtSpeed())
+	{
+		SetStamina(GetStamina() - SprintStaminaDrainRate * DeltaTime);
+	}
+	else
+	{
+		const float RegenRate = IsStaminaDrained() ? StaminaDrainedRegenRate : StaminaRegenRate;
+		SetStamina(GetStamina() + RegenRate * DeltaTime);
+	}
 }
 
 void UPredMovement::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
@@ -292,6 +340,11 @@ void UPredMovement::SetStaminaDrained(bool bNewValue)
 
 void UPredMovement::OnStaminaChanged(float PrevValue, float NewValue)
 {
+	if (IsValid(PredCharacterOwner))
+	{
+		PredCharacterOwner->OnStaminaChanged.Broadcast(NewValue, PrevValue);
+	}
+	
 	if (FMath::IsNearlyZero(Stamina))
 	{
 		Stamina = 0.f;
@@ -300,14 +353,10 @@ void UPredMovement::OnStaminaChanged(float PrevValue, float NewValue)
 			SetStaminaDrained(true);
 		}
 	}
-	// This will need to change if not using MaxStamina for recovery, here is an example (commented out) that uses
-	// 10% instead; to use this, comment out the existing else if statement, and change the 0.1f to the percentage
-	// you want to use (0.1f is 10%)
-	//
-	// else if (bStaminaDrained && Stamina >= MaxStamina * 0.1f)
-	// {
-	// 	SetStaminaDrained(false);
-	// }
+	else if (bStaminaDrained && IsStaminaRecovered())
+	{
+		SetStaminaDrained(false);
+	}
 	else if (FMath::IsNearlyEqual(Stamina, MaxStamina))
 	{
 		Stamina = MaxStamina;
@@ -315,6 +364,35 @@ void UPredMovement::OnStaminaChanged(float PrevValue, float NewValue)
 		{
 			SetStaminaDrained(false);
 		}
+	}
+}
+
+void UPredMovement::OnMaxStaminaChanged(float PrevValue, float NewValue)
+{
+	if (IsValid(PredCharacterOwner))
+	{
+		PredCharacterOwner->OnMaxStaminaChanged.Broadcast(NewValue, PrevValue);
+	}
+
+	// Ensure that Stamina is within the new MaxStamina
+	SetStamina(GetStamina());
+}
+
+void UPredMovement::OnStaminaDrained()
+{
+	UnSprint();
+	
+	if (IsValid(PredCharacterOwner))
+	{
+		PredCharacterOwner->OnStaminaDrained.Broadcast();
+	}
+}
+
+void UPredMovement::OnStaminaDrainRecovered()
+{
+	if (IsValid(PredCharacterOwner))
+	{
+		PredCharacterOwner->OnStaminaDrainRecovered.Broadcast();
 	}
 }
 
@@ -351,6 +429,24 @@ void UPredMovement::UpdateCharacterStateAfterMovement(float DeltaSeconds)
 	}
 
 	Super::UpdateCharacterStateAfterMovement(DeltaSeconds);
+	
+#if !UE_BUILD_SHIPPING
+	// Draw Stamina values to Screen
+	if (GEngine && PredMovementCVars::DrawStaminaValues > 0)
+	{
+		const uint32 DebugKey = (CharacterOwner->GetUniqueID() + 74290) % UINT32_MAX;
+		if (CharacterOwner->HasAuthority() && (PredMovementCVars::DrawStaminaValues == 1 || PredMovementCVars::DrawStaminaValues == 3))
+		{
+			const uint64 AuthDebugKey = DebugKey + 1;
+			GEngine->AddOnScreenDebugMessage(AuthDebugKey, 1.f, FColor::Orange, FString::Printf(TEXT("[Authority] Stamina %f    Drained %d"), GetStamina(), IsStaminaDrained()));
+		}
+		else if (CharacterOwner->IsLocallyControlled() && (PredMovementCVars::DrawStaminaValues == 1 || PredMovementCVars::DrawStaminaValues == 2))
+		{
+			const uint64 LocalDebugKey = DebugKey + 2;
+			GEngine->AddOnScreenDebugMessage(LocalDebugKey, 1.f, FColor::Yellow, FString::Printf(TEXT("[Local] Stamina %f    Drained %d"), GetStamina(), IsStaminaDrained()));
+		}
+	}
+#endif
 }
 
 void UPredMovement::ServerMove_PerformMovement(const FCharacterNetworkMoveData& MoveData)

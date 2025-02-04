@@ -166,7 +166,7 @@ public:
 	FSavedMove_Character_Stamina()
 		: bStaminaDrained(0)
 		, StartStamina(0)
-		, SavedStamina(0)
+		, EndStamina(0)
 	{}
 
 	virtual ~FSavedMove_Character_Stamina() override
@@ -174,7 +174,7 @@ public:
 
 	uint32 bStaminaDrained : 1;
 	float StartStamina;
-	float SavedStamina;
+	float EndStamina;
 
 	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const override;
 	virtual void CombineWith(const FSavedMove_Character* OldMove, ACharacter* InCharacter, APlayerController* PC, const FVector& OldStartLocation) override;

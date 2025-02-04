@@ -41,7 +41,7 @@ void FStaminaNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Charact
     Super::ClientFillNetworkMoveData(ClientMove, MoveType);
 	
 	// Client ➜ Server
-    Stamina = static_cast<const FSavedMove_Character_Stamina&>(ClientMove).SavedStamina;
+    Stamina = static_cast<const FSavedMove_Character_Stamina&>(ClientMove).EndStamina;
 }
 
 bool FStaminaNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap, ENetworkMoveType MoveType)
@@ -174,7 +174,7 @@ void FSavedMove_Character_Stamina::Clear()
 
 	bStaminaDrained = false;
 	StartStamina = 0.f;
-	SavedStamina = 0.f;
+	EndStamina = 0.f;
 }
 
 void FSavedMove_Character_Stamina::SetInitialPosition(ACharacter* C)
@@ -193,7 +193,7 @@ void FSavedMove_Character_Stamina::PostUpdate(ACharacter* C, EPostUpdateMode Pos
 	// When considering whether to delay or combine moves, we need to compare the move at the start and the end
 	if (UStaminaMovement* MoveComp = C ? Cast<UStaminaMovement>(C->GetCharacterMovement()) : nullptr)
 	{
-		SavedStamina = MoveComp->GetStamina();
+		EndStamina = MoveComp->GetStamina();
 	
 		if (PostUpdateMode == PostUpdate_Record)
 		{

@@ -27,6 +27,25 @@ void APredCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	SharedParams.Condition = COND_SimulatedOnly;
 
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsAimingDownSights, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsSprinting, SharedParams);
+}
+
+void APredCharacter::SetIsSprinting(bool bNewSprinting)
+{
+	if (bIsSprinting != bNewSprinting)
+	{
+		bIsSprinting = bNewSprinting;
+
+		if (HasAuthority())
+		{
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, bIsSprinting, this);  // Push-model
+		}
+	}
+}
+
+bool APredCharacter::IsSprintingAtSpeed() const
+{
+	return PredMovement ? PredMovement->IsSprintingAtSpeed() : false;
 }
 
 void APredCharacter::OnRep_IsSprinting()

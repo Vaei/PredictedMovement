@@ -289,7 +289,7 @@ void UPredMovement::ApplyVelocityBraking(float DeltaTime, float Friction, float 
 
 bool UPredMovement::IsSprinting() const
 {
-	return PredCharacterOwner && PredCharacterOwner->bIsSprinting;
+	return PredCharacterOwner && PredCharacterOwner->IsSprinting();
 }
 
 void UPredMovement::Sprint(bool bClientSimulation)
@@ -306,7 +306,7 @@ void UPredMovement::Sprint(bool bClientSimulation)
 
 	if (!bClientSimulation)
 	{
-		PredCharacterOwner->bIsSprinting = true;
+		PredCharacterOwner->SetIsSprinting(true);
 	}
 	PredCharacterOwner->OnStartSprint();
 }
@@ -320,7 +320,7 @@ void UPredMovement::UnSprint(bool bClientSimulation)
 
 	if (!bClientSimulation)
 	{
-		PredCharacterOwner->bIsSprinting = false;
+		PredCharacterOwner->SetIsSprinting(false);
 	}
 	PredCharacterOwner->OnEndSprint();
 }

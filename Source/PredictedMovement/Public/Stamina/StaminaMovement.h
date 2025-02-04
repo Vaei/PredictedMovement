@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Sprint/SprintMovement.h"
+#include "System/PredictedMovementVersioning.h"
 #include "StaminaMovement.generated.h"
 
 struct PREDICTEDMOVEMENT_API FStaminaMoveResponseDataContainer : FCharacterMoveResponseDataContainer
@@ -134,7 +135,21 @@ private:
 	FStaminaNetworkMoveDataContainer StaminaMoveDataContainer;
 	
 public:
-	virtual void ClientHandleMoveResponse(const FCharacterMoveResponseDataContainer& MoveResponse) override;
+	/*
+	 * ClientHandleMoveResponse appears more correct because it has a MoveResponse passed in, and
+	 * it doesn't require the ugly versioning pre-compiler macro, but it occurs at the wrong point
+	 * in the execution, causing IsCorrection() to fail and introducing de-sync
+	 */
+	// virtual void ClientHandleMoveResponse(const FCharacterMoveResponseDataContainer& MoveResponse) override;
+
+	virtual void OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData, float TimeStamp,
+		FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase,
+		bool bBaseRelativePosition, uint8 ServerMovementMode
+#if UE_5_03_OR_LATER
+		, FVector ServerGravityDirection) override;
+#else
+		) override;
+#endif
 
 	virtual bool ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
 		const FVector& ClientWorldLocation, const FVector& RelativeClientLocation,

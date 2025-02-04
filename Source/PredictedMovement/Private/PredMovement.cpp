@@ -435,7 +435,7 @@ void UPredMovement::OnStaminaChanged(float PrevValue, float NewValue)
 {
 	if (IsValid(PredCharacterOwner))
 	{
-		PredCharacterOwner->OnStaminaChanged.Broadcast(NewValue, PrevValue);
+		PredCharacterOwner->OnStaminaChanged(NewValue, PrevValue);
 	}
 	
 	if (FMath::IsNearlyZero(Stamina))
@@ -464,7 +464,7 @@ void UPredMovement::OnMaxStaminaChanged(float PrevValue, float NewValue)
 {
 	if (IsValid(PredCharacterOwner))
 	{
-		PredCharacterOwner->OnMaxStaminaChanged.Broadcast(NewValue, PrevValue);
+		PredCharacterOwner->OnMaxStaminaChanged(NewValue, PrevValue);
 	}
 
 	// Ensure that Stamina is within the new MaxStamina
@@ -473,11 +473,9 @@ void UPredMovement::OnMaxStaminaChanged(float PrevValue, float NewValue)
 
 void UPredMovement::OnStaminaDrained()
 {
-	UnSprint();
-	
 	if (IsValid(PredCharacterOwner))
 	{
-		PredCharacterOwner->OnStaminaDrained.Broadcast();
+		PredCharacterOwner->OnStaminaDrained();
 	}
 }
 
@@ -485,7 +483,7 @@ void UPredMovement::OnStaminaDrainRecovered()
 {
 	if (IsValid(PredCharacterOwner))
 	{
-		PredCharacterOwner->OnStaminaDrainRecovered.Broadcast();
+		PredCharacterOwner->OnStaminaDrainRecovered();
 	}
 }
 

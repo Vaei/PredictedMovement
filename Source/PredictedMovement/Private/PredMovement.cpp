@@ -63,7 +63,6 @@ void FPredNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Character&
 	// ➜ MoveAutonomous (UpdateFromCompressedFlags)
 	
 	const FSavedMove_Character_Pred& SavedMove = static_cast<const FSavedMove_Character_Pred&>(ClientMove);
-	bWantsToSprint = SavedMove.bWantsToSprint;
 	Stamina = SavedMove.EndStamina;
 }
 
@@ -72,7 +71,6 @@ bool FPredNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovem
 {
 	Super::Serialize(CharacterMovement, Ar, PackageMap, MoveType);
 
-	Ar.SerializeBits(&bWantsToSprint, 1);
 	SerializeOptionalValue<float>(Ar.IsSaving(), Ar, Stamina, 0.f);
 	
 	return !Ar.IsError();
@@ -612,9 +610,7 @@ void UPredMovement::ServerMove_PerformMovement(const FCharacterNetworkMoveData& 
 	// Client >> CallServerMovePacked ➜ ClientFillNetworkMoveData ➜ ServerMovePacked_ClientSend >> Server
 	// >> ServerMovePacked_ServerReceive ➜ ServerMove_HandleMoveData ➜ ServerMove_PerformMovement
 	
-	const FPredNetworkMoveData& ModifierMoveData = static_cast<const FPredNetworkMoveData&>(MoveData);
-
-	bWantsToSprint = ModifierMoveData.bWantsToSprint;
+	const FPredNetworkMoveData& PredMoveData = static_cast<const FPredNetworkMoveData&>(MoveData);
 
 	Super::ServerMove_PerformMovement(MoveData);
 }
@@ -683,13 +679,19 @@ void UPredMovement::UpdateFromCompressedFlags(uint8 Flags)
 {
 	Super::UpdateFromCompressedFlags(Flags);
 
-	bWantsToAimDownSights = ((Flags & FSavedMove_Character::FLAG_Reserved_2) != 0);
+	bWantsToSprint = (Flags & FSavedMove_Character::FLAG_Custom_0) != 0;
+	bWantsToAimDownSights = (Flags & FSavedMove_Character::FLAG_Reserved_2) != 0;
 }
 
 uint8 FSavedMove_Character_Pred::GetCompressedFlags() const
 {
 	uint8 Result = Super::GetCompressedFlags();
 
+	if (bWantsToSprint)
+	{
+		Result |= FLAG_Custom_0;
+	}
+	
 	if (bWantsToAimDownSights)
 	{
 		Result |= FLAG_Reserved_2;
@@ -770,7 +772,7 @@ void FSavedMove_Character_Pred::PostUpdate(ACharacter* C, EPostUpdateMode PostUp
 	
 		if (PostUpdateMode == PostUpdate_Record)
 		{
-			// Don't combine moves if the modifiers changed over the course of the move
+			// Don't combine moves if the properties changed over the course of the move
 			if (bStaminaDrained != MoveComp->IsStaminaDrained())
 			{
 				bForceNoCombine = true;

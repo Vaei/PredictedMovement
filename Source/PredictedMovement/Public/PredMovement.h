@@ -26,11 +26,9 @@ public:
 	using Super = FCharacterNetworkMoveData;
  
 	FPredNetworkMoveData()
-		: bWantsToSprint(false)
-		, Stamina(0)
+		: Stamina(0)
 	{}
 
-	bool bWantsToSprint;
 	float Stamina;
 
 	virtual void ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove, ENetworkMoveType MoveType) override;

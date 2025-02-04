@@ -183,6 +183,48 @@ private:
 	bool bStaminaDrained;
 
 public:
+	/** Max Acceleration (rate of change of velocity) */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float MaxAccelerationAimingDownSights;
+	
+	/** The maximum ground speed when AimingDownSights. */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
+	float MaxWalkSpeedAimingDownSights;
+
+	/**
+	 * Deceleration when walking and not applying acceleration. This is a constant opposing force that directly lowers velocity by a constant value.
+	 * @see GroundFriction, MaxAcceleration
+	 */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float BrakingDecelerationAimingDownSights;
+
+	/**
+	 * Setting that affects movement control. Higher values allow faster changes in direction.
+	 * If bUseSeparateBrakingFriction is false, also affects the ability to stop more quickly when braking (whenever Acceleration is zero), where it is multiplied by BrakingFrictionFactor.
+	 * When braking, this property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
+	 * This can be used to simulate slippery surfaces such as ice or oil by changing the value (possibly based on the material pawn is standing on).
+	 * @see BrakingDecelerationWalking, BrakingFriction, bUseSeparateBrakingFriction, BrakingFrictionFactor
+	 */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float GroundFrictionAimingDownSights;
+
+	/**
+	 * Friction (drag) coefficient applied when braking (whenever Acceleration = 0, or if character is exceeding max speed); actual value used is this multiplied by BrakingFrictionFactor.
+	 * When braking, this property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
+	 * Braking is composed of friction (velocity-dependent drag) and constant deceleration.
+	 * This is the current value, used in all movement modes; if this is not desired, override it or bUseSeparateBrakingFriction when movement mode changes.
+	 * @note Only used if bUseSeparateBrakingFriction setting is true, otherwise current friction such as GroundFriction is used.
+	 * @see bUseSeparateBrakingFriction, BrakingFrictionFactor, GroundFriction, BrakingDecelerationWalking
+	 */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", EditCondition="bUseSeparateBrakingFriction"))
+	float BrakingFrictionAimingDownSights;
+	
+public:
+	/** If true, try to AimDownSights (or keep AimingDownSights) on next update. If false, try to stop AimingDownSights on next update. */
+	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
+	uint8 bWantsToAimDownSights:1;
+	
+public:
 	UPredMovement(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual bool HasValidData() const override;
@@ -199,6 +241,10 @@ public:
 	virtual float GetMaxAcceleration() const override;
 	virtual float GetMaxSpeed() const override;
 	virtual float GetMaxBrakingDeceleration() const override;
+	virtual float GetGroundFrictionMultiplier() const;
+	virtual float GetGroundFriction(float DefaultGroundFriction) const;
+	virtual float GetBrakingFrictionMultiplier() const;
+	virtual float GetBrakingFriction() const;
 
 	virtual void CalcStamina(float DeltaTime);
 	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
@@ -262,6 +308,25 @@ protected:
 	virtual void OnStaminaDrainRecovered();
 
 public:
+	virtual bool IsAimingDownSights() const;
+
+	/**
+	 * Call CharacterOwner->OnStartAimDownSights() if successful.
+	 * In general you should set bWantsToAimDownSights instead to have the AimDownSights persist during movement, or just use the AimDownSights functions on the owning Character.
+	 * @param	bClientSimulation	true when called when bIsAimDownSightsed is replicated to non owned clients.
+	 */
+	virtual void AimDownSights(bool bClientSimulation = false);
+	
+	/**
+	 * Checks if default capsule size fits (no encroachment), and trigger OnEndAimDownSights() on the owner if successful.
+	 * @param	bClientSimulation	true when called when bIsAimDownSightsed is replicated to non owned clients.
+	 */
+	virtual void UnAimDownSights(bool bClientSimulation = false);
+
+	/** Returns true if the character is allowed to AimDownSights in the current state. By default it is allowed when walking or falling. */
+	virtual bool CanAimDownSightsInCurrentState() const;
+
+public:
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
 	virtual void UpdateCharacterStateAfterMovement(float DeltaSeconds) override;
 
@@ -297,6 +362,9 @@ private:
 public:
 	/** Get prediction data for a client game. Should not be used if not running as a client. Allocates the data on demand and can be overridden to allocate a custom override if desired. Result must be a FNetworkPredictionData_Client_Character. */
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
+
+protected:
+	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
 };
 
 class PREDICTEDMOVEMENT_API FSavedMove_Character_Pred : public FSavedMove_Character
@@ -305,7 +373,8 @@ class PREDICTEDMOVEMENT_API FSavedMove_Character_Pred : public FSavedMove_Charac
 
 public:
 	FSavedMove_Character_Pred()
-		: bWantsToSprint(0)
+		: bWantsToAimDownSights(0)
+		, bWantsToSprint(0)
 		, bStaminaDrained(false)
 		, StartStamina(0)
 		, EndStamina(0)
@@ -314,12 +383,17 @@ public:
 	virtual ~FSavedMove_Character_Pred() override
 	{}
 
+	uint32 bWantsToAimDownSights:1;
+
 	uint32 bWantsToSprint:1;
 
 	uint32 bStaminaDrained : 1;
 	float StartStamina;
 	float EndStamina;
-		
+
+	/** Returns a byte containing encoded special movement information (jumping, crouching, etc.)	 */
+	virtual uint8 GetCompressedFlags() const override;
+	
 	/** Clear saved move properties, so it can be re-used. */
 	virtual void Clear() override;
 

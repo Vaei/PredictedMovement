@@ -41,6 +41,7 @@ public:
 	
 	virtual void SetIsProned(bool bNewProned);
 
+	/** @return true if this character is currently Proned */
 	UFUNCTION(BlueprintPure, Category=Character)
 	virtual bool IsProned() const { return bIsProned; }
 

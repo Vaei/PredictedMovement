@@ -41,12 +41,12 @@ public:
 	
 	virtual void SetIsProned(bool bNewProned);
 
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual bool IsProned() const { return bIsProned; }
+
 	/** Handle Crouching replicated from server */
 	UFUNCTION()
 	virtual void OnRep_IsProned();
-
-	UFUNCTION(BlueprintPure, Category=Character)
-	virtual bool IsProned() const { return bIsProned; }
 
 	/**
 	 * Request the character to start Proned. The request is processed on the next update of the CharacterMovementComponent.

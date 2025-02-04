@@ -122,8 +122,8 @@ protected:
 	 * stamina must be regenerated. Consider overriding this, check the implementation's comment for more information.
 	 */
 	virtual void OnStaminaChanged(float PrevValue, float NewValue);
-
-	virtual void OnMaxStaminaChanged(float PrevValue, float NewValue) {}
+	virtual void OnMaxStaminaChanged(float PrevValue, float NewValue);
+	
 	virtual void OnStaminaDrained() {}
 	virtual void OnStaminaDrainRecovered() {}
 

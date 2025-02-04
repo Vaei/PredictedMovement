@@ -183,6 +183,10 @@ float UPredMovement::GetMaxAcceleration() const
 	{
 		return MaxAccelerationSprinting * GetMaxAccelerationMultiplier();
 	}
+	if (IsAimingDownSights())
+	{
+		return MaxAccelerationAimingDownSights * GetMaxAccelerationMultiplier();
+	}
 	return Super::GetMaxAcceleration() * GetMaxAccelerationMultiplier();
 }
 
@@ -191,6 +195,10 @@ float UPredMovement::GetMaxSpeed() const
 	if (IsSprinting())
 	{
 		return MaxWalkSpeedSprinting * GetMaxSpeedMultiplier();
+	}
+	if (IsAimingDownSights())
+	{
+		return MaxWalkSpeedAimingDownSights * GetMaxSpeedMultiplier();
 	}
 	return Super::GetMaxSpeed() * GetMaxSpeedMultiplier();
 }
@@ -201,7 +209,47 @@ float UPredMovement::GetMaxBrakingDeceleration() const
 	{
 		return BrakingDecelerationSprinting * GetMaxBrakingDecelerationMultiplier();
 	}
+	if (IsAimingDownSights())
+	{
+		return BrakingDecelerationAimingDownSights * GetMaxBrakingDecelerationMultiplier();
+	}
 	return Super::GetMaxBrakingDeceleration() * GetMaxBrakingDecelerationMultiplier();
+}
+
+float UPredMovement::GetGroundFrictionMultiplier() const
+{
+	return 1.f;
+}
+
+float UPredMovement::GetGroundFriction(float DefaultGroundFriction) const
+{
+	if (IsSprinting())
+	{
+		return GroundFrictionSprinting * GetGroundFrictionMultiplier();
+	}
+	if (IsAimingDownSights())
+	{
+		return GroundFrictionAimingDownSights * GetGroundFrictionMultiplier();
+	}
+	return DefaultGroundFriction * GetGroundFrictionMultiplier();
+}
+
+float UPredMovement::GetBrakingFrictionMultiplier() const
+{
+	return 1.f;
+}
+
+float UPredMovement::GetBrakingFriction() const
+{
+	if (IsSprinting())
+	{
+		return BrakingFrictionSprinting * GetBrakingFrictionMultiplier();
+	}
+	if (IsAimingDownSights())
+	{
+		return BrakingFrictionAimingDownSights * GetBrakingFrictionMultiplier();
+	}
+	return BrakingFriction * GetBrakingFrictionMultiplier();
 }
 
 void UPredMovement::CalcStamina(float DeltaTime)
@@ -225,18 +273,18 @@ void UPredMovement::CalcStamina(float DeltaTime)
 
 void UPredMovement::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
 {
-	if (IsSprinting() && IsMovingOnGround())
+	if (IsMovingOnGround())
 	{
-		Friction = GroundFrictionSprinting;
+		Friction = GetGroundFriction(Friction);
 	}
 	Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
 }
 
 void UPredMovement::ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration)
 {
-	if (IsSprinting() && IsMovingOnGround())
+	if (IsMovingOnGround())
 	{
-		Friction = (bUseSeparateBrakingFriction ? BrakingFrictionSprinting : GroundFrictionSprinting);
+		Friction = bUseSeparateBrakingFriction ? GetBrakingFriction() : GetGroundFriction(Friction);
 	}
 	Super::ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
 }
@@ -443,6 +491,49 @@ void UPredMovement::OnStaminaDrainRecovered()
 	}
 }
 
+bool UPredMovement::IsAimingDownSights() const
+{
+	return PredCharacterOwner && PredCharacterOwner->IsAimingDownSights();
+}
+
+void UPredMovement::AimDownSights(bool bClientSimulation)
+{
+	if (!HasValidData())
+	{
+		return;
+	}
+	
+	if (!bClientSimulation && !CanAimDownSightsInCurrentState())
+	{
+		return;
+	}
+
+	if (!bClientSimulation)
+	{
+		PredCharacterOwner->SetIsAimingDownSights(true);
+	}
+	PredCharacterOwner->OnStartAimDownSights();
+}
+
+void UPredMovement::UnAimDownSights(bool bClientSimulation)
+{
+	if (!HasValidData())
+	{
+		return;
+	}
+
+	if (!bClientSimulation)
+	{
+		PredCharacterOwner->SetIsAimingDownSights(false);
+	}
+	PredCharacterOwner->OnEndAimDownSights();
+}
+
+bool UPredMovement::CanAimDownSightsInCurrentState() const
+{
+	return (IsFalling() || IsMovingOnGround()) && UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics();
+}
+
 void UPredMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 {
 	// Proxies get replicated Sprint state.
@@ -458,6 +549,17 @@ void UPredMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 		{
 			Sprint(false);
 		}
+		
+		// Check for a change in AimDownSights state. Players toggle AimDownSights by changing bWantsToAimDownSights.
+		const bool bIsAimingDownSights = IsAimingDownSights();
+		if (bIsAimingDownSights && (!bWantsToAimDownSights || !CanAimDownSightsInCurrentState()))
+		{
+			UnAimDownSights(false);
+		}
+		else if (!bIsAimingDownSights && bWantsToAimDownSights && CanAimDownSightsInCurrentState())
+		{
+			AimDownSights(false);
+		}
 	}
 
 	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
@@ -472,6 +574,12 @@ void UPredMovement::UpdateCharacterStateAfterMovement(float DeltaSeconds)
 		if (IsSprinting() && !CanSprintInCurrentState())
 		{
 			UnSprint(false);
+		}
+		
+		// UnAimDownSights if no longer allowed to be AimingDownSights
+		if (IsAimingDownSights() && !CanAimDownSightsInCurrentState())
+		{
+			UnAimDownSights(false);
 		}
 	}
 
@@ -514,8 +622,10 @@ void UPredMovement::ServerMove_PerformMovement(const FCharacterNetworkMoveData& 
 bool UPredMovement::ClientUpdatePositionAfterServerUpdate()
 {
 	const bool bRealSprint = bWantsToSprint;
+	const bool bRealAimDownSights = bWantsToAimDownSights;
 	const bool bResult = Super::ClientUpdatePositionAfterServerUpdate();
 	bWantsToSprint = bRealSprint;
+	bWantsToAimDownSights = bRealAimDownSights;
 
 	return bResult;
 }
@@ -569,9 +679,30 @@ bool UPredMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTim
 	return false;
 }
 
+void UPredMovement::UpdateFromCompressedFlags(uint8 Flags)
+{
+	Super::UpdateFromCompressedFlags(Flags);
+
+	bWantsToAimDownSights = ((Flags & FSavedMove_Character::FLAG_Reserved_2) != 0);
+}
+
+uint8 FSavedMove_Character_Pred::GetCompressedFlags() const
+{
+	uint8 Result = Super::GetCompressedFlags();
+
+	if (bWantsToAimDownSights)
+	{
+		Result |= FLAG_Reserved_2;
+	}
+
+	return Result;
+}
+
 void FSavedMove_Character_Pred::Clear()
 {
 	Super::Clear();
+
+	bWantsToAimDownSights = false;
 
 	bWantsToSprint = false;
 	
@@ -585,7 +716,11 @@ void FSavedMove_Character_Pred::SetMoveFor(ACharacter* C, float InDeltaTime, FVe
 {
 	Super::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
 
-	bWantsToSprint = Cast<APredCharacter>(C)->GetPredCharacterMovement()->bWantsToSprint;
+	if (UPredMovement* MoveComp = C ? Cast<UPredMovement>(C->GetCharacterMovement()) : nullptr)
+	{
+		bWantsToSprint = MoveComp->bWantsToSprint;
+		bWantsToAimDownSights = MoveComp->bWantsToAimDownSights;
+	}
 }
 
 bool FSavedMove_Character_Pred::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter,

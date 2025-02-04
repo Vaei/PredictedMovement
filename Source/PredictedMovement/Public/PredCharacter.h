@@ -4,22 +4,22 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "SprintCharacter.generated.h"
+#include "PredCharacter.generated.h"
 
-class USprintMovement;
+class UPredMovement;
 UCLASS()
-class PREDICTEDMOVEMENT_API ASprintCharacter : public ACharacter
+class PREDICTEDMOVEMENT_API APredCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
 private:
 	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
 	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
-	TObjectPtr<USprintMovement> SprintMovement;
+	TObjectPtr<UPredMovement> SprintMovement;
 
-	friend class FSavedMove_Character_Sprint;
+	friend class FSavedMove_Character_Pred;
 protected:
-	FORCEINLINE USprintMovement* GetSprintCharacterMovement() const { return SprintMovement; }
+	FORCEINLINE UPredMovement* GetSprintCharacterMovement() const { return SprintMovement; }
 	
 public:
 	/** Set by character movement to specify that this Character is currently Sprinting. */
@@ -27,7 +27,7 @@ public:
 	uint32 bIsSprinting:1;
 	
 public:
-	ASprintCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	APredCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 

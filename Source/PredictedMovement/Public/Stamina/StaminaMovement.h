@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Sprint/SprintMovement.h"
 #include "StaminaMovement.generated.h"
 
 struct PREDICTEDMOVEMENT_API FStaminaMoveResponseDataContainer : FCharacterMoveResponseDataContainer
@@ -17,10 +18,9 @@ struct PREDICTEDMOVEMENT_API FStaminaMoveResponseDataContainer : FCharacterMoveR
 	bool bStaminaDrained;
 };
 
-struct PREDICTEDMOVEMENT_API FStaminaNetworkMoveData : public FCharacterNetworkMoveData
+struct PREDICTEDMOVEMENT_API FStaminaNetworkMoveData : FSprintNetworkMoveData
 {  // Client ➜ Server
-public:
-    using Super = FCharacterNetworkMoveData;
+    using Super = FSprintNetworkMoveData;
  
     FStaminaNetworkMoveData()
         : Stamina(0)
@@ -33,12 +33,16 @@ public:
  
 };
  
-struct PREDICTEDMOVEMENT_API FStaminaNetworkMoveDataContainer : public FCharacterNetworkMoveDataContainer
+struct PREDICTEDMOVEMENT_API FStaminaNetworkMoveDataContainer : FSprintNetworkMoveDataContainer
 {  // Client ➜ Server
-public:
-    using Super = FCharacterNetworkMoveDataContainer;
+    using Super = FSprintNetworkMoveDataContainer;
  
-    FStaminaNetworkMoveDataContainer();
+    FStaminaNetworkMoveDataContainer()
+    {
+    	NewMoveData = &MoveData[0];
+    	PendingMoveData = &MoveData[1];
+    	OldMoveData = &MoveData[2];
+    }
  
 private:
     FStaminaNetworkMoveData MoveData[3];
@@ -77,7 +81,7 @@ private:
  * This solution is provided by Cedric 'eXi' Neukirchen and has been repurposed for net predicted Stamina.
  */
 UCLASS()
-class PREDICTEDMOVEMENT_API UStaminaMovement : public UCharacterMovementComponent
+class PREDICTEDMOVEMENT_API UStaminaMovement : public USprintMovement
 {
 	GENERATED_BODY()
 
@@ -140,9 +144,9 @@ public:
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 };
 
-class PREDICTEDMOVEMENT_API FSavedMove_Character_Stamina : public FSavedMove_Character
+class PREDICTEDMOVEMENT_API FSavedMove_Character_Stamina : public FSavedMove_Character_Sprint
 {
-	using Super = FSavedMove_Character;
+	using Super = FSavedMove_Character_Sprint;
 	
 public:
 	FSavedMove_Character_Stamina()
@@ -162,9 +166,9 @@ public:
 	virtual void SetInitialPosition(ACharacter* C) override;
 };
 
-class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Stamina : public FNetworkPredictionData_Client_Character
+class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Stamina : public FNetworkPredictionData_Client_Character_Sprint
 {
-	using Super = FNetworkPredictionData_Client_Character;
+	using Super = FNetworkPredictionData_Client_Character_Sprint;
 
 public:
 	FNetworkPredictionData_Client_Character_Stamina(const UCharacterMovementComponent& ClientMovement)

@@ -7,38 +7,9 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(SprintMovement)
 
-void FSprintNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove,
-	ENetworkMoveType MoveType)
-{
-	// Client packs move data to send to the server
-	// Use this instead of GetCompressedFlags()
-	Super::ClientFillNetworkMoveData(ClientMove, MoveType);
-
-	// Client ➜ Server
-	
-	// CallServerMovePacked ➜ ClientFillNetworkMoveData ➜ ServerMovePacked_ClientSend >> Server
-	// >> ServerMovePacked_ServerReceive ➜ ServerMove_HandleMoveData ➜ ServerMove_PerformMovement
-	// ➜ MoveAutonomous (UpdateFromCompressedFlags)
-	
-	const FSavedMove_Character_Sprint& SavedMove = static_cast<const FSavedMove_Character_Sprint&>(ClientMove);
-	bWantsToSprint = SavedMove.bWantsToSprint;
-}
-
-bool FSprintNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,
-	UPackageMap* PackageMap, ENetworkMoveType MoveType)
-{
-	Super::Serialize(CharacterMovement, Ar, PackageMap, MoveType);
-
-	Ar.SerializeBits(&bWantsToSprint, 1);
-	
-	return !Ar.IsError();
-}
-
 USprintMovement::USprintMovement(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	SetNetworkMoveDataContainer(SprintMoveDataContainer);
-	
 	bUseMaxAccelerationSprintingOnlyAtSpeed = true;
 	MaxAccelerationSprinting = 1024.f;
 	MaxWalkSpeedSprinting = 600.f;
@@ -244,21 +215,6 @@ void USprintMovement::UpdateCharacterStateAfterMovement(float DeltaSeconds)
 	Super::UpdateCharacterStateAfterMovement(DeltaSeconds);
 }
 
-void USprintMovement::ServerMove_PerformMovement(const FCharacterNetworkMoveData& MoveData)
-{
-	// Server updates from the client's move data
-	// Use this instead of UpdateFromCompressedFlags()
-
-	// Client >> CallServerMovePacked ➜ ClientFillNetworkMoveData ➜ ServerMovePacked_ClientSend >> Server
-	// >> ServerMovePacked_ServerReceive ➜ ServerMove_HandleMoveData ➜ ServerMove_PerformMovement
-	
-	const FSprintNetworkMoveData& ModifierMoveData = static_cast<const FSprintNetworkMoveData&>(MoveData);
-
-	bWantsToSprint = ModifierMoveData.bWantsToSprint;
-
-	Super::ServerMove_PerformMovement(MoveData);
-}
-
 bool USprintMovement::ClientUpdatePositionAfterServerUpdate()
 {
 	const bool bRealSprint = bWantsToSprint;
@@ -266,6 +222,25 @@ bool USprintMovement::ClientUpdatePositionAfterServerUpdate()
 	bWantsToSprint = bRealSprint;
 
 	return bResult;
+}
+
+void USprintMovement::UpdateFromCompressedFlags(uint8 Flags)
+{
+	Super::UpdateFromCompressedFlags(Flags);
+
+	bWantsToSprint = ((Flags & FSavedMove_Character::FLAG_Custom_0) != 0);
+}
+
+uint8 FSavedMove_Character_Sprint::GetCompressedFlags() const
+{
+	uint8 Result = Super::GetCompressedFlags();
+
+	if (bWantsToSprint)
+	{
+		Result |= FLAG_Custom_0;
+	}
+
+	return Result;
 }
 
 void FSavedMove_Character_Sprint::Clear()

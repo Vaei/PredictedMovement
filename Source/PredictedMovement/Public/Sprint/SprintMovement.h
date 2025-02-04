@@ -7,44 +7,6 @@
 #include "SprintMovement.generated.h"
 
 class ASprintCharacter;
-
-struct PREDICTEDMOVEMENT_API FSprintNetworkMoveData : FCharacterNetworkMoveData
-{  // Client ➜ Server
-public:
-	using Super = FCharacterNetworkMoveData;
- 
-	FSprintNetworkMoveData()
-		: bWantsToSprint(false)
-	{}
-
-	bool bWantsToSprint;
-	
-	virtual void ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove, ENetworkMoveType MoveType) override;
-	virtual bool Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap, ENetworkMoveType MoveType) override;
-};
- 
-struct PREDICTEDMOVEMENT_API FSprintNetworkMoveDataContainer : FCharacterNetworkMoveDataContainer
-{  // Client ➜ Server
-public:
-	using Super = FCharacterNetworkMoveDataContainer;
- 
-	FSprintNetworkMoveDataContainer()
-	{
-		NewMoveData = &MoveData[0];
-		PendingMoveData = &MoveData[1];
-		OldMoveData = &MoveData[2];
-	}
- 
-private:
-	FSprintNetworkMoveData MoveData[3];
-};
-
-/**
- * Identical to the main branch implementation, except using move containers instead of compressed flags
- * This exists for teaching purposes, to show how to use move containers that are 1:1 with the compressed flags
- * Typically compressed flags are only used for a boolean, and move containers are used for more complex data
- * However, compressed flags are a lot cheaper so we wouldn't typically use move containers for a boolean
- */
 UCLASS()
 class PREDICTEDMOVEMENT_API USprintMovement : public UCharacterMovementComponent
 {
@@ -161,17 +123,15 @@ public:
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
 	virtual void UpdateCharacterStateAfterMovement(float DeltaSeconds) override;
 
-	virtual void ServerMove_PerformMovement(const FCharacterNetworkMoveData& MoveData) override;
-
 protected:
 	virtual bool ClientUpdatePositionAfterServerUpdate() override;
-
-private:
-	FSprintNetworkMoveDataContainer SprintMoveDataContainer;
 	
 public:
 	/** Get prediction data for a client game. Should not be used if not running as a client. Allocates the data on demand and can be overridden to allocate a custom override if desired. Result must be a FNetworkPredictionData_Client_Character. */
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
+
+protected:
+	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
 };
 
 class PREDICTEDMOVEMENT_API FSavedMove_Character_Sprint : public FSavedMove_Character
@@ -187,6 +147,9 @@ public:
 	{}
 
 	uint32 bWantsToSprint:1;
+
+	/** Returns a byte containing encoded special movement information (jumping, crouching, etc.)	 */
+	virtual uint8 GetCompressedFlags() const override;
 		
 	/** Clear saved move properties, so it can be re-used. */
 	virtual void Clear() override;

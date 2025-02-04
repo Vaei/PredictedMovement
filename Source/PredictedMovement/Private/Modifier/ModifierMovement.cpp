@@ -232,7 +232,7 @@ void FSavedMove_Character_Modifier::SetMoveFor(ACharacter* C, float InDeltaTime,
 
 void FSavedMove_Character_Modifier::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
 {
-	// When considering whether to delay moves, we need to compare the move at the start and the end
+	// When considering whether to delay or combine moves, we need to compare the move at the start and the end
 	if (UModifierMovement* Movement = CastChecked<AModifierCharacter>(C)->GetModifierCharacterMovement())
 	{
 		EndBoost = Movement->Boost;
@@ -242,7 +242,7 @@ void FSavedMove_Character_Modifier::PostUpdate(ACharacter* C, EPostUpdateMode Po
 
 	if (PostUpdateMode == PostUpdate_Record)
 	{
-		// Don't delay sending moves if the modifiers changed over the course of the move
+		// Don't combine moves if the modifiers changed over the course of the move
 		// ^= is the same as != but it also evaluates the current level rather than only the requested level
 
 		if (Boost ^= EndBoost)

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Sprint/SprintMovement.h"
 #include "System/PredictedMovementVersioning.h"
 #include "StaminaMovement.generated.h"
 
@@ -18,9 +19,9 @@ struct PREDICTEDMOVEMENT_API FStaminaMoveResponseDataContainer : FCharacterMoveR
 	bool bStaminaDrained;
 };
 
-struct PREDICTEDMOVEMENT_API FStaminaNetworkMoveData : FCharacterNetworkMoveData
+struct PREDICTEDMOVEMENT_API FStaminaNetworkMoveData : FSprintNetworkMoveData
 {  // Client ➜ Server
-    using Super = FCharacterNetworkMoveData;
+    using Super = FSprintNetworkMoveData;
  
     FStaminaNetworkMoveData()
         : Stamina(0)
@@ -32,9 +33,9 @@ struct PREDICTEDMOVEMENT_API FStaminaNetworkMoveData : FCharacterNetworkMoveData
     float Stamina;
 };
  
-struct PREDICTEDMOVEMENT_API FStaminaNetworkMoveDataContainer : FCharacterNetworkMoveDataContainer
+struct PREDICTEDMOVEMENT_API FStaminaNetworkMoveDataContainer : FSprintNetworkMoveDataContainer
 {  // Client ➜ Server
-    using Super = FCharacterNetworkMoveDataContainer;
+    using Super = FSprintNetworkMoveDataContainer;
  
     FStaminaNetworkMoveDataContainer()
     {
@@ -80,7 +81,7 @@ private:
  * This solution is provided by Cedric 'eXi' Neukirchen and has been repurposed for net predicted Stamina.
  */
 UCLASS()
-class PREDICTEDMOVEMENT_API UStaminaMovement : public UCharacterMovementComponent
+class PREDICTEDMOVEMENT_API UStaminaMovement : public USprintMovement
 {
 	GENERATED_BODY()
 
@@ -157,31 +158,34 @@ public:
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 };
 
-class PREDICTEDMOVEMENT_API FSavedMove_Character_Stamina : public FSavedMove_Character
+class PREDICTEDMOVEMENT_API FSavedMove_Character_Stamina : public FSavedMove_Character_Sprint
 {
-	using Super = FSavedMove_Character;
+	using Super = FSavedMove_Character_Sprint;
 	
 public:
 	FSavedMove_Character_Stamina()
 		: bStaminaDrained(0)
-		, Stamina(0)
+		, StartStamina(0)
+		, SavedStamina(0)
 	{}
 
 	virtual ~FSavedMove_Character_Stamina() override
 	{}
 
 	uint32 bStaminaDrained : 1;
-	float Stamina;
+	float StartStamina;
+	float SavedStamina;
 
 	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const override;
 	virtual void CombineWith(const FSavedMove_Character* OldMove, ACharacter* InCharacter, APlayerController* PC, const FVector& OldStartLocation) override;
 	virtual void Clear() override;
 	virtual void SetInitialPosition(ACharacter* C) override;
+	virtual void PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode) override;
 };
 
-class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Stamina : public FNetworkPredictionData_Client_Character
+class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Stamina : public FNetworkPredictionData_Client_Character_Sprint
 {
-	using Super = FNetworkPredictionData_Client_Character;
+	using Super = FNetworkPredictionData_Client_Character_Sprint;
 
 public:
 	FNetworkPredictionData_Client_Character_Stamina(const UCharacterMovementComponent& ClientMovement)

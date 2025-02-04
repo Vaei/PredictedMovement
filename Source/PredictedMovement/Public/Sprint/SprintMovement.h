@@ -11,7 +11,7 @@ class ASprintCharacter;
 struct PREDICTEDMOVEMENT_API FSprintNetworkMoveData : FCharacterNetworkMoveData
 {  // Client ➜ Server
 public:
-	typedef FCharacterNetworkMoveData Super;
+	using Super = FCharacterNetworkMoveData;
  
 	FSprintNetworkMoveData()
 		: bWantsToSprint(false)
@@ -26,7 +26,7 @@ public:
 struct PREDICTEDMOVEMENT_API FSprintNetworkMoveDataContainer : FCharacterNetworkMoveDataContainer
 {  // Client ➜ Server
 public:
-	typedef FCharacterNetworkMoveDataContainer Super;
+	using Super = FCharacterNetworkMoveDataContainer;
  
 	FSprintNetworkMoveDataContainer()
 	{
@@ -111,7 +111,7 @@ public:
 	uint8 bWantsToSprint:1;
 
 public:
-	USprintMovement(const FObjectInitializer& ObjectInitializer);
+	USprintMovement(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual bool HasValidData() const override;
 	virtual void PostLoad() override;
@@ -181,8 +181,7 @@ class PREDICTEDMOVEMENT_API FSavedMove_Character_Sprint : public FSavedMove_Char
 public:
 	FSavedMove_Character_Sprint()
 		: bWantsToSprint(0)
-	{
-	}
+	{}
 
 	virtual ~FSavedMove_Character_Sprint() override
 	{}

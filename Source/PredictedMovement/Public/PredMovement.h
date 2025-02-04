@@ -4,9 +4,21 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "System/PredictedMovementVersioning.h"
 #include "PredMovement.generated.h"
 
 class APredCharacter;
+
+struct PREDICTEDMOVEMENT_API FPredMoveResponseDataContainer : FCharacterMoveResponseDataContainer
+{  // Server ➜ Client
+	using Super = FCharacterMoveResponseDataContainer;
+	
+	virtual void ServerFillResponseData(const UCharacterMovementComponent& CharacterMovement, const FClientAdjustment& PendingAdjustment) override;
+	virtual bool Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap) override;
+
+	float Stamina;
+	bool bStaminaDrained;
+};
 
 struct PREDICTEDMOVEMENT_API FPredNetworkMoveData : FCharacterNetworkMoveData
 {  // Client ➜ Server
@@ -15,10 +27,12 @@ public:
  
 	FPredNetworkMoveData()
 		: bWantsToSprint(false)
+		, Stamina(0)
 	{}
 
 	bool bWantsToSprint;
-	
+	float Stamina;
+
 	virtual void ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove, ENetworkMoveType MoveType) override;
 	virtual bool Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap, ENetworkMoveType MoveType) override;
 };
@@ -111,6 +125,23 @@ public:
 	uint8 bWantsToSprint:1;
 
 public:
+	/** Maximum stamina difference that is allowed between client and server before a correction occurs. */
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, meta=(ClampMin="0.0", UIMin="0.0"))
+	float NetworkStaminaCorrectionThreshold;
+	
+protected:
+	/** THIS SHOULD ONLY BE MODIFIED IN DERIVED CLASSES FROM OnStaminaChanged AND NOWHERE ELSE */
+	UPROPERTY()
+	float Stamina;
+
+private:
+	UPROPERTY()
+	float MaxStamina;
+
+	UPROPERTY()
+	bool bStaminaDrained;
+
+public:
 	UPredMovement(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual bool HasValidData() const override;
@@ -158,16 +189,61 @@ public:
 	 */
 	virtual bool IsSprintWithinAllowableInputAngle() const;
 
+public:
+	float GetStamina() const { return Stamina; }
+	float GetMaxStamina() const { return MaxStamina; }
+	bool IsStaminaDrained() const { return bStaminaDrained; }
+
+	void SetStamina(float NewStamina);
+
+	void SetMaxStamina(float NewMaxStamina);
+
+	void SetStaminaDrained(bool bNewValue);
+	
+protected:
+	/*
+	 * Drain state entry and exit is handled here. Drain state is used to prevent rapid re-entry of sprinting or other
+	 * such abilities before sufficient stamina has regenerated. However, in the default implementation, 100%
+	 * stamina must be regenerated. Consider overriding this, check the implementation's comment for more information.
+	 */
+	virtual void OnStaminaChanged(float PrevValue, float NewValue);
+
+	virtual void OnMaxStaminaChanged(float PrevValue, float NewValue) {}
+	virtual void OnStaminaDrained() {}
+	virtual void OnStaminaDrainRecovered() {}
+
+public:
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
 	virtual void UpdateCharacterStateAfterMovement(float DeltaSeconds) override;
 
 	virtual void ServerMove_PerformMovement(const FCharacterNetworkMoveData& MoveData) override;
 
+	/*
+	 * ClientHandleMoveResponse appears more correct because it has a MoveResponse passed in, and
+	 * it doesn't require the ugly versioning pre-compiler macro, but it occurs at the wrong point
+	 * in the execution, causing IsCorrection() to fail and introducing de-sync
+	 */
+	// virtual void ClientHandleMoveResponse(const FCharacterMoveResponseDataContainer& MoveResponse) override;
+
+	virtual void OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData, float TimeStamp,
+		FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase,
+		bool bBaseRelativePosition, uint8 ServerMovementMode
+#if UE_5_03_OR_LATER
+		, FVector ServerGravityDirection) override;
+#else
+		) override;
+#endif
+
+	virtual bool ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
+		const FVector& ClientWorldLocation, const FVector& RelativeClientLocation,
+		UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode) override;
+	
 protected:
 	virtual bool ClientUpdatePositionAfterServerUpdate() override;
 
 private:
 	FPredNetworkMoveDataContainer PredMoveDataContainer;
+	FPredMoveResponseDataContainer PredMoveResponseDataContainer;
 	
 public:
 	/** Get prediction data for a client game. Should not be used if not running as a client. Allocates the data on demand and can be overridden to allocate a custom override if desired. Result must be a FNetworkPredictionData_Client_Character. */
@@ -181,18 +257,37 @@ class PREDICTEDMOVEMENT_API FSavedMove_Character_Pred : public FSavedMove_Charac
 public:
 	FSavedMove_Character_Pred()
 		: bWantsToSprint(0)
+		, bStaminaDrained(false)
+		, StartStamina(0)
+		, EndStamina(0)
 	{}
 
 	virtual ~FSavedMove_Character_Pred() override
 	{}
 
 	uint32 bWantsToSprint:1;
+
+	uint32 bStaminaDrained : 1;
+	float StartStamina;
+	float EndStamina;
 		
 	/** Clear saved move properties, so it can be re-used. */
 	virtual void Clear() override;
 
 	/** Called to set up this saved move (when initially created) to make a predictive correction. */
 	virtual void SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character & ClientData) override;
+
+	/** Returns true if this move can be combined with NewMove for replication without changing any behavior */
+	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const override;
+	
+	/** Combine this move with an older move and update relevant state. */
+	virtual void CombineWith(const FSavedMove_Character* OldMove, ACharacter* InCharacter, APlayerController* PC, const FVector& OldStartLocation) override;
+
+	/** Set the properties describing the position, etc. of the moved pawn at the start of the move. */
+	virtual void SetInitialPosition(ACharacter* C) override;
+
+	/** Set the properties describing the final position, etc. of the moved pawn. */
+	virtual void PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode) override;
 };
 
 class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Pred : public FNetworkPredictionData_Client_Character

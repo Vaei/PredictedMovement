@@ -113,6 +113,12 @@ UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
 	StartSprintStaminaPct = 0.05f;  // 5% stamina to start sprinting
 	
 	NetworkStaminaCorrectionThreshold = 2.f;
+
+	// Aim Down Sights
+	MaxWalkSpeedAimingDownSights = 300.f;
+	MaxAccelerationAimingDownSights = 512.f;
+	BrakingDecelerationAimingDownSights = 512.f;
+	GroundFrictionAimingDownSights = 12.f;
 }
 
 bool UPredMovement::HasValidData() const

@@ -169,10 +169,7 @@ void APredCharacter::AimDownSights(bool bClientSimulation)
 {
 	if (PredMovement)
 	{
-		if (CanAimDownSights())
-		{
-			PredMovement->bWantsToAimDownSights = true;
-		}
+		PredMovement->bWantsToAimDownSights = true;
 	}
 }
 
@@ -182,11 +179,6 @@ void APredCharacter::UnAimDownSights(bool bClientSimulation)
 	{
 		PredMovement->bWantsToAimDownSights = false;
 	}
-}
-
-bool APredCharacter::CanAimDownSights() const
-{
-	return !bIsAimingDownSights && GetRootComponent() && !GetRootComponent()->IsSimulatingPhysics();
 }
 
 void APredCharacter::OnEndAimDownSights()

@@ -159,10 +159,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
 	virtual void UnAimDownSights(bool bClientSimulation = false);
 
-	/** @return true if this character is currently able to AimDownSights (and is not currently AimingDownSights) */
-	UFUNCTION(BlueprintCallable, Category=Character)
-	virtual bool CanAimDownSights() const;
-	
 	/** Called when Character stops AimingDownSights. Called on non-owned Characters through bIsAimingDownSights replication. */
 	virtual void OnEndAimDownSights();
 
@@ -170,10 +166,10 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndAimDownSights", ScriptName="OnEndAimDownSights"))
 	void K2_OnEndAimDownSights();
 
-	/** Called when Character AimDownSightses. Called on non-owned Characters through bIsAimingDownSights replication. */
+	/** Called when Character AimsDownSights. Called on non-owned Characters through bIsAimingDownSights replication. */
 	virtual void OnStartAimDownSights();
 
-	/** Event when Character AimDownSightses. */
+	/** Event when Character AimsDownSights. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnStartAimDownSights", ScriptName="OnStartAimDownSights"))
 	void K2_OnStartAimDownSights();
 

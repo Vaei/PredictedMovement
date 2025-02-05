@@ -47,6 +47,8 @@ public:
 	UFUNCTION()
 	virtual void OnRep_IsSprinting();
 
+	/** @return true if this character is currently able to Sprint (and is not currently Sprinting) */
+	UFUNCTION(BlueprintPure, Category=Character)
 	virtual bool CanSprint() const;
 
 	/**
@@ -139,6 +141,8 @@ public:
 	UFUNCTION()
 	virtual void OnRep_IsAimingDownSights();
 
+	/** @return true if this character is currently able to AimDownSights (and is not currently AimingDownSights) */
+	UFUNCTION(BlueprintPure, Category=Character)
 	virtual bool CanAimDownSights() const;
 
 	/**
@@ -196,6 +200,8 @@ public:
 	UFUNCTION()
 	virtual void OnRep_IsProned();
 
+	/** @return true if this character is currently able to Prone (and is not currently Prone) */
+	UFUNCTION(BlueprintPure, Category=Character)
 	virtual bool CanProne() const;
 
 	virtual void Crouch(bool bClientSimulation = false) override;

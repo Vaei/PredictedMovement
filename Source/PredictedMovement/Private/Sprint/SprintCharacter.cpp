@@ -82,12 +82,12 @@ void ASprintCharacter::UnSprint(bool bClientSimulation)
 	}
 }
 
-void ASprintCharacter::OnEndSprint()
-{
-	K2_OnEndSprint();
-}
-
 void ASprintCharacter::OnStartSprint()
 {
 	K2_OnStartSprint();
+}
+
+void ASprintCharacter::OnEndSprint()
+{
+	K2_OnEndSprint();
 }

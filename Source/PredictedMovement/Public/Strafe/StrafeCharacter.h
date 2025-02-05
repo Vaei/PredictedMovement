@@ -72,21 +72,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
 	virtual void UnStrafe(bool bClientSimulation = false);
 
-	/** @return true if this character is currently able to Strafe (and is not currently Strafing) */
-	UFUNCTION(BlueprintCallable, Category=Character)
-	virtual bool CanStrafe() const;
+	/** Called when Character Strafes. Called on non-owned Characters through bIsStrafing replication. */
+	virtual void OnStartStrafe();
+
+	/** Event when Character Strafes. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="On Start Strafe"))
+	void K2_OnStartStrafe();
 	
 	/** Called when Character stops Strafing. Called on non-owned Characters through bIsStrafing replication. */
 	virtual void OnEndStrafe();
 
 	/** Event when Character stops Strafing. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndStrafe", ScriptName="OnEndStrafe"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="On End Strafe"))
 	void K2_OnEndStrafe();
-
-	/** Called when Character Strafees. Called on non-owned Characters through bIsStrafing replication. */
-	virtual void OnStartStrafe();
-
-	/** Event when Character Strafees. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnStartStrafe", ScriptName="OnStartStrafe"))
-	void K2_OnStartStrafe();
 };

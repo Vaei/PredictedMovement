@@ -26,7 +26,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)
 	float PronedEyeHeight;
 	
-public:
+protected:
 	/** Set by character movement to specify that this Character is currently Proned. */
 	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsProned, Category=Character)
 	uint32 bIsProned:1;
@@ -38,6 +38,12 @@ public:
 
 public:
 	virtual void RecalculateBaseEyeHeight() override;
+	
+	virtual void SetIsProned(bool bNewProned);
+
+	/** @return true if this character is currently Proned */
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual bool IsProned() const { return bIsProned; }
 
 	/** Handle Prone replicated from server */
 	UFUNCTION()
@@ -79,3 +85,4 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="On End Prone"))
 	void K2_OnEndProne(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
 };
+

@@ -6,6 +6,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Prone/ProneMovement.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Net/Core/PushModel/PushModel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ProneCharacter)
 
@@ -21,7 +22,15 @@ void AProneCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(ThisClass, bIsProned, COND_SimulatedOnly);
+	// Legacy
+	// DOREPLIFETIME_CONDITION(ThisClass, bIsProned, COND_SimulatedOnly);
+
+	// Push Model
+	FDoRepLifetimeParams SharedParams;
+	SharedParams.bIsPushBased = true;
+	SharedParams.Condition = COND_SimulatedOnly;
+
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsProned, SharedParams);
 }
 
 void AProneCharacter::RecalculateBaseEyeHeight()
@@ -33,6 +42,19 @@ void AProneCharacter::RecalculateBaseEyeHeight()
 	else
 	{
 		Super::RecalculateBaseEyeHeight();
+	}
+}
+
+void AProneCharacter::SetIsProned(bool bNewProned)
+{
+	if (bIsProned != bNewProned)
+	{
+		bIsProned = bNewProned;
+
+		if (HasAuthority())
+		{
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, bIsProned, this);  // Push-model
+		}
 	}
 }
 

@@ -168,7 +168,7 @@ float UProneMovement::GetTimestamp() const
 
 bool UProneMovement::IsProned() const
 {
-	return ProneCharacterOwner && ProneCharacterOwner->bIsProned;
+	return ProneCharacterOwner && ProneCharacterOwner->IsProned();
 }
 
 void UProneMovement::Prone(bool bClientSimulation)
@@ -189,7 +189,7 @@ void UProneMovement::Prone(bool bClientSimulation)
 	{
 		if (!bClientSimulation)
 		{
-			ProneCharacterOwner->bIsProned = true;
+			ProneCharacterOwner->SetIsProned(true);
 		}
 		ProneCharacterOwner->OnStartProne( 0.f, 0.f );
 		SetProneLock(true);
@@ -240,7 +240,7 @@ void UProneMovement::Prone(bool bClientSimulation)
 			UpdatedComponent->MoveComponent(FVector(0.f, 0.f, -ScaledHalfHeightAdjust), UpdatedComponent->GetComponentQuat(), true, nullptr, EMoveComponentFlags::MOVECOMP_NoFlags, ETeleportType::TeleportPhysics);
 		}
 
-		ProneCharacterOwner->bIsProned = true;
+		ProneCharacterOwner->SetIsProned(true);
 	}
 
 	// Our capsule is growing during prone, test for encroaching from radius
@@ -309,7 +309,7 @@ void UProneMovement::UnProne(bool bClientSimulation)
 	{
 		if (!bClientSimulation)
 		{
-			ProneCharacterOwner->bIsProned = false;
+			ProneCharacterOwner->SetIsProned(false);
 		}
 		ProneCharacterOwner->OnEndProne( 0.f, 0.f );
 		return;
@@ -413,7 +413,7 @@ void UProneMovement::UnProne(bool bClientSimulation)
 			return;
 		}
 
-		ProneCharacterOwner->bIsProned = false;
+		ProneCharacterOwner->SetIsProned(false);
 	}	
 	else
 	{

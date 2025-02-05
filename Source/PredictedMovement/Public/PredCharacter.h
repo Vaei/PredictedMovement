@@ -23,7 +23,7 @@ private:
 	friend class FSavedMove_Character_Pred;
 protected:
 	FORCEINLINE UPredMovement* GetPredCharacterMovement() const { return PredMovement; }
-	
+
 protected:
 	/** Set by character movement to specify that this Character is currently Sprinting. */
 	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsSprinting, Category=Character)
@@ -46,6 +46,8 @@ public:
 	/** Handle Sprinting replicated from server */
 	UFUNCTION()
 	virtual void OnRep_IsSprinting();
+
+	virtual bool CanSprint() const;
 
 	/**
 	 * Request the character to start Sprinting. The request is processed on the next update of the CharacterMovementComponent.
@@ -137,6 +139,8 @@ public:
 	UFUNCTION()
 	virtual void OnRep_IsAimingDownSights();
 
+	virtual bool CanAimDownSights() const;
+
 	/**
 	 * Request the character to start AimingDownSights. The request is processed on the next update of the CharacterMovementComponent.
 	 * @see OnStartAimDownSights
@@ -169,6 +173,65 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="On End Aim Down Sights"))
 	void K2_OnEndAimDownSights();
 
+public:
+	/** Default proned eye height */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)
+	float PronedEyeHeight;
+	
+protected:
+	/** Set by character movement to specify that this Character is currently Proned. */
+	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsProned, Category=Character)
+	uint32 bIsProned:1;
+	
+public:
+	virtual void RecalculateBaseEyeHeight() override;
+	
+	virtual void SetIsProned(bool bNewProned);
+
+	/** @return true if this character is currently Proned */
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual bool IsProned() const { return bIsProned; }
+
+	/** Handle Prone replicated from server */
+	UFUNCTION()
+	virtual void OnRep_IsProned();
+
+	virtual bool CanProne() const;
+
+	virtual void Crouch(bool bClientSimulation = false) override;
+	
+	/**
+	 * Request the character to start Proned. The request is processed on the next update of the CharacterMovementComponent.
+	 * @see OnStartProne
+	 * @see IsProned
+	 * @see CharacterMovement->WantsToProne
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
+	virtual void Prone(bool bClientSimulation = false);
+
+	/**
+	 * Request the character to stop Proned. The request is processed on the next update of the CharacterMovementComponent.
+	 * @see OnEndProne
+	 * @see IsProned
+	 * @see CharacterMovement->WantsToProne
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
+	virtual void UnProne(bool bClientSimulation = false);
+
+	/** Called when Character Prones. Called on non-owned Characters through bIsProned replication. */
+	virtual void OnStartProne(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
+
+	/** Event when Character Prones. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="On Start Prone"))
+	void K2_OnStartProne(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
+	
+	/** Called when Character stops Proned. Called on non-owned Characters through bIsProned replication. */
+	virtual void OnEndProne(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
+
+	/** Event when Character stops Proned. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="On End Prone"))
+	void K2_OnEndProne(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
+	
 public:
 	/**
 	 * Consume the PendingMove if it exists, by sending it to the server and clearing it

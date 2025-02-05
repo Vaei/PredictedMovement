@@ -181,20 +181,66 @@ private:
 	bool bStaminaDrained;
 
 public:
+	/** Scale the max Acceleration (rate of change of velocity) */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
+	float MaxAccelerationAimingDownSightsMultiplier;
+	
+	/** Scale the maximum ground speed when AimingDownSights. */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
+	float MaxWalkSpeedAimingDownSightsMultiplier;
+
+	/**
+	 * Scale the deceleration when walking and not applying acceleration. This is a constant opposing force that directly lowers velocity by a constant value.
+	 * @see GroundFriction, MaxAcceleration
+	 */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
+	float BrakingDecelerationAimingDownSightsMultiplier;
+
+	/**
+	 * Setting that affects movement control. Higher values allow faster changes in direction.
+	 * If bUseSeparateBrakingFriction is false, also affects the ability to stop more quickly when braking (whenever Acceleration is zero), where it is multiplied by BrakingFrictionFactor.
+	 * When braking, this property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
+	 * This can be used to simulate slippery surfaces such as ice or oil by changing the value (possibly based on the material pawn is standing on).
+	 * @see BrakingDecelerationWalking, BrakingFriction, bUseSeparateBrakingFriction, BrakingFrictionFactor
+	 */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
+	float GroundFrictionAimingDownSightsMultiplier;
+
+	/**
+	 * Friction (drag) coefficient applied when braking (whenever Acceleration = 0, or if character is exceeding max speed); actual value used is this multiplied by BrakingFrictionFactor.
+	 * When braking, this property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
+	 * Braking is composed of friction (velocity-dependent drag) and constant deceleration.
+	 * This is the current value, used in all movement modes; if this is not desired, override it or bUseSeparateBrakingFriction when movement mode changes.
+	 * @note Only used if bUseSeparateBrakingFriction setting is true, otherwise current friction such as GroundFriction is used.
+	 * @see bUseSeparateBrakingFriction, BrakingFrictionFactor, GroundFriction, BrakingDecelerationWalking
+	 */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x", EditCondition="bUseSeparateBrakingFriction"))
+	float BrakingFrictionAimingDownSightsMultiplier;
+
+	/** If true, Character can sprint when aiming down sights. */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
+	uint8 bCanSprintDuringAimDownSights:1;
+	
+public:
+	/** If true, try to AimDownSights (or keep AimingDownSights) on next update. If false, try to stop AimingDownSights on next update. */
+	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
+	uint8 bWantsToAimDownSights:1;
+
+	public:
 	/** Max Acceleration (rate of change of velocity) */
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
-	float MaxAccelerationAimingDownSights;
+	float MaxAccelerationProned;
 	
-	/** The maximum ground speed when AimingDownSights. */
+	/** The maximum ground speed when Proned. */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
-	float MaxWalkSpeedAimingDownSights;
+	float MaxWalkSpeedProned;
 
 	/**
 	 * Deceleration when walking and not applying acceleration. This is a constant opposing force that directly lowers velocity by a constant value.
 	 * @see GroundFriction, MaxAcceleration
 	 */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
-	float BrakingDecelerationAimingDownSights;
+	float BrakingDecelerationProned;
 
 	/**
 	 * Setting that affects movement control. Higher values allow faster changes in direction.
@@ -204,7 +250,7 @@ public:
 	 * @see BrakingDecelerationWalking, BrakingFriction, bUseSeparateBrakingFriction, BrakingFrictionFactor
 	 */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
-	float GroundFrictionAimingDownSights;
+	float GroundFrictionProned;
 
 	/**
 	 * Friction (drag) coefficient applied when braking (whenever Acceleration = 0, or if character is exceeding max speed); actual value used is this multiplied by BrakingFrictionFactor.
@@ -215,12 +261,53 @@ public:
 	 * @see bUseSeparateBrakingFriction, BrakingFrictionFactor, GroundFriction, BrakingDecelerationWalking
 	 */
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", EditCondition="bUseSeparateBrakingFriction"))
-	float BrakingFrictionAimingDownSights;
+	float BrakingFrictionProned;
+	
+	/** Collision half-height when proned (component scale is applied separately) */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits=cm))
+	float PronedHalfHeight;
+
+	/** Collision half-height when proned (component scale is applied separately) */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits=cm))
+	float PronedRadius;
+
+	/**
+	 * Cannot leave prone for this duration
+	 * @see ClearProneLock
+	 */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits=cm))
+	float ProneLockDuration;
+	
+	/** If true, Character can walk off a ledge when proned. */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
+	uint8 bCanWalkOffLedgesWhenProned:1;
+
+	/** If true, Character can sprint when prone. */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
+	uint8 bCanSprintDuringProne:1;
+
+	/** If true, Character can sprint when crouching. */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
+	uint8 bCanSprintDuringCrouch:1;
+	
+	/** If true, Character can jump when prone. */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
+	uint8 bCanJumpDuringProne:1;
+	
+	/** If true, Character can jump when crouching. */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
+	uint8 bCanJumpDuringCrouch:1;
 	
 public:
-	/** If true, try to AimDownSights (or keep AimingDownSights) on next update. If false, try to stop AimingDownSights on next update. */
+	/** If true, try to Prone (or keep Proned) on next update. If false, try to stop Proned on next update. */
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
-	uint8 bWantsToAimDownSights:1;
+	uint8 bWantsToProne:1;
+
+	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
+	uint8 bProneLocked:1;
+
+protected:
+	float ProneLockTimestamp = -1.f;
 	
 public:
 	UPredMovement(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -248,6 +335,9 @@ public:
 	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
 	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
 
+	virtual bool CanWalkOffLedges() const override;
+	virtual bool CanAttemptJump() const override;
+	
 public:
 	virtual bool IsSprinting() const;
 
@@ -325,6 +415,40 @@ public:
 	virtual bool CanAimDownSightsInCurrentState() const;
 
 public:
+	UFUNCTION(BlueprintPure, Category="Character Movement")
+	bool IsProneLocked() const;
+
+	bool IsProneLockOnTimer() const;
+
+	// Prone lock timer
+	float GetRemainingProneLockCooldown() const;
+
+	void SetProneLock(bool bLock);
+
+	float GetTimestamp() const;
+
+public:
+	virtual bool IsProned() const;
+
+	/**
+	 * Call CharacterOwner->OnStartProne() if successful.
+	 * In general you should set bWantsToProne instead to have the Prone persist during movement, or just use the Prone functions on the owning Character.
+	 * @param	bClientSimulation	true when called when bIsProned is replicated to non owned clients.
+	 */
+	virtual void Prone(bool bClientSimulation = false);
+	
+	/**
+	 * Checks if default capsule size fits (no encroachment), and trigger OnEndProne() on the owner if successful.
+	 * @param	bClientSimulation	true when called when bIsProned is replicated to non owned clients.
+	 */
+	virtual void UnProne(bool bClientSimulation = false);
+
+	/** Returns true if the character is allowed to Prone in the current state. By default it is allowed when walking or falling. */
+	virtual bool CanProneInCurrentState() const;
+
+	virtual bool CanCrouchInCurrentState() const override;
+	
+public:
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
 	virtual void UpdateCharacterStateAfterMovement(float DeltaSeconds) override;
 
@@ -372,6 +496,8 @@ class PREDICTEDMOVEMENT_API FSavedMove_Character_Pred : public FSavedMove_Charac
 public:
 	FSavedMove_Character_Pred()
 		: bWantsToAimDownSights(0)
+		, bWantsToProne(0)
+		, bProneLocked(0)
 		, bWantsToSprint(0)
 		, bStaminaDrained(false)
 		, StartStamina(0)
@@ -382,10 +508,13 @@ public:
 	{}
 
 	uint32 bWantsToAimDownSights:1;
-
+	
+	uint32 bWantsToProne:1;
+	uint32 bProneLocked:1;
+	
 	uint32 bWantsToSprint:1;
-
 	uint32 bStaminaDrained : 1;
+	
 	float StartStamina;
 	float EndStamina;
 
@@ -398,6 +527,9 @@ public:
 	/** Called to set up this saved move (when initially created) to make a predictive correction. */
 	virtual void SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character & ClientData) override;
 
+	/** Called before ClientUpdatePosition uses this SavedMove to make a predictive correction	 */
+	virtual void PrepMoveFor(ACharacter* C) override;
+	
 	/** Returns true if this move can be combined with NewMove for replication without changing any behavior */
 	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const override;
 	

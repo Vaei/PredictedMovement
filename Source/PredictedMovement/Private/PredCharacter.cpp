@@ -9,10 +9,14 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(PredCharacter)
 
+DEFINE_LOG_CATEGORY_STATIC(LogPredCharacter, Log, All);
+
 APredCharacter::APredCharacter(const FObjectInitializer& FObjectInitializer)
 	: Super(FObjectInitializer.SetDefaultSubobjectClass<UPredMovement>(CharacterMovementComponentName))
 {
 	PredMovement = Cast<UPredMovement>(GetCharacterMovement());
+
+	PronedEyeHeight = 16.f;
 }
 
 void APredCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -26,6 +30,7 @@ void APredCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsAimingDownSights, SharedParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsSprinting, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsProned, SharedParams);
 }
 
 void APredCharacter::SetIsSprinting(bool bNewSprinting)
@@ -64,11 +69,33 @@ void APredCharacter::OnRep_IsSprinting()
 	}
 }
 
+bool APredCharacter::CanSprint() const
+{
+	return !bIsSprinting && GetRootComponent() && !GetRootComponent()->IsSimulatingPhysics();
+}
+
 void APredCharacter::Sprint(bool bClientSimulation)
 {
-	if (PredMovement)
+	if (PredMovement && CanSprint())
 	{
 		PredMovement->bWantsToSprint = true;
+		
+		if (!bClientSimulation)
+		{
+			// If we can't sprint during certain states, then allow sprint to cancel those states
+			if (bIsCrouched && !PredMovement->bCanSprintDuringCrouch)
+			{
+				UnCrouch();
+			}
+			if (IsProned() && !PredMovement->bCanSprintDuringProne)
+			{
+				UnProne();
+			}
+			if (IsAimingDownSights() && !PredMovement->bCanSprintDuringAimDownSights)
+			{
+				UnAimDownSights();
+			}
+		}
 	}
 }
 
@@ -80,14 +107,14 @@ void APredCharacter::UnSprint(bool bClientSimulation)
 	}
 }
 
-void APredCharacter::OnEndSprint()
-{
-	K2_OnEndSprint();
-}
-
 void APredCharacter::OnStartSprint()
 {
 	K2_OnStartSprint();
+}
+
+void APredCharacter::OnEndSprint()
+{
+	K2_OnEndSprint();
 }
 
 void APredCharacter::OnStaminaChanged(float Stamina, float PrevStamina)
@@ -165,11 +192,22 @@ void APredCharacter::OnRep_IsAimingDownSights()
 	}
 }
 
+bool APredCharacter::CanAimDownSights() const
+{
+	return !bIsAimingDownSights && GetRootComponent() && !GetRootComponent()->IsSimulatingPhysics();
+}
+
 void APredCharacter::AimDownSights(bool bClientSimulation)
 {
-	if (PredMovement)
+	if (PredMovement && CanAimDownSights())
 	{
 		PredMovement->bWantsToAimDownSights = true;
+
+		// If we can't sprint during ADS, then allow ADS to cancel sprint
+		if (!bClientSimulation && IsSprinting() && !PredMovement->bCanSprintDuringAimDownSights)
+		{
+			UnSprint();
+		}
 	}
 }
 
@@ -181,14 +219,147 @@ void APredCharacter::UnAimDownSights(bool bClientSimulation)
 	}
 }
 
+void APredCharacter::OnStartAimDownSights()
+{
+	K2_OnStartAimDownSights();
+}
+
 void APredCharacter::OnEndAimDownSights()
 {
 	K2_OnEndAimDownSights();
 }
 
-void APredCharacter::OnStartAimDownSights()
+void APredCharacter::RecalculateBaseEyeHeight()
 {
-	K2_OnStartAimDownSights();
+	if (bIsProned)
+	{
+		BaseEyeHeight = PronedEyeHeight;
+	}
+	else
+	{
+		Super::RecalculateBaseEyeHeight();
+	}
+}
+
+void APredCharacter::SetIsProned(bool bNewProned)
+{
+	if (bIsProned != bNewProned)
+	{
+		bIsProned = bNewProned;
+
+		if (HasAuthority())
+		{
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, bIsProned, this);  // Push-model
+		}
+	}
+}
+
+void APredCharacter::OnRep_IsProned()
+{
+	if (PredMovement)
+	{
+		if (bIsProned)
+		{
+			PredMovement->bWantsToProne = true;
+			PredMovement->Prone(true);
+		}
+		else
+		{
+			PredMovement->bWantsToProne = false;
+			PredMovement->UnProne(true);
+		}
+		PredMovement->bNetworkUpdateReceived = true;
+	}
+}
+
+bool APredCharacter::CanProne() const
+{
+	return !bIsProned && GetRootComponent() && !GetRootComponent()->IsSimulatingPhysics();
+}
+
+void APredCharacter::Crouch(bool bClientSimulation)
+{
+	if (PredMovement)
+	{
+		if (CanCrouch())
+		{
+			PredMovement->bWantsToCrouch = true;
+			
+			// If we can't sprint during crouch, then allow crouch to cancel sprint
+			if (!bClientSimulation && IsSprinting() && !PredMovement->bCanSprintDuringCrouch)
+			{
+				UnSprint();
+			}
+		}
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		else
+		{
+			UE_LOG(LogPredCharacter, Log, TEXT("%s is trying to crouch, but crouching is disabled on this character! (check CharacterMovement NavAgentSettings)"), *GetName());
+		}
+#endif
+	}
+}
+
+void APredCharacter::Prone(bool bClientSimulation)
+{
+	if (PredMovement && CanProne())
+	{
+		PredMovement->bWantsToProne = true;
+		
+		// If we can't sprint during prone, then allow prone to cancel sprint
+		if (!bClientSimulation && IsSprinting() && !PredMovement->bCanSprintDuringProne)
+		{
+			UnSprint();
+		}
+	}
+}
+
+void APredCharacter::UnProne(bool bClientSimulation)
+{
+	if (PredMovement)
+	{
+		PredMovement->bWantsToProne = false;
+	}
+}
+
+void APredCharacter::OnStartProne(float HeightAdjust, float ScaledHeightAdjust)
+{
+	RecalculateBaseEyeHeight();
+
+	const ACharacter* DefaultChar = GetDefault<ACharacter>(GetClass());
+	if (GetMesh() && DefaultChar->GetMesh())
+	{
+		FVector& MeshRelativeLocation = GetMesh()->GetRelativeLocation_DirectMutable();
+		MeshRelativeLocation.Z = DefaultChar->GetMesh()->GetRelativeLocation().Z + HeightAdjust;
+		BaseTranslationOffset.Z = MeshRelativeLocation.Z;
+	}
+	else
+	{
+		BaseTranslationOffset.Z = DefaultChar->GetBaseTranslationOffset().Z + HeightAdjust;
+	}
+
+	K2_OnStartProne(HeightAdjust, ScaledHeightAdjust);
+}
+
+void APredCharacter::OnEndProne(float HeightAdjust, float ScaledHeightAdjust)
+{
+	RecalculateBaseEyeHeight();
+
+	if (!bIsCrouched)
+	{
+		const ACharacter* DefaultChar = GetDefault<ACharacter>(GetClass());
+		if (GetMesh() && DefaultChar->GetMesh())
+		{
+			FVector& MeshRelativeLocation = GetMesh()->GetRelativeLocation_DirectMutable();
+			MeshRelativeLocation.Z = DefaultChar->GetMesh()->GetRelativeLocation().Z;
+			BaseTranslationOffset.Z = MeshRelativeLocation.Z;
+		}
+		else
+		{
+			BaseTranslationOffset.Z = DefaultChar->GetBaseTranslationOffset().Z;
+		}
+	}
+	K2_OnEndProne(HeightAdjust, ScaledHeightAdjust);
 }
 
 void APredCharacter::FlushServerMoves()

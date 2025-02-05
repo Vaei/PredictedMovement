@@ -100,6 +100,25 @@ bool AProneCharacter::CanProne() const
 	return !bIsProned && GetRootComponent() && !GetRootComponent()->IsSimulatingPhysics();
 }
 
+void AProneCharacter::OnStartProne(float HeightAdjust, float ScaledHeightAdjust)
+{
+	RecalculateBaseEyeHeight();
+
+	const ACharacter* DefaultChar = GetDefault<ACharacter>(GetClass());
+	if (GetMesh() && DefaultChar->GetMesh())
+	{
+		FVector& MeshRelativeLocation = GetMesh()->GetRelativeLocation_DirectMutable();
+		MeshRelativeLocation.Z = DefaultChar->GetMesh()->GetRelativeLocation().Z + HeightAdjust;
+		BaseTranslationOffset.Z = MeshRelativeLocation.Z;
+	}
+	else
+	{
+		BaseTranslationOffset.Z = DefaultChar->GetBaseTranslationOffset().Z + HeightAdjust;
+	}
+
+	K2_OnStartProne(HeightAdjust, ScaledHeightAdjust);
+}
+
 void AProneCharacter::OnEndProne(float HeightAdjust, float ScaledHeightAdjust)
 {
 	RecalculateBaseEyeHeight();
@@ -119,23 +138,4 @@ void AProneCharacter::OnEndProne(float HeightAdjust, float ScaledHeightAdjust)
 		}
 	}
 	K2_OnEndProne(HeightAdjust, ScaledHeightAdjust);
-}
-
-void AProneCharacter::OnStartProne(float HeightAdjust, float ScaledHeightAdjust)
-{
-	RecalculateBaseEyeHeight();
-
-	const ACharacter* DefaultChar = GetDefault<ACharacter>(GetClass());
-	if (GetMesh() && DefaultChar->GetMesh())
-	{
-		FVector& MeshRelativeLocation = GetMesh()->GetRelativeLocation_DirectMutable();
-		MeshRelativeLocation.Z = DefaultChar->GetMesh()->GetRelativeLocation().Z + HeightAdjust;
-		BaseTranslationOffset.Z = MeshRelativeLocation.Z;
-	}
-	else
-	{
-		BaseTranslationOffset.Z = DefaultChar->GetBaseTranslationOffset().Z + HeightAdjust;
-	}
-
-	K2_OnStartProne(HeightAdjust, ScaledHeightAdjust);
 }

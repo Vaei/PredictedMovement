@@ -65,19 +65,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
 	virtual void UnSprint(bool bClientSimulation = false);
 
-	/** Called when Character stops Sprinting. Called on non-owned Characters through bIsSprinting replication. */
-	virtual void OnEndSprint();
-
-	/** Event when Character stops Sprinting. */
-	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="OnEndSprint", ScriptName="OnEndSprint"))
-	void K2_OnEndSprint();
-
 	/** Called when Character Sprints. Called on non-owned Characters through bIsSprinting replication. */
 	virtual void OnStartSprint();
 
 	/** Event when Character Sprints. */
-	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="OnStartSprint", ScriptName="OnStartSprint"))
+	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="On Start Sprint"))
 	void K2_OnStartSprint();
+
+	/** Called when Character stops Sprinting. Called on non-owned Characters through bIsSprinting replication. */
+	virtual void OnEndSprint();
+
+	/** Event when Character stops Sprinting. */
+	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="On End Sprint"))
+	void K2_OnEndSprint();
 
 public:
 	UPROPERTY(BlueprintAssignable, Category=Character)
@@ -155,19 +155,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
 	virtual void UnAimDownSights(bool bClientSimulation = false);
 
-	/** Called when Character stops AimingDownSights. Called on non-owned Characters through bIsAimingDownSights replication. */
-	virtual void OnEndAimDownSights();
-
-	/** Event when Character stops AimingDownSights. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndAimDownSights", ScriptName="OnEndAimDownSights"))
-	void K2_OnEndAimDownSights();
-
 	/** Called when Character AimsDownSights. Called on non-owned Characters through bIsAimingDownSights replication. */
 	virtual void OnStartAimDownSights();
 
 	/** Event when Character AimsDownSights. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnStartAimDownSights", ScriptName="OnStartAimDownSights"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="On Start Aim Down Sights"))
 	void K2_OnStartAimDownSights();
+
+	/** Called when Character stops AimingDownSights. Called on non-owned Characters through bIsAimingDownSights replication. */
+	virtual void OnEndAimDownSights();
+
+	/** Event when Character stops AimingDownSights. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="On End Aim Down Sights"))
+	void K2_OnEndAimDownSights();
 
 public:
 	/**

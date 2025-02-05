@@ -65,10 +65,7 @@ void AStrafeCharacter::Strafe(bool bClientSimulation)
 {
 	if (StrafeMovement)
 	{
-		if (CanStrafe())
-		{
-			StrafeMovement->bWantsToStrafe = true;
-		}
+		StrafeMovement->bWantsToStrafe = true;
 	}
 }
 
@@ -80,17 +77,12 @@ void AStrafeCharacter::UnStrafe(bool bClientSimulation)
 	}
 }
 
-bool AStrafeCharacter::CanStrafe() const
+void AStrafeCharacter::OnStartStrafe()
 {
-	return !bIsStrafing && GetRootComponent() && !GetRootComponent()->IsSimulatingPhysics();
+	K2_OnStartStrafe();
 }
 
 void AStrafeCharacter::OnEndStrafe()
 {
 	K2_OnEndStrafe();
-}
-
-void AStrafeCharacter::OnStartStrafe()
-{
-	K2_OnStartStrafe();
 }

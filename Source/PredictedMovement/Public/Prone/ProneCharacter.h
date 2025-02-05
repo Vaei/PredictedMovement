@@ -68,7 +68,7 @@ public:
 	virtual void UnProne(bool bClientSimulation = false);
 
 	/** @return true if this character is currently able to Prone (and is not currently Proned) */
-	UFUNCTION(BlueprintCallable, Category=Character)
+	UFUNCTION(BlueprintPure, Category=Character)
 	virtual bool CanProne() const;
 	
 	/** Called when Character Prones. Called on non-owned Characters through bIsProned replication. */

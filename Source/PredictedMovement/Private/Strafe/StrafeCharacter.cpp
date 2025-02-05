@@ -63,7 +63,7 @@ void AStrafeCharacter::OnRep_IsStrafing()
 
 void AStrafeCharacter::Strafe(bool bClientSimulation)
 {
-	if (StrafeMovement)
+	if (StrafeMovement && CanStrafe())
 	{
 		StrafeMovement->bWantsToStrafe = true;
 	}
@@ -75,6 +75,11 @@ void AStrafeCharacter::UnStrafe(bool bClientSimulation)
 	{
 		StrafeMovement->bWantsToStrafe = false;
 	}
+}
+
+bool AStrafeCharacter::CanStrafe() const
+{
+	return !bIsStrafing && GetRootComponent() && !GetRootComponent()->IsSimulatingPhysics();
 }
 
 void AStrafeCharacter::OnStartStrafe()

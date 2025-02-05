@@ -72,6 +72,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
 	virtual void UnStrafe(bool bClientSimulation = false);
 
+	/** @return true if this character is currently able to Strafe (and is not currently Strafing) */
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual bool CanStrafe() const;
+	
 	/** Called when Character Strafes. Called on non-owned Characters through bIsStrafing replication. */
 	virtual void OnStartStrafe();
 

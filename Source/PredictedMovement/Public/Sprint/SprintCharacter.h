@@ -64,6 +64,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
 	virtual void UnSprint(bool bClientSimulation = false);
 
+	/** @return true if this character is currently able to Sprint (and is not currently Sprinting) */
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual bool CanSprint() const;
+	
 	/** Called when Character Sprints. Called on non-owned Characters through bIsSprinting replication. */
 	virtual void OnStartSprint();
 

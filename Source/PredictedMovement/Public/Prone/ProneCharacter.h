@@ -45,7 +45,7 @@ public:
 	UFUNCTION(BlueprintPure, Category=Character)
 	virtual bool IsProned() const { return bIsProned; }
 
-	/** Handle Crouching replicated from server */
+	/** Handle Prone replicated from server */
 	UFUNCTION()
 	virtual void OnRep_IsProned();
 
@@ -71,18 +71,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character)
 	virtual bool CanProne() const;
 	
+	/** Called when Character Prones. Called on non-owned Characters through bIsProned replication. */
+	virtual void OnStartProne(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
+
+	/** Event when Character Prones. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="On Start Prone"))
+	void K2_OnStartProne(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
+	
 	/** Called when Character stops Proned. Called on non-owned Characters through bIsProned replication. */
 	virtual void OnEndProne(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
 
 	/** Event when Character stops Proned. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndProne", ScriptName="OnEndProne"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="On End Prone"))
 	void K2_OnEndProne(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
-
-	/** Called when Character Pronees. Called on non-owned Characters through bIsProned replication. */
-	virtual void OnStartProne(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
-
-	/** Event when Character Pronees. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnStartProne", ScriptName="OnStartProne"))
-	void K2_OnStartProne(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
 };
 

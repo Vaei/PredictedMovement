@@ -42,7 +42,7 @@ public:
 	UFUNCTION(BlueprintPure, Category=Character)
 	virtual bool IsSprintingAtSpeed() const;
 	
-	/** Handle Crouching replicated from server */
+	/** Handle Sprinting replicated from server */
 	UFUNCTION()
 	virtual void OnRep_IsSprinting();
 
@@ -64,17 +64,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
 	virtual void UnSprint(bool bClientSimulation = false);
 
+	/** Called when Character Sprints. Called on non-owned Characters through bIsSprinting replication. */
+	virtual void OnStartSprint();
+
+	/** Event when Character Sprints. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="On Start Sprint"))
+	void K2_OnStartSprint();
+	
 	/** Called when Character stops Sprinting. Called on non-owned Characters through bIsSprinting replication. */
 	virtual void OnEndSprint();
 
 	/** Event when Character stops Sprinting. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnEndSprint", ScriptName="OnEndSprint"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="On End Sprint"))
 	void K2_OnEndSprint();
-
-	/** Called when Character Sprintes. Called on non-owned Characters through bIsSprinting replication. */
-	virtual void OnStartSprint();
-
-	/** Event when Character Sprintes. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnStartSprint", ScriptName="OnStartSprint"))
-	void K2_OnStartSprint();
 };

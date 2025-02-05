@@ -50,7 +50,7 @@ public:
 	UFUNCTION(BlueprintPure, Category=Character)
 	virtual bool IsStrafing() const { return bIsStrafing; }
 	
-	/** Handle Crouching replicated from server */
+	/** Handle Strafing replicated from server */
 	UFUNCTION()
 	virtual void OnRep_IsStrafing();
 

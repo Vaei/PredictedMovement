@@ -82,12 +82,15 @@ UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
 	SetNetworkMoveDataContainer(PredMoveDataContainer);
 	SetMoveResponseDataContainer(PredMoveResponseDataContainer);
 
+	// Defaults
+	GroundFriction = 12.f;  // More grounded, less sliding
+	
 	// Sprinting
 	bUseMaxAccelerationSprintingOnlyAtSpeed = true;
 	MaxAccelerationSprinting = 1024.f;
 	MaxWalkSpeedSprinting = 600.f;
 	BrakingDecelerationSprinting = 512.f;
-	GroundFrictionSprinting = 8.f;
+	GroundFrictionSprinting = 12.f;
 	BrakingFrictionSprinting = 4.f;
 
 	VelocityCheckMitigatorSprinting = 0.98f;

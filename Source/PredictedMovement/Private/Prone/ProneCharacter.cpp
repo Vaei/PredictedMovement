@@ -78,12 +78,9 @@ void AProneCharacter::OnRep_IsProned()
 
 void AProneCharacter::Prone(bool bClientSimulation)
 {
-	if (ProneMovement)
+	if (ProneMovement && CanProne())
 	{
-		if (CanProne())
-		{
-			ProneMovement->bWantsToProne = true;
-		}
+		ProneMovement->bWantsToProne = true;
 	}
 }
 

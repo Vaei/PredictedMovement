@@ -68,7 +68,7 @@ void ASprintCharacter::OnRep_IsSprinting()
 
 void ASprintCharacter::Sprint(bool bClientSimulation)
 {
-	if (SprintMovement)
+	if (SprintMovement && CanSprint())
 	{
 		SprintMovement->bWantsToSprint = true;
 	}
@@ -80,6 +80,11 @@ void ASprintCharacter::UnSprint(bool bClientSimulation)
 	{
 		SprintMovement->bWantsToSprint = false;
 	}
+}
+
+bool ASprintCharacter::CanSprint() const
+{
+	return !bIsSprinting && GetRootComponent() && !GetRootComponent()->IsSimulatingPhysics();
 }
 
 void ASprintCharacter::OnStartSprint()

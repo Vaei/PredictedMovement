@@ -41,6 +41,18 @@ public:
 	/** @return True if the character is currently Sprinting at or above sprint speed */
 	UFUNCTION(BlueprintPure, Category=Character)
 	virtual bool IsSprintingAtSpeed() const;
+
+	/**
+	 * This check ensures that we are not sprinting backward or sideways, while allowing leeway 
+	 * This angle allows sprinting when holding forward, forward left, forward right
+	 * but not left or right or backward)
+	 */
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual bool IsSprintWithinAllowableInputAngle() const;
+	
+	/** @return True if the character is currently Sprinting at or above sprint speed and sprint is within allowable input angle */
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual bool IsSprintingInEffect() const;
 	
 	/** Handle Sprinting replicated from server */
 	UFUNCTION()

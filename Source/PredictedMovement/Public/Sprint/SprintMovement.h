@@ -66,6 +66,15 @@ public:
 	 */
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", EditCondition="bUseSeparateBrakingFriction"))
 	float BrakingFrictionSprinting;
+
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(InlineEditConditionToggle))
+	bool bRestrictSprintInputAngle;
+
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, meta=(EditCondition="bRestrictSprintInputAngle", ClampMin="0.0", ClampMax="180.0", UIMin = "0.0", UIMax = "180.0", ForceUnits="degrees"))
+	float MaxInputAngleSprint;
+
+	UPROPERTY(Category="Character Movement: Walking", VisibleAnywhere)
+	float MaxInputNormalSprint;
 	
 public:
 	/** If true, try to Sprint (or keep Sprinting) on next update. If false, try to stop Sprinting on next update. */
@@ -75,18 +84,29 @@ public:
 public:
 	USprintMovement(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
+	
 	virtual bool HasValidData() const override;
 	virtual void PostLoad() override;
+	virtual void OnRegister() override;
 	virtual void SetUpdatedComponent(USceneComponent* NewUpdatedComponent) override;
 
 public:
 	virtual bool IsSprintingAtSpeed() const;
+	virtual bool IsSprintingInEffect() const { return IsSprintingAtSpeed() && IsSprintWithinAllowableInputAngle(); }
+
 	virtual float GetMaxAcceleration() const override;
 	virtual float GetMaxSpeed() const override;
 	virtual float GetMaxBrakingDeceleration() const override;
 	
 	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
 	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
+
+public:
+	UFUNCTION(BlueprintCallable, Category="Character Movement: Walking")
+	void SetMaxInputAngleSprint(float InMaxAngleSprint);
 
 public:
 	virtual bool IsSprinting() const;
@@ -111,12 +131,6 @@ public:
 	 * This check ensures that we are not sprinting backward or sideways, while allowing leeway 
 	 * This angle allows sprinting when holding forward, forward left, forward right
 	 * but not left or right or backward)
-	 * 
-	 * You can override this to remove this check, or to add your own check. Magic numbers are used to avoid
-	 * more expensive runtime trig calculations.
-	 *
-	 * Consider adding this check to CanSprintInCurrentState() if you want the check to cause Sprint to end
-	 * when it fails while already sprinting
 	 */
 	virtual bool IsSprintWithinAllowableInputAngle() const;
 

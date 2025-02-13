@@ -21,6 +21,16 @@ void ASprintCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME_CONDITION(ThisClass, bIsSprinting, COND_SimulatedOnly);
 }
 
+bool ASprintCharacter::IsSprintWithinAllowableInputAngle() const
+{
+	return SprintMovement && SprintMovement->IsSprintWithinAllowableInputAngle();
+}
+
+bool ASprintCharacter::IsSprintingInEffect() const
+{
+	return IsSprintingAtSpeed() && IsSprintWithinAllowableInputAngle();
+}
+
 void ASprintCharacter::OnRep_IsSprinting()
 {
 	if (SprintMovement)

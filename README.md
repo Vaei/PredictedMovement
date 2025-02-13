@@ -48,8 +48,17 @@ https://youtu.be/SHVm57AMruc
 
 ### 2.0.0
 * Movement Modifiers added
+  * Supports Local Predicted & Server Initiated modifiers
   * Boost, SlowFall, Snare included by default
 * Client Authority solution added
+  * For Server Initiated modifiers in particular
+* `CanSprintInCurrentState()` no longer checks `IsSprintWithinAllowableInputAngle()`
+  * `IsSprintWithinAllowableInputAngle()` exposed for BP (`ASprintCharacter`) and should be checked individually for when considered sprinting
+    * Additional function added `IsSprintingInEffect()` that checks both `IsSprintingAtSpeed() && IsSprintWithinAllowableInputAngle()`
+    * e.g. `if (IsSprintingAtSpeed())` becomes `if (IsSprintingInEffect())`
+  * The goal is to not have it completely exit/re-entry sprinting state repeatedly when the angle continues to fail the check momentarily
+  * Exposed `MaxInputAngleSprint` which was previously 50.f
+* Movement Abilities updated to use push model for replication
 * Wiki added
 
 ### 1.5.2

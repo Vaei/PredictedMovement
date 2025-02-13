@@ -48,6 +48,16 @@ bool ASprintCharacter::IsSprintingAtSpeed() const
 	return SprintMovement && SprintMovement->IsSprintingAtSpeed();
 }
 
+bool ASprintCharacter::IsSprintWithinAllowableInputAngle() const
+{
+	return SprintMovement && SprintMovement->IsSprintWithinAllowableInputAngle();
+}
+
+bool ASprintCharacter::IsSprintingInEffect() const
+{
+	return IsSprintingAtSpeed() && IsSprintWithinAllowableInputAngle();
+}
+
 void ASprintCharacter::OnRep_IsSprinting()
 {
 	if (SprintMovement)

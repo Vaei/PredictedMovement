@@ -51,6 +51,16 @@ bool APredCharacter::IsSprintingAtSpeed() const
 	return PredMovement ? PredMovement->IsSprintingAtSpeed() : false;
 }
 
+bool APredCharacter::IsSprintWithinAllowableInputAngle() const
+{
+	return PredMovement && PredMovement->IsSprintWithinAllowableInputAngle();
+}
+
+bool APredCharacter::IsSprintingInEffect() const
+{
+	return IsSprintingAtSpeed() && IsSprintWithinAllowableInputAngle();
+}
+
 void APredCharacter::OnRep_IsSprinting()
 {
 	if (PredMovement)

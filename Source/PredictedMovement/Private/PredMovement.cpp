@@ -95,6 +95,8 @@ UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
 	BrakingFrictionSprinting = 4.f;
 
 	VelocityCheckMitigatorSprinting = 0.98f;
+	bRestrictSprintInputAngle = true;
+	SetMaxInputAngleSprint(50.f);
 
 	bWantsToSprint = false;
 
@@ -145,6 +147,20 @@ UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
 	bProneLocked = false;
 }
 
+#if WITH_EDITOR
+void UPredMovement::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	const FProperty* PropertyThatChanged = PropertyChangedEvent.MemberProperty;
+	if (PropertyThatChanged && PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(ThisClass, MaxInputAngleSprint))
+	{
+		// Compute MaxInputAngleSprint from the Angle.
+		SetMaxInputAngleSprint(MaxInputAngleSprint);
+	}
+}
+#endif
+
 bool UPredMovement::HasValidData() const
 {
 	return Super::HasValidData() && IsValid(PredCharacterOwner);
@@ -155,6 +171,16 @@ void UPredMovement::PostLoad()
 	Super::PostLoad();
 
 	PredCharacterOwner = Cast<APredCharacter>(PawnOwner);
+}
+
+void UPredMovement::OnRegister()
+{
+	Super::OnRegister();
+
+#if WITH_EDITOR
+	// Ensure MaxInputAngleSprint is computed from the Angle.
+	SetMaxInputAngleSprint(MaxInputAngleSprint);
+#endif
 }
 
 void UPredMovement::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
@@ -212,7 +238,7 @@ float UPredMovement::GetMaxBrakingDecelerationMultiplier() const
 
 float UPredMovement::GetMaxAcceleration() const
 {
-	if (IsSprinting() && (!bUseMaxAccelerationSprintingOnlyAtSpeed || IsSprintingAtSpeed()))
+	if (IsSprinting() && (!bUseMaxAccelerationSprintingOnlyAtSpeed || IsSprintingInEffect()))
 	{
 		return MaxAccelerationSprinting * GetMaxAccelerationMultiplier();
 	}
@@ -240,7 +266,7 @@ float UPredMovement::GetMaxSpeed() const
 float UPredMovement::GetMaxBrakingDeceleration() const
 {
 	const float Multiplier = GetMaxBrakingDecelerationMultiplier();
-	if (IsSprinting() && IsSprintingAtSpeed())
+	if (IsSprintingInEffect())
 	{
 		return BrakingDecelerationSprinting * Multiplier;
 	}
@@ -296,7 +322,7 @@ void UPredMovement::CalcStamina(float DeltaTime)
 		return;
 	}
 	
-	if (IsSprintingAtSpeed())
+	if (IsSprintingInEffect())
 	{
 		SetStamina(GetStamina() - SprintStaminaDrainRate * DeltaTime);
 	}
@@ -364,6 +390,12 @@ bool UPredMovement::CanAttemptJump() const
 	}
 
 	return true;
+}
+
+void UPredMovement::SetMaxInputAngleSprint(float InMaxAngleSprint)
+{
+	MaxInputAngleSprint = FMath::Clamp(InMaxAngleSprint, 0.f, 180.0f);
+	MaxInputNormalSprint = FMath::Cos(FMath::DegreesToRadians(MaxInputAngleSprint));
 }
 
 bool UPredMovement::IsSprinting() const
@@ -450,12 +482,6 @@ bool UPredMovement::CanSprintInCurrentState() const
 		return false;
 	}
 
-	// Cannot sprint backwards or sideways (ish)
-	if (!IsSprintWithinAllowableInputAngle())
-	{
-		return false;
-	}
-
 	if (IsCrouching() && !bCanSprintDuringCrouch)
 	{
 		return false;
@@ -471,23 +497,17 @@ bool UPredMovement::CanSprintInCurrentState() const
 
 bool UPredMovement::IsSprintWithinAllowableInputAngle() const
 {
+	if (!bRestrictSprintInputAngle && MaxInputAngleSprint <= 0.f)
+	{
+		return true;
+	}
+	
 	// This check ensures that we are not sprinting backward or sideways, while allowing leeway 
 	// This angle allows sprinting when holding forward, forward left, forward right
-	// but not left or right or backward)
-	static constexpr float MaxSprintInputDegrees = 50.f;
-	static constexpr float MaxSprintInputNormal = 0.64278732;  // cos(rad(MaxSprintInputDegrees))
-
-	if constexpr (MaxSprintInputDegrees > 0.f)
-	{
-		const float Dot = (GetCurrentAcceleration().GetSafeNormal2D() | UpdatedComponent->GetForwardVector());
-		if (Dot < MaxSprintInputNormal)
-		{
-			return false;
-		}
-	}
-	return true;
+	// but not left or right or backward
+	const float Dot = GetCurrentAcceleration().GetSafeNormal2D() | UpdatedComponent->GetForwardVector();
+	return Dot >= MaxInputNormalSprint;
 }
-
 
 void UPredMovement::SetStamina(float NewStamina)
 {

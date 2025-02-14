@@ -235,7 +235,7 @@ void FMovementModifier::OnModifiersChanged()
 	SetModifierLevel(NewLevel);
 }
 
-void FMovementModifier::StartModifier(uint8 Level, bool bCanApplyModifier, bool bClientSimulation)
+void FMovementModifier::StartModifier(uint8 Level, bool bCanApplyModifier, bool bClientSimulation, uint8 PrevSimulatedLevel)
 {
 	if (!HasValidData())
 	{
@@ -247,26 +247,35 @@ void FMovementModifier::StartModifier(uint8 Level, bool bCanApplyModifier, bool 
 		return;
 	}
 	
-	const uint8 PrevLevel = ModifierLevel;
 	if (!bClientSimulation)
 	{
+		const uint8 PrevLevel = ModifierLevel;
 		ModifierLevel = Level;
+		CharacterOwner->OnModifierChanged(ModifierType, ModifierLevel, PrevLevel);
 	}
-	CharacterOwner->OnModifierChanged(ModifierType, Level, PrevLevel);
+	else
+	{
+		CharacterOwner->OnModifierChanged(ModifierType, ModifierLevel, PrevSimulatedLevel);
+	}
 }
 
-void FMovementModifier::EndModifier(bool bClientSimulation)
+void FMovementModifier::EndModifier(bool bClientSimulation, uint8 PrevSimulatedLevel)
 {
 	if (!HasValidData())
 	{
 		return;
 	}
-	
+
 	if (!bClientSimulation)
 	{
+		const uint8 PrevLevel = ModifierLevel;
 		ModifierLevel = 0;
+		CharacterOwner->OnModifierChanged(ModifierType, ModifierLevel, PrevLevel);
 	}
-	CharacterOwner->OnModifierChanged(ModifierType, 0, ModifierLevel);
+	else
+	{
+		CharacterOwner->OnModifierChanged(ModifierType, ModifierLevel, PrevSimulatedLevel);
+	}
 }
 
 void FMovementModifier::UpdateCharacterStateBeforeMovement(bool bCanApplyModifier)

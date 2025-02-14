@@ -29,9 +29,190 @@ void APredCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	SharedParams.Condition = COND_SimulatedOnly;
 
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsAimingDownSights, SharedParams);
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsSprinting, SharedParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsProned, SharedParams);
+
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsStrolling, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsWalking, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsSprinting, SharedParams);
 }
+
+void APredCharacter::SetGaitMode(EPredGaitMode NewGaitMode)
+{ 
+	if (PredMovement)
+	{
+		switch (NewGaitMode)
+		{
+		case EPredGaitMode::Stroll:
+			Stroll();
+			break;
+		case EPredGaitMode::Walk:
+			Walk();
+			break;
+		case EPredGaitMode::Run:
+			UnStroll();
+			UnWalk();
+			UnSprint();
+			break;
+		case EPredGaitMode::Sprint:
+			Sprint();
+			break;
+		}
+	}
+}
+
+/* STROLLING */
+
+void APredCharacter::SetIsStrolling(bool bNewStrolling)
+{
+	if (bIsStrolling != bNewStrolling)
+	{
+		bIsStrolling = bNewStrolling;
+
+		if (HasAuthority())
+		{
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, bIsStrolling, this);  // Push-model
+		}
+	}
+}
+
+void APredCharacter::OnRep_IsStrolling()
+{
+	if (PredMovement)
+	{
+		if (bIsStrolling)
+		{
+			PredMovement->bWantsToStroll = true;
+			PredMovement->Stroll(true);
+		}
+		else
+		{
+			PredMovement->bWantsToStroll = false;
+			PredMovement->UnStroll(true);
+		}
+		PredMovement->bNetworkUpdateReceived = true;
+	}
+}
+
+bool APredCharacter::CanStroll() const
+{
+	return !bIsStrolling && GetRootComponent() && !GetRootComponent()->IsSimulatingPhysics();
+}
+
+void APredCharacter::Stroll(bool bClientSimulation)
+{
+	if (PredMovement && CanStroll())
+	{
+		PredMovement->bWantsToStroll = true;
+		
+		if (!bClientSimulation)
+		{
+			if (bIsSprinting)
+			{
+				UnSprint();
+			}
+			if (bIsWalking)
+			{
+				UnWalk();
+			}
+		}
+	}
+}
+
+void APredCharacter::UnStroll(bool bClientSimulation)
+{
+	if (PredMovement)
+	{
+		PredMovement->bWantsToStroll = false;
+	}
+}
+
+void APredCharacter::OnStartStroll()
+{
+	K2_OnStartStroll();
+}
+
+void APredCharacter::OnEndStroll()
+{
+	K2_OnEndStroll();
+}
+
+/* WALKING */
+
+void APredCharacter::SetIsWalking(bool bNewWalking)
+{
+	if (bIsWalking != bNewWalking)
+	{
+		bIsWalking = bNewWalking;
+
+		if (HasAuthority())
+		{
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, bIsWalking, this);  // Push-model
+		}
+	}
+}
+
+void APredCharacter::OnRep_IsWalking()
+{
+	if (PredMovement)
+	{
+		if (bIsWalking)
+		{
+			PredMovement->bWantsToWalk = true;
+			PredMovement->Walk(true);
+		}
+		else
+		{
+			PredMovement->bWantsToWalk = false;
+			PredMovement->UnWalk(true);
+		}
+		PredMovement->bNetworkUpdateReceived = true;
+	}
+}
+
+bool APredCharacter::CanWalk() const
+{
+	return !bIsWalking && GetRootComponent() && !GetRootComponent()->IsSimulatingPhysics();
+}
+
+void APredCharacter::Walk(bool bClientSimulation)
+{
+	if (PredMovement && CanWalk())
+	{
+		PredMovement->bWantsToWalk = true;
+		
+		if (!bClientSimulation)
+		{
+			if (bIsStrolling)
+			{
+				UnStroll();
+			}
+			if (bIsSprinting)
+			{
+				UnSprint();
+			}
+		}
+	}
+}
+
+void APredCharacter::UnWalk(bool bClientSimulation)
+{
+	if (PredMovement)
+	{
+		PredMovement->bWantsToWalk = false;
+	}
+}
+
+void APredCharacter::OnStartWalk()
+{
+	K2_OnStartWalk();
+}
+
+void APredCharacter::OnEndWalk()
+{
+	K2_OnEndWalk();
+}
+
+/* SPRINTING */
 
 void APredCharacter::SetIsSprinting(bool bNewSprinting)
 {
@@ -105,6 +286,14 @@ void APredCharacter::Sprint(bool bClientSimulation)
 			{
 				UnAimDownSights();
 			}
+			if (IsStrolling())
+			{
+				UnStroll();
+			}
+			if (IsWalking())
+			{
+				UnWalk();
+			}
 		}
 	}
 }
@@ -126,6 +315,8 @@ void APredCharacter::OnEndSprint()
 {
 	K2_OnEndSprint();
 }
+
+/* STAMINA */
 
 void APredCharacter::OnStaminaChanged(float Stamina, float PrevStamina)
 {

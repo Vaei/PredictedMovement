@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "PredTypes.h"
 #include "GameFramework/Character.h"
 #include "PredCharacter.generated.h"
 
@@ -25,6 +26,14 @@ protected:
 	FORCEINLINE UPredMovement* GetPredCharacterMovement() const { return PredMovement; }
 
 protected:
+	/** Set by character movement to specify that this Character is currently Strolling. */
+	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsStrolling, Category=Character)
+	uint32 bIsStrolling:1;
+
+	/** Set by character movement to specify that this Character is currently Walking. */
+	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsWalking, Category=Character)
+	uint32 bIsWalking:1;
+	
 	/** Set by character movement to specify that this Character is currently Sprinting. */
 	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsSprinting, Category=Character)
 	uint32 bIsSprinting:1;
@@ -34,6 +43,104 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+public:
+	/** Request Gait Mode based on Player's Input */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	virtual void SetGaitMode(EPredGaitMode NewGaitMode);
+
+public:
+	void SetIsStrolling(bool bNewStrolling);
+
+	UFUNCTION(BlueprintPure, Category=Character)
+	bool IsStrolling() const { return bIsStrolling; }
+
+	/** Handle Strolling replicated from server */
+	UFUNCTION()
+	virtual void OnRep_IsStrolling();
+
+	/** @return true if this character is currently able to Stroll (and is not currently Strolling) */
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual bool CanStroll() const;
+
+	/**
+	 * Request the character to start Strolling. The request is processed on the next update of the CharacterMovementComponent.
+	 * @see OnStartStroll
+	 * @see IsStrolling
+	 * @see CharacterMovement->WantsToStroll
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
+	virtual void Stroll(bool bClientSimulation = false);
+
+	/**
+	 * Request the character to stop Strolling. The request is processed on the next update of the CharacterMovementComponent.
+	 * @see OnEndStroll
+	 * @see IsStrolling
+	 * @see CharacterMovement->WantsToStroll
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
+	virtual void UnStroll(bool bClientSimulation = false);
+
+	/** Called when Character Strolls. Called on non-owned Characters through bIsStrolling replication. */
+	virtual void OnStartStroll();
+
+	/** Event when Character Strolls. */
+	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="On Start Stroll"))
+	void K2_OnStartStroll();
+
+	/** Called when Character stops Strolling. Called on non-owned Characters through bIsStrolling replication. */
+	virtual void OnEndStroll();
+
+	/** Event when Character stops Strolling. */
+	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="On End Stroll"))
+	void K2_OnEndStroll();
+	
+public:
+	public:
+	void SetIsWalking(bool bNewWalking);
+
+	UFUNCTION(BlueprintPure, Category=Character)
+	bool IsWalking() const { return bIsWalking; }
+
+	/** Handle Walking replicated from server */
+	UFUNCTION()
+	virtual void OnRep_IsWalking();
+
+	/** @return true if this character is currently able to Walk (and is not currently Walking) */
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual bool CanWalk() const;
+
+	/**
+	 * Request the character to start Walking. The request is processed on the next update of the CharacterMovementComponent.
+	 * @see OnStartWalk
+	 * @see IsWalking
+	 * @see CharacterMovement->WantsToWalk
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
+	virtual void Walk(bool bClientSimulation = false);
+
+	/**
+	 * Request the character to stop Walking. The request is processed on the next update of the CharacterMovementComponent.
+	 * @see OnEndWalk
+	 * @see IsWalking
+	 * @see CharacterMovement->WantsToWalk
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
+	virtual void UnWalk(bool bClientSimulation = false);
+
+	/** Called when Character Walks. Called on non-owned Characters through bIsWalking replication. */
+	virtual void OnStartWalk();
+
+	/** Event when Character Walks. */
+	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="On Start Walk"))
+	void K2_OnStartWalk();
+
+	/** Called when Character stops Walking. Called on non-owned Characters through bIsWalking replication. */
+	virtual void OnEndWalk();
+
+	/** Event when Character stops Walking. */
+	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="On End Walk"))
+	void K2_OnEndWalk();
+	
 public:
 	void SetIsSprinting(bool bNewSprinting);
 

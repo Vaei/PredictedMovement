@@ -85,6 +85,24 @@ UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
 
 	// Defaults
 	GroundFriction = 12.f;  // More grounded, less sliding
+
+	// Strolling
+	MaxAccelerationStrolling = 512.f;
+	MaxWalkSpeedStrolling = 256.f;
+	BrakingDecelerationStrolling = 512.f;
+	GroundFrictionStrolling = 12.f;
+	BrakingFrictionStrolling = 4.f;
+
+	bWantsToStroll = false;
+
+	// Running
+	MaxAccelerationRunning = 768.f;
+	MaxWalkSpeedRunning = 384.f;
+	BrakingDecelerationRunning = 512.f;
+	GroundFrictionRunning = 12.f;
+	BrakingFrictionRunning = 4.f;
+
+	bWantsToWalk = false;
 	
 	// Sprinting
 	bUseMaxAccelerationSprintingOnlyAtSpeed = true;
@@ -129,6 +147,10 @@ UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
 
 	// Crouch
 	SetCrouchedHalfHeight(54.f);
+	MaxAccelerationCrouched = 384.f;
+	BrakingDecelerationCrouched = 512.f;
+	GroundFrictionCrouched = 12.f;
+	BrakingFrictionCrouched = 3.f;
 	
 	// Prone
 	MaxAccelerationProned = 256.f;
@@ -201,6 +223,88 @@ void UPredMovement::BeginPlay()
 	SetStamina(GetMaxStamina());
 }
 
+EPredGaitMode UPredMovement::GetGaitMode() const
+{
+	if (IsSprinting() && IsSprintWithinAllowableInputAngle())
+	{
+		return EPredGaitMode::Sprint;
+	}
+	if (IsWalk())
+	{
+		return EPredGaitMode::Walk;
+	}
+	if (IsStrolling())
+	{
+		return EPredGaitMode::Stroll;
+	}
+	return EPredGaitMode::Run;
+}
+
+EPredGaitMode UPredMovement::GetGaitModeAtSpeed() const
+{
+	if (IsSprintingInEffect())
+	{
+		return EPredGaitMode::Sprint;
+	}
+	if (IsRunningAtSpeed())
+	{
+		return EPredGaitMode::Run;
+	}
+	if (IsWalkingAtSpeed())
+	{
+		return EPredGaitMode::Walk;
+	}
+	return EPredGaitMode::Stroll;
+}
+
+bool UPredMovement::IsStrolling() const
+{
+	return PredCharacterOwner && PredCharacterOwner->IsStrolling() && !IsSprintingInEffect();
+}
+
+bool UPredMovement::IsWalk() const
+{
+	return PredCharacterOwner && PredCharacterOwner->IsWalking() && !IsStrolling() && !IsSprintingInEffect();
+}
+
+bool UPredMovement::IsWalkingAtSpeed() const
+{
+	if (!IsWalk())
+	{
+		return false;
+	}
+
+	// When moving on ground we want to factor moving uphill or downhill so variations in terrain
+	// aren't culled from the check. When falling, we don't want to factor fall velocity, only lateral
+	const float Vel = IsMovingOnGround() ? Velocity.SizeSquared() : Velocity.SizeSquared2D();
+
+	// When struggling to surpass walk speed, which can occur with heavy rotation and low acceleration, we
+	// mitigate the check so there isn't a constant re-entry that can occur as an edge case
+	return Vel >= FMath::Square(GetBasicMaxSpeed()) * VelocityCheckMitigatorWalking;
+}
+
+bool UPredMovement::IsRunning() const
+{
+	// We're running if we're not walking, sprinting, etc.
+	return !PredCharacterOwner || (!IsStrolling() && !IsWalk() && !IsSprinting());
+}
+
+bool UPredMovement::IsRunningAtSpeed() const
+{
+	if (!IsRunning())
+	{
+		return false;
+	}
+
+	// When moving on ground we want to factor moving uphill or downhill so variations in terrain
+	// aren't culled from the check. When falling, we don't want to factor fall velocity, only lateral
+	const float Vel = IsMovingOnGround() ? Velocity.SizeSquared() : Velocity.SizeSquared2D();
+
+	// When struggling to surpass walk speed, which can occur with heavy rotation and low acceleration, we
+	// mitigate the check so there isn't a constant re-entry that can occur as an edge case
+	return Vel >= FMath::Square(GetBasicMaxSpeed()) * VelocityCheckMitigatorRunning;
+}
+
 bool UPredMovement::IsSprintingAtSpeed() const
 {
 	if (!IsSprinting())
@@ -211,11 +315,10 @@ bool UPredMovement::IsSprintingAtSpeed() const
 	// When moving on ground we want to factor moving uphill or downhill so variations in terrain
 	// aren't culled from the check. When falling, we don't want to factor fall velocity, only lateral
 	const float Vel = IsMovingOnGround() ? Velocity.SizeSquared() : Velocity.SizeSquared2D();
-	const float WalkSpeed = IsCrouching() ? MaxWalkSpeedCrouched : MaxWalkSpeed;
 
 	// When struggling to surpass walk speed, which can occur with heavy rotation and low acceleration, we
 	// mitigate the check so there isn't a constant re-entry that can occur as an edge case
-	return Vel >= (WalkSpeed * WalkSpeed * VelocityCheckMitigatorSprinting);
+	return Vel >= FMath::Square(GetBasicMaxSpeed()) * VelocityCheckMitigatorSprinting;
 }
 
 float UPredMovement::GetMaxAccelerationMultiplier() const
@@ -236,82 +339,112 @@ float UPredMovement::GetMaxBrakingDecelerationMultiplier() const
 		(IsAimingDownSights() ? BrakingDecelerationAimingDownSightsMultiplier : 1.f);
 }
 
-float UPredMovement::GetMaxAcceleration() const
+float UPredMovement::GetGroundFrictionMultiplier() const
 {
-	if (IsSprinting() && (!bUseMaxAccelerationSprintingOnlyAtSpeed || IsSprintingInEffect()))
+	return IsAimingDownSights() ? GroundFrictionAimingDownSightsMultiplier : 1.f;
+}
+
+float UPredMovement::GetBrakingFrictionMultiplier() const
+{
+	return IsAimingDownSights() ? BrakingFrictionAimingDownSightsMultiplier : 1.f;
+}
+
+float UPredMovement::GetMaxAcceleration() const
+{ 
+	const float Multiplier = GetMaxAccelerationMultiplier();
+	
+	if (IsFlying())		{ return MaxAccelerationRunning * Multiplier; }
+	if (IsSwimming())	{ return MaxAccelerationRunning * Multiplier; }
+	if (IsProned())		{ return MaxAccelerationProned * Multiplier; }
+	if (IsCrouching())	{ return MaxAccelerationCrouched * Multiplier; }
+	
+	switch (GetGaitMode())
 	{
-		return MaxAccelerationSprinting * GetMaxAccelerationMultiplier();
+	case EPredGaitMode::Stroll: return MaxAccelerationStrolling * Multiplier;
+	case EPredGaitMode::Walk: return MaxAcceleration * Multiplier;
+	case EPredGaitMode::Run: return MaxAccelerationRunning * Multiplier;
+	case EPredGaitMode::Sprint: return MaxAccelerationSprinting * Multiplier;
 	}
-	if (IsProned())
+	return 0.f;
+}
+
+float UPredMovement::GetBasicMaxSpeed() const
+{
+	if (IsFlying())		{ return MaxFlySpeed; }
+	if (IsSwimming())	{ return MaxSwimSpeed; }
+	if (IsProned())		{ return MaxWalkSpeedProned; }
+	if (IsCrouching())	{ return MaxWalkSpeedCrouched; }
+	if (MovementMode == MOVE_Custom) { return MaxCustomMovementSpeed; }
+	
+	switch (GetGaitMode())
 	{
-		return MaxAccelerationProned * GetMaxAccelerationMultiplier();
+	case EPredGaitMode::Stroll: return MaxWalkSpeedStrolling;
+	case EPredGaitMode::Walk: return MaxWalkSpeed;
+	case EPredGaitMode::Run: return MaxWalkSpeedRunning;
+	case EPredGaitMode::Sprint: return MaxWalkSpeedSprinting;
 	}
-	return Super::GetMaxAcceleration() * GetMaxAccelerationMultiplier();
+	return 0.f;
 }
 
 float UPredMovement::GetMaxSpeed() const
 {
-	const float Multiplier = GetMaxSpeedMultiplier();
-	if (IsSprinting())
-	{
-		return MaxWalkSpeedSprinting * Multiplier;
-	}
-	if (IsProned())
-	{
-		return MaxWalkSpeedProned * Multiplier;
-	}
-	return Super::GetMaxSpeed() * Multiplier;
+	return GetBasicMaxSpeed() * GetMaxSpeedMultiplier();
 }
 
 float UPredMovement::GetMaxBrakingDeceleration() const
 {
 	const float Multiplier = GetMaxBrakingDecelerationMultiplier();
-	if (IsSprintingInEffect())
+	
+	if (IsFlying()) { return BrakingDecelerationFlying * Multiplier; }
+	if (IsFalling()) { return BrakingDecelerationFalling * Multiplier; }
+	if (IsSwimming()) { return BrakingDecelerationSwimming * Multiplier; }
+	if (IsProned()) { return BrakingDecelerationProned * Multiplier; }
+	if (IsCrouching()) { return BrakingDecelerationCrouched * Multiplier; }
+	
+	switch (GetGaitMode())
 	{
-		return BrakingDecelerationSprinting * Multiplier;
+		case EPredGaitMode::Stroll: return BrakingDecelerationStrolling * Multiplier;
+		case EPredGaitMode::Walk: return BrakingDecelerationWalking * Multiplier;
+		case EPredGaitMode::Run: return BrakingDecelerationRunning * Multiplier;
+		case EPredGaitMode::Sprint: return BrakingDecelerationSprinting * Multiplier;
 	}
-	if (IsProned())
-	{
-		return BrakingDecelerationProned * Multiplier;
-	}
-	return Super::GetMaxBrakingDeceleration() * Multiplier;
-}
-
-float UPredMovement::GetGroundFrictionMultiplier() const
-{
-	return (IsAimingDownSights() ? GroundFrictionAimingDownSightsMultiplier : 1.f);
+	return 0.f;
 }
 
 float UPredMovement::GetGroundFriction(float DefaultGroundFriction) const
 {
 	const float Multiplier = GetGroundFrictionMultiplier();
-	if (IsSprinting())
-	{
-		return GroundFrictionSprinting * Multiplier;
-	}
-	if (IsProned())
-	{
-		return GroundFrictionProned * Multiplier;
-	}
-	return DefaultGroundFriction * Multiplier;
-}
 
-float UPredMovement::GetBrakingFrictionMultiplier() const
-{
-	return (IsAimingDownSights() ? BrakingFrictionAimingDownSightsMultiplier : 1.f);
+	if (IsProned()) { return GroundFrictionProned * Multiplier; }
+	if (IsCrouching()) { return GroundFrictionCrouched * Multiplier; }
+
+	switch (GetGaitMode())
+	{
+		case EPredGaitMode::Stroll: return GroundFrictionStrolling * Multiplier;
+		case EPredGaitMode::Walk: return DefaultGroundFriction * Multiplier;
+		case EPredGaitMode::Run: return GroundFrictionRunning * Multiplier;
+		case EPredGaitMode::Sprint: return GroundFrictionSprinting * Multiplier;
+	}
+
+	return DefaultGroundFriction;
 }
 
 float UPredMovement::GetBrakingFriction() const
 {
-	if (IsSprinting())
+	const float Multiplier = GetBrakingFrictionMultiplier();
+
+	if (IsProned()) { return BrakingFrictionProned * Multiplier; }
+	if (IsCrouching()) { return BrakingFrictionCrouched * Multiplier; }
+
+	switch (GetGaitMode())
 	{
-		return BrakingFrictionSprinting * GetBrakingFrictionMultiplier();
+		case EPredGaitMode::Stroll: return BrakingFrictionStrolling * Multiplier;
+		case EPredGaitMode::Walk: return BrakingFriction * Multiplier;
+		case EPredGaitMode::Run: return BrakingFrictionRunning * Multiplier;
+		case EPredGaitMode::Sprint: return BrakingFrictionSprinting * Multiplier;
 	}
-	if (IsProned())
-	{
-		return BrakingFrictionProned * GetBrakingFrictionMultiplier();
-	}
-	return BrakingFriction * GetBrakingFrictionMultiplier();
+	
+	return BrakingFriction;
 }
 
 void UPredMovement::CalcStamina(float DeltaTime)
@@ -392,6 +525,124 @@ bool UPredMovement::CanAttemptJump() const
 	return true;
 }
 
+void UPredMovement::Stroll(bool bClientSimulation)
+{
+	if (!HasValidData())
+	{
+		return;
+	}
+	
+	if (!bClientSimulation)
+	{
+		if (!CanStrollInCurrentState())
+		{
+			return;
+		}
+
+		if (IsSprinting())
+		{
+			UnSprint();
+		}
+
+		if (IsWalk())
+		{
+			UnWalk();
+		}
+
+		PredCharacterOwner->SetIsStrolling(true);
+	}
+	PredCharacterOwner->OnStartStroll();
+}
+
+void UPredMovement::UnStroll(bool bClientSimulation)
+{
+	if (!HasValidData())
+	{
+		return;
+	}
+
+	if (!bClientSimulation)
+	{
+		PredCharacterOwner->SetIsStrolling(false);
+	}
+	PredCharacterOwner->OnEndStroll();
+}
+
+bool UPredMovement::CanStrollInCurrentState() const
+{
+	if (!UpdatedComponent || UpdatedComponent->IsSimulatingPhysics())
+	{
+		return false;
+	}
+
+	if (!IsFalling() && !IsMovingOnGround())
+	{
+		// Can only enter Stroll in either MOVE_Falling or MOVE_Strolling or MOVE_NavStrolling
+		return false;
+	}
+
+	return true;
+}
+
+void UPredMovement::Walk(bool bClientSimulation)
+{
+	if (!HasValidData())
+	{
+		return;
+	}
+	
+	if (!bClientSimulation)
+	{
+		if (!CanWalkInCurrentState())
+		{
+			return;
+		}
+
+		if (IsSprinting())
+		{
+			UnSprint();
+		}
+
+		if (IsWalk())
+		{
+			UnWalk();
+		}
+
+		PredCharacterOwner->SetIsWalking(true);
+	}
+	PredCharacterOwner->OnStartWalk();
+}
+
+void UPredMovement::UnWalk(bool bClientSimulation)
+{
+	if (!HasValidData())
+	{
+		return;
+	}
+
+	if (!bClientSimulation)
+	{
+		PredCharacterOwner->SetIsWalking(false);
+	}
+	PredCharacterOwner->OnEndWalk();
+}
+
+bool UPredMovement::CanWalkInCurrentState() const
+{
+	if (!UpdatedComponent || UpdatedComponent->IsSimulatingPhysics())
+	{
+		return false;
+	}
+
+	if (!IsFalling() && !IsMovingOnGround())
+	{
+		// Can only enter walk in either MOVE_Falling or MOVE_Walking or MOVE_NavWalking
+		return false;
+	}
+
+	return true;
+}
+
 void UPredMovement::SetMaxInputAngleSprint(float InMaxAngleSprint)
 {
 	MaxInputAngleSprint = FMath::Clamp(InMaxAngleSprint, 0.f, 180.0f);
@@ -430,6 +681,16 @@ void UPredMovement::Sprint(bool bClientSimulation)
 		if (IsAimingDownSights() && !bCanSprintDuringAimDownSights)
 		{
 			UnAimDownSights();
+		}
+
+		if (IsStrolling())
+		{
+			UnStroll();
+		}
+
+		if (IsWalk())
+		{
+			UnWalk();
 		}
 
 		PredCharacterOwner->SetIsSprinting(true);
@@ -1019,6 +1280,28 @@ void UPredMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 			Sprint(false);
 		}
 		
+		// Check for a change in Walk state. Players toggle Walk by changing bWantsToWalk.
+		const bool bIsWalking = IsWalk();
+		if (bIsWalking && (!bWantsToWalk || !CanWalkInCurrentState()))
+		{
+			UnWalk(false);
+		}
+		else if (!bIsWalking && bWantsToWalk && CanWalkInCurrentState())
+		{
+			Walk(false);
+		}
+
+		// Check for a change in Stroll state. Players toggle Stroll by changing bWantsToStroll.
+		const bool bIsStrolling = IsStrolling();
+		if (bIsStrolling && (!bWantsToStroll || !CanStrollInCurrentState()))
+		{
+			UnStroll(false);
+		}
+		else if (!bIsStrolling && bWantsToStroll && CanStrollInCurrentState())
+		{
+			Stroll(false);
+		}
+		
 		// Check for a change in AimDownSights state. Players toggle AimDownSights by changing bWantsToAimDownSights.
 		const bool bIsAimingDownSights = IsAimingDownSights();
 		if (bIsAimingDownSights && (!bWantsToAimDownSights || !CanAimDownSightsInCurrentState()))
@@ -1137,10 +1420,14 @@ void UPredMovement::ServerMove_PerformMovement(const FCharacterNetworkMoveData& 
 
 bool UPredMovement::ClientUpdatePositionAfterServerUpdate()
 {
+	const bool bRealStroll = bWantsToStroll;
+	const bool bRealWalk = bWantsToWalk;
 	const bool bRealSprint = bWantsToSprint;
 	const bool bRealProne = bWantsToProne;
 	const bool bRealAimDownSights = bWantsToAimDownSights;
 	const bool bResult = Super::ClientUpdatePositionAfterServerUpdate();
+	bWantsToStroll = bRealStroll;
+	bWantsToWalk = bRealWalk;
 	bWantsToSprint = bRealSprint;
 	bWantsToProne = bRealProne;
 	bWantsToAimDownSights = bRealAimDownSights;
@@ -1201,6 +1488,8 @@ void UPredMovement::UpdateFromCompressedFlags(uint8 Flags)
 {
 	Super::UpdateFromCompressedFlags(Flags);
 
+	bWantsToStroll = (Flags & FSavedMove_Character::FLAG_Custom_2) != 0;
+	bWantsToWalk = (Flags & FSavedMove_Character::FLAG_Custom_3) != 0;
 	bWantsToSprint = (Flags & FSavedMove_Character::FLAG_Custom_0) != 0;
 	bWantsToProne = (Flags & FSavedMove_Character::FLAG_Custom_1) != 0;
 	bWantsToAimDownSights = (Flags & FSavedMove_Character::FLAG_Reserved_2) != 0;
@@ -1219,6 +1508,16 @@ uint8 FSavedMove_Character_Pred::GetCompressedFlags() const
 	{
 		Result |= FLAG_Custom_1;
 	}
+
+	if (bWantsToStroll)
+	{
+		Result |= FLAG_Custom_2;
+	}
+
+	if (bWantsToWalk)
+	{
+		Result |= FLAG_Custom_3;
+	}
 	
 	if (bWantsToAimDownSights)
 	{
@@ -1236,7 +1535,9 @@ void FSavedMove_Character_Pred::Clear()
 
 	bWantsToProne = false;
 	bProneLocked = false;
-	
+
+	bWantsToStroll = false;
+	bWantsToWalk = false;
 	bWantsToSprint = false;
 	
 	bStaminaDrained = false;
@@ -1253,6 +1554,8 @@ void FSavedMove_Character_Pred::SetMoveFor(ACharacter* C, float InDeltaTime, FVe
 	{
 		bWantsToProne = MoveComp->bWantsToProne;
 		bProneLocked = MoveComp->bProneLocked;
+		bWantsToStroll = MoveComp->bWantsToStroll;
+		bWantsToWalk = MoveComp->bWantsToWalk;
 		bWantsToSprint = MoveComp->bWantsToSprint;
 		bWantsToAimDownSights = MoveComp->bWantsToAimDownSights;
 	}

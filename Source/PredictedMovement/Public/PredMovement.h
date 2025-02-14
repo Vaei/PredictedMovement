@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "PredTypes.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "System/PredictedMovementVersioning.h"
 #include "PredMovement.generated.h"
@@ -66,6 +67,107 @@ private:
 	/** Character movement component belongs to */
 	UPROPERTY(Transient, DuplicateTransient)
 	TObjectPtr<APredCharacter> PredCharacterOwner;
+
+public:
+	/** Max Acceleration (rate of change of velocity) */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float MaxAccelerationRunning;
+
+	/** The maximum ground speed when Running. */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
+	float MaxWalkSpeedRunning;
+
+	/**
+	 * Deceleration when walking and not applying acceleration. This is a constant opposing force that directly lowers velocity by a constant value.
+	 * @see GroundFriction, MaxAcceleration
+	 */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float BrakingDecelerationRunning;
+
+	/**
+	 * Setting that affects movement control. Higher values allow faster changes in direction.
+	 * If bUseSeparateBrakingFriction is false, also affects the ability to stop more quickly when braking (whenever Acceleration is zero), where it is multiplied by BrakingFrictionFactor.
+	 * When braking, this property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
+	 * This can be used to simulate slippery surfaces such as ice or oil by changing the value (possibly based on the material pawn is standing on).
+	 * @see BrakingDecelerationWalking, BrakingFriction, bUseSeparateBrakingFriction, BrakingFrictionFactor
+	 */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float GroundFrictionRunning;
+
+	/**
+     * When struggling to surpass walk speed, which can occur with heavy rotation and low acceleration, we
+     * mitigate the check so there isn't a constant re-entry that can occur as an edge case.
+     * This can optionally be used inversely, to require you to considerably exceed MaxSpeedWalking before Running
+     * will actually take effect.
+     */
+    UPROPERTY(Category="Character Movement: Walking", AdvancedDisplay, EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+    float VelocityCheckMitigatorRunning;
+
+	/**
+	 * Friction (drag) coefficient applied when braking (whenever Acceleration = 0, or if character is exceeding max speed); actual value used is this multiplied by BrakingFrictionFactor.
+	 * When braking, this property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
+	 * Braking is composed of friction (velocity-dependent drag) and constant deceleration.
+	 * This is the current value, used in all movement modes; if this is not desired, override it or bUseSeparateBrakingFriction when movement mode changes.
+	 * @note Only used if bUseSeparateBrakingFriction setting is true, otherwise current friction such as GroundFriction is used.
+	 * @see bUseSeparateBrakingFriction, BrakingFrictionFactor, GroundFriction, BrakingDecelerationWalking
+	 */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", EditCondition="bUseSeparateBrakingFriction"))
+	float BrakingFrictionRunning;
+
+public:
+	/** Max Acceleration (rate of change of velocity) */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float MaxAccelerationStrolling;
+
+	/** The maximum ground speed when Strolling. */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
+	float MaxWalkSpeedStrolling;
+
+	/**
+	 * Deceleration when walking and not applying acceleration. This is a constant opposing force that directly lowers velocity by a constant value.
+	 * @see GroundFriction, MaxAcceleration
+	 */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float BrakingDecelerationStrolling;
+
+	/**
+	 * Setting that affects movement control. Higher values allow faster changes in direction.
+	 * If bUseSeparateBrakingFriction is false, also affects the ability to stop more quickly when braking (whenever Acceleration is zero), where it is multiplied by BrakingFrictionFactor.
+	 * When braking, this property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
+	 * This can be used to simulate slippery surfaces such as ice or oil by changing the value (possibly based on the material pawn is standing on).
+	 * @see BrakingDecelerationWalking, BrakingFriction, bUseSeparateBrakingFriction, BrakingFrictionFactor
+	 */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float GroundFrictionStrolling;
+
+	/**
+     * When struggling to surpass walk speed, which can occur with heavy rotation and low acceleration, we
+     * mitigate the check so there isn't a constant re-entry that can occur as an edge case.
+     * This can optionally be used inversely, to require you to considerably exceed MaxSpeedWalking before Strolling
+     * will actually take effect.
+     */
+    UPROPERTY(Category="Character Movement: Walking", AdvancedDisplay, EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+    float VelocityCheckMitigatorWalking;
+
+	/**
+	 * Friction (drag) coefficient applied when braking (whenever Acceleration = 0, or if character is exceeding max speed); actual value used is this multiplied by BrakingFrictionFactor.
+	 * When braking, this property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
+	 * Braking is composed of friction (velocity-dependent drag) and constant deceleration.
+	 * This is the current value, used in all movement modes; if this is not desired, override it or bUseSeparateBrakingFriction when movement mode changes.
+	 * @note Only used if bUseSeparateBrakingFriction setting is true, otherwise current friction such as GroundFriction is used.
+	 * @see bUseSeparateBrakingFriction, BrakingFrictionFactor, GroundFriction, BrakingDecelerationWalking
+	 */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", EditCondition="bUseSeparateBrakingFriction"))
+	float BrakingFrictionStrolling;
+
+public:
+	/** If true, try to Walk (or keep Walking) on next update. If false, try to stop Walking on next update. */
+	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
+	uint8 bWantsToWalk:1;
+
+	/** If true, try to Stroll (or keep Strolling) on next update. If false, try to stop Walking on next update. */
+	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
+	uint8 bWantsToStroll:1;
 
 public:
 	/** If true, sprinting acceleration will only be applied when IsSprintingAtSpeed() returns true */
@@ -235,7 +337,11 @@ public:
 	UPROPERTY(Category="Character Movement (General Settings)", VisibleInstanceOnly, BlueprintReadOnly)
 	uint8 bWantsToAimDownSights:1;
 
-	public:
+public:
+	/** Max Acceleration (rate of change of velocity) */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float MaxAccelerationCrouched;
+	
 	/** Max Acceleration (rate of change of velocity) */
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float MaxAccelerationProned;
@@ -244,6 +350,13 @@ public:
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="cm/s"))
 	float MaxWalkSpeedProned;
 
+	/**
+	 * Deceleration when walking and not applying acceleration. This is a constant opposing force that directly lowers velocity by a constant value.
+	 * @see GroundFriction, MaxAcceleration
+	 */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float BrakingDecelerationCrouched;
+	
 	/**
 	 * Deceleration when walking and not applying acceleration. This is a constant opposing force that directly lowers velocity by a constant value.
 	 * @see GroundFriction, MaxAcceleration
@@ -259,8 +372,29 @@ public:
 	 * @see BrakingDecelerationWalking, BrakingFriction, bUseSeparateBrakingFriction, BrakingFrictionFactor
 	 */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float GroundFrictionCrouched;
+	
+	/**
+	 * Setting that affects movement control. Higher values allow faster changes in direction.
+	 * If bUseSeparateBrakingFriction is false, also affects the ability to stop more quickly when braking (whenever Acceleration is zero), where it is multiplied by BrakingFrictionFactor.
+	 * When braking, this property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
+	 * This can be used to simulate slippery surfaces such as ice or oil by changing the value (possibly based on the material pawn is standing on).
+	 * @see BrakingDecelerationWalking, BrakingFriction, bUseSeparateBrakingFriction, BrakingFrictionFactor
+	 */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float GroundFrictionProned;
 
+	/**
+	 * Friction (drag) coefficient applied when braking (whenever Acceleration = 0, or if character is exceeding max speed); actual value used is this multiplied by BrakingFrictionFactor.
+	 * When braking, this property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
+	 * Braking is composed of friction (velocity-dependent drag) and constant deceleration.
+	 * This is the current value, used in all movement modes; if this is not desired, override it or bUseSeparateBrakingFriction when movement mode changes.
+	 * @note Only used if bUseSeparateBrakingFriction setting is true, otherwise current friction such as GroundFriction is used.
+	 * @see bUseSeparateBrakingFriction, BrakingFrictionFactor, GroundFriction, BrakingDecelerationWalking
+	 */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", EditCondition="bUseSeparateBrakingFriction"))
+	float BrakingFrictionCrouched;
+	
 	/**
 	 * Friction (drag) coefficient applied when braking (whenever Acceleration = 0, or if character is exceeding max speed); actual value used is this multiplied by BrakingFrictionFactor.
 	 * When braking, this property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
@@ -333,17 +467,28 @@ public:
 	virtual void BeginPlay() override;
 	
 public:
+	virtual EPredGaitMode GetGaitMode() const;
+	virtual EPredGaitMode GetGaitModeAtSpeed() const;
+	
+	virtual bool IsStrolling() const;
+	virtual bool IsWalk() const;  // Do not mistake this for UCharacterMovementComponent::IsWalking
+	virtual bool IsWalkingAtSpeed() const;
+	virtual bool IsRunning() const;
+	virtual bool IsRunningAtSpeed() const;
 	virtual bool IsSprintingAtSpeed() const;
+	
 	virtual bool IsSprintingInEffect() const { return IsSprintingAtSpeed() && IsSprintWithinAllowableInputAngle(); }
 	virtual float GetMaxAccelerationMultiplier() const;
 	virtual float GetMaxSpeedMultiplier() const;
 	virtual float GetMaxBrakingDecelerationMultiplier() const;
+	virtual float GetGroundFrictionMultiplier() const;
+	virtual float GetBrakingFrictionMultiplier() const;
+
 	virtual float GetMaxAcceleration() const override;
+	virtual float GetBasicMaxSpeed() const;
 	virtual float GetMaxSpeed() const override;
 	virtual float GetMaxBrakingDeceleration() const override;
-	virtual float GetGroundFrictionMultiplier() const;
 	virtual float GetGroundFriction(float DefaultGroundFriction) const;
-	virtual float GetBrakingFrictionMultiplier() const;
 	virtual float GetBrakingFriction() const;
 
 	virtual void CalcStamina(float DeltaTime);
@@ -352,6 +497,40 @@ public:
 
 	virtual bool CanWalkOffLedges() const override;
 	virtual bool CanAttemptJump() const override;
+
+public:
+	/**
+	 * Call CharacterOwner->OnStartStroll() if successful.
+	 * In general, you should set bWantsToStroll instead to have the Stroll persist during movement, or just use the Stroll functions on the owning Character.
+	 * @param	bClientSimulation	true when called when bIsStrolled is replicated to non owned clients.
+	 */
+	virtual void Stroll(bool bClientSimulation = false);
+
+	/**
+	 * Checks if default capsule size fits (no encroachment), and trigger OnEndStroll() on the owner if successful.
+	 * @param	bClientSimulation	true when called when bIsStrolled is replicated to non owned clients.
+	 */
+	virtual void UnStroll(bool bClientSimulation = false);
+
+	/** Returns true if the character is allowed to Stroll in the current state. */
+	virtual bool CanStrollInCurrentState() const;
+	
+public:
+	/**
+	 * Call CharacterOwner->OnStartWalk() if successful.
+	 * In general, you should set bWantsToWalk instead to have the Walk persist during movement, or just use the Walk functions on the owning Character.
+	 * @param	bClientSimulation	true when called when bIsWalked is replicated to non owned clients.
+	 */
+	virtual void Walk(bool bClientSimulation = false);
+
+	/**
+	 * Checks if default capsule size fits (no encroachment), and trigger OnEndWalk() on the owner if successful.
+	 * @param	bClientSimulation	true when called when bIsWalked is replicated to non owned clients.
+	 */
+	virtual void UnWalk(bool bClientSimulation = false);
+
+	/** Returns true if the character is allowed to Walk in the current state. */
+	virtual bool CanWalkInCurrentState() const;
 	
 public:
 	UFUNCTION(BlueprintCallable, Category="Character Movement: Walking")
@@ -361,7 +540,7 @@ public:
 
 	/**
 	 * Call CharacterOwner->OnStartSprint() if successful.
-	 * In general you should set bWantsToSprint instead to have the Sprint persist during movement, or just use the Sprint functions on the owning Character.
+	 * In general, you should set bWantsToSprint instead to have the Sprint persist during movement, or just use the Sprint functions on the owning Character.
 	 * @param	bClientSimulation	true when called when bIsSprinted is replicated to non owned clients.
 	 */
 	virtual void Sprint(bool bClientSimulation = false);
@@ -412,7 +591,7 @@ public:
 
 	/**
 	 * Call CharacterOwner->OnStartAimDownSights() if successful.
-	 * In general you should set bWantsToAimDownSights instead to have the AimDownSights persist during movement, or just use the AimDownSights functions on the owning Character.
+	 * In general, you should set bWantsToAimDownSights instead to have the AimDownSights persist during movement, or just use the AimDownSights functions on the owning Character.
 	 * @param	bClientSimulation	true when called when bIsAimDownSightsed is replicated to non owned clients.
 	 */
 	virtual void AimDownSights(bool bClientSimulation = false);
@@ -444,7 +623,7 @@ public:
 
 	/**
 	 * Call CharacterOwner->OnStartProne() if successful.
-	 * In general you should set bWantsToProne instead to have the Prone persist during movement, or just use the Prone functions on the owning Character.
+	 * In general, you should set bWantsToProne instead to have the Prone persist during movement, or just use the Prone functions on the owning Character.
 	 * @param	bClientSimulation	true when called when bIsProned is replicated to non owned clients.
 	 */
 	virtual void Prone(bool bClientSimulation = false);
@@ -510,6 +689,8 @@ public:
 		: bWantsToAimDownSights(0)
 		, bWantsToProne(0)
 		, bProneLocked(0)
+		, bWantsToStroll(0)
+		, bWantsToWalk(0)
 		, bWantsToSprint(0)
 		, bStaminaDrained(false)
 		, StartStamina(0)
@@ -524,6 +705,8 @@ public:
 	uint32 bWantsToProne:1;
 	uint32 bProneLocked:1;
 	
+	uint32 bWantsToStroll:1;
+	uint32 bWantsToWalk:1;
 	uint32 bWantsToSprint:1;
 	uint32 bStaminaDrained : 1;
 	
@@ -561,7 +744,7 @@ class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Pred : publi
 
 public:
 	FNetworkPredictionData_Client_Character_Pred(const UCharacterMovementComponent& ClientMovement)
-	: Super(ClientMovement)
+		: Super(ClientMovement)
 	{}
 
 	virtual FSavedMovePtr AllocateNewMove() override;

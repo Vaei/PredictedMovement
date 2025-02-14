@@ -70,7 +70,8 @@ void AModifierCharacter::OnModifierChanged(const FGameplayTag& ModifierType, uin
 
 void AModifierCharacter::OnModifierAdded(const FGameplayTag& ModifierType, uint8 ModifierLevel, uint8 PrevModifierLevel)
 {
-	// @TIP: Add Loose Gameplay Tag Here (Not Replicated)
+	// @TIP: Set Loose Gameplay Tag Here (Not Replicated)
+	// DO NOT ADD or REMOVE HERE! Net corrections can violate this!
 
 	if (!ModifierMovement)
 	{
@@ -95,7 +96,8 @@ void AModifierCharacter::OnModifierAdded(const FGameplayTag& ModifierType, uint8
 
 void AModifierCharacter::OnModifierRemoved(const FGameplayTag& ModifierType, uint8 ModifierLevel, uint8 PrevModifierLevel)
 {
-	// @TIP: Remove Loose Gameplay Tag Here (Not Replicated)
+	// @TIP: Set Loose Gameplay Tag Here (Not Replicated)
+	// DO NOT ADD or REMOVE HERE! Net corrections can violate this!
 
 	if (ModifierType == FModifierTags::Modifier_Type_Buff_Boost)
 	{

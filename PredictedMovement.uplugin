@@ -10,7 +10,7 @@
 	"DocsURL": "https://github.com/Vaei/PredictedMovement/wiki/",
 	"MarketplaceURL": "",
 	"SupportURL": "",
-	"CanContainContent": false,
+	"CanContainContent": true,
 	"IsBetaVersion": false,
 	"IsExperimentalVersion": false,
 	"Installed": false,

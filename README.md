@@ -48,9 +48,24 @@ https://youtu.be/SHVm57AMruc
 
 ### 2.0.0
 * Movement Modifiers added
-  * Boost, SlowFall, Snare included by default
-* Client Authority solution added
+  * Instead of an on/off bool these have `FGameplayTag` representing multiple levels
+    e.g. `Snare.Level2`, `Snare.50_Pct`, `Snare.Hamstring`, etc.
+  * Local Predicted & Server Initiated modifiers
+  * Boost, SlowFall, Snare included by default on `main` branch
+  * Boost, Slow, SlowFall, Snare included by default on `merged branch`
+* Partial Location-Only Client Authority solution added
+  * For server initiated modifiers in particular, but you can call for it anywhere for anything
+  * Utilized out of the box when Snare modifier is applied so that the client receiving the snare doesn't de-sync
+  * Authorities can stack if you want to extend the system to average them out, or similar
 * Wiki added
+* `merged` branch added to replace `link` branch
+  * Available to BP users
+  * Covers the needs of common games
+* Removed `IsSprintWithinAllowableInputAngle()` from `CanSprintInCurrentState()` to prevent constant exit/re-entry into sprint state
+  * `IsSprintingInEffect()` added which checks both `IsSprintWithinAllowableInputAngle()` + `IsSprintingAtSpeed()`
+  * `IsSprintWithinAllowableAngle()` exposed to BP from `ASprintCharacter`
+* Added Crouch movement properties to bring it inline with prone properties but only on `merged` branch
+* Added Demo Content to `merged` branch
 
 ### 1.5.2
 * Version number follows Unreal format 1.0.5.2 > 1.5.2

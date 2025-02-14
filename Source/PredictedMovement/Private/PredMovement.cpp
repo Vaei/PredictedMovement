@@ -21,6 +21,103 @@ namespace PredMovementCVars
 #endif
 }
 
+UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SetNetworkMoveDataContainer(PredMoveDataContainer);
+	SetMoveResponseDataContainer(PredMoveResponseDataContainer);
+
+	// Defaults
+	GroundFriction = 12.f;  // More grounded, less sliding
+	RotationRate.Yaw = 540.f;
+	
+	// Strolling
+	MaxAccelerationStrolling = 512.f;
+	MaxWalkSpeedStrolling = 96.f;
+	BrakingDecelerationStrolling = 512.f;
+	GroundFrictionStrolling = 12.f;
+	BrakingFrictionStrolling = 4.f;
+
+	bWantsToStroll = false;
+
+	// Walking
+	MaxAcceleration = 1300.f;
+	MaxWalkSpeed = 240.f;
+	
+	// Running
+	MaxAccelerationRunning = 1600.f;
+	MaxWalkSpeedRunning = 600.f;
+	BrakingDecelerationRunning = 512.f;
+	GroundFrictionRunning = 12.f;
+	BrakingFrictionRunning = 4.f;
+
+	bWantsToWalk = false;
+	
+	// Sprinting
+	bUseMaxAccelerationSprintingOnlyAtSpeed = true;
+	MaxAccelerationSprinting = 2400.f;
+	MaxWalkSpeedSprinting = 860.f;
+	BrakingDecelerationSprinting = 512.f;
+	GroundFrictionSprinting = 12.f;
+	BrakingFrictionSprinting = 4.f;
+
+	VelocityCheckMitigatorSprinting = 0.98f;
+	bRestrictSprintInputAngle = true;
+	SetMaxInputAngleSprint(50.f);
+
+	bWantsToSprint = false;
+
+	// Enable crouch
+	NavAgentProps.bCanCrouch = true;
+
+	// Stamina drained scalars
+	MaxWalkSpeedScalarStaminaDrained = 0.25f;
+	MaxAccelerationScalarStaminaDrained = 0.5f;
+	MaxBrakingDecelerationScalarStaminaDrained = 0.5f;
+
+	// Stamina
+	SetMaxStamina(100.f);
+	SprintStaminaDrainRate = 34.f;
+	StaminaRegenRate = 20.f;
+	StaminaDrainedRegenRate = 10.f;
+	bStaminaRecoveryFromPct = true;
+	StaminaRecoveryAmount = 20.f;
+	StaminaRecoveryPct = 0.2f;
+	StartSprintStaminaPct = 0.05f;  // 5% stamina to start sprinting
+	
+	NetworkStaminaCorrectionThreshold = 2.f;
+
+	// Aim Down Sights
+	MaxWalkSpeedAimingDownSightsMultiplier = 0.333f;
+	MaxAccelerationAimingDownSightsMultiplier = 0.666f;
+	BrakingDecelerationAimingDownSightsMultiplier = 0.75f;
+	GroundFrictionAimingDownSightsMultiplier = 1.f;
+	BrakingFrictionAimingDownSightsMultiplier = 1.f;
+
+	// Crouch
+	SetCrouchedHalfHeight(54.f);
+	MaxAccelerationCrouched = 384.f;
+	BrakingDecelerationCrouched = 512.f;
+	GroundFrictionCrouched = 12.f;
+	BrakingFrictionCrouched = 3.f;
+	
+	// Prone
+	MaxAccelerationProned = 256.f;
+	MaxWalkSpeedProned = 168.f;
+	BrakingDecelerationProned = 512.f;
+	GroundFrictionProned = 3.f;
+	BrakingFrictionProned = 1.f;
+
+	PronedRadius = 40.f;
+	PronedHalfHeight = 40.f;
+
+	ProneLockDuration = 1.f;
+
+	bCanWalkOffLedgesWhenProned = false;
+	bWantsToProne = false;
+	bProneLocked = false;
+}
+
 void FPredMoveResponseDataContainer::ServerFillResponseData(const UCharacterMovementComponent& CharacterMovement,
 	const FClientAdjustment& PendingAdjustment)
 {
@@ -75,98 +172,6 @@ bool FPredNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovem
 	SerializeOptionalValue<float>(Ar.IsSaving(), Ar, Stamina, 0.f);
 	
 	return !Ar.IsError();
-}
-
-UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-	SetNetworkMoveDataContainer(PredMoveDataContainer);
-	SetMoveResponseDataContainer(PredMoveResponseDataContainer);
-
-	// Defaults
-	GroundFriction = 12.f;  // More grounded, less sliding
-
-	// Strolling
-	MaxAccelerationStrolling = 512.f;
-	MaxWalkSpeedStrolling = 256.f;
-	BrakingDecelerationStrolling = 512.f;
-	GroundFrictionStrolling = 12.f;
-	BrakingFrictionStrolling = 4.f;
-
-	bWantsToStroll = false;
-
-	// Running
-	MaxAccelerationRunning = 768.f;
-	MaxWalkSpeedRunning = 384.f;
-	BrakingDecelerationRunning = 512.f;
-	GroundFrictionRunning = 12.f;
-	BrakingFrictionRunning = 4.f;
-
-	bWantsToWalk = false;
-	
-	// Sprinting
-	bUseMaxAccelerationSprintingOnlyAtSpeed = true;
-	MaxAccelerationSprinting = 1024.f;
-	MaxWalkSpeedSprinting = 600.f;
-	BrakingDecelerationSprinting = 512.f;
-	GroundFrictionSprinting = 12.f;
-	BrakingFrictionSprinting = 4.f;
-
-	VelocityCheckMitigatorSprinting = 0.98f;
-	bRestrictSprintInputAngle = true;
-	SetMaxInputAngleSprint(50.f);
-
-	bWantsToSprint = false;
-
-	// Enable crouch
-	NavAgentProps.bCanCrouch = true;
-
-	// Stamina drained scalars
-	MaxWalkSpeedScalarStaminaDrained = 0.25f;
-	MaxAccelerationScalarStaminaDrained = 0.5f;
-	MaxBrakingDecelerationScalarStaminaDrained = 0.5f;
-
-	// Stamina
-	SetMaxStamina(100.f);
-	SprintStaminaDrainRate = 65.f;
-	StaminaRegenRate = 60.f;
-	StaminaDrainedRegenRate = 120.f;
-	bStaminaRecoveryFromPct = true;
-	StaminaRecoveryAmount = 20.f;
-	StaminaRecoveryPct = 0.2f;
-	StartSprintStaminaPct = 0.05f;  // 5% stamina to start sprinting
-	
-	NetworkStaminaCorrectionThreshold = 2.f;
-
-	// Aim Down Sights
-	MaxWalkSpeedAimingDownSightsMultiplier = 0.333f;
-	MaxAccelerationAimingDownSightsMultiplier = 0.666f;
-	BrakingDecelerationAimingDownSightsMultiplier = 0.75f;
-	GroundFrictionAimingDownSightsMultiplier = 1.f;
-	BrakingFrictionAimingDownSightsMultiplier = 1.f;
-
-	// Crouch
-	SetCrouchedHalfHeight(54.f);
-	MaxAccelerationCrouched = 384.f;
-	BrakingDecelerationCrouched = 512.f;
-	GroundFrictionCrouched = 12.f;
-	BrakingFrictionCrouched = 3.f;
-	
-	// Prone
-	MaxAccelerationProned = 256.f;
-	MaxWalkSpeedProned = 168.f;
-	BrakingDecelerationProned = 512.f;
-	GroundFrictionProned = 3.f;
-	BrakingFrictionProned = 1.f;
-
-	PronedRadius = 40.f;
-	PronedHalfHeight = 40.f;
-
-	ProneLockDuration = 1.f;
-
-	bCanWalkOffLedgesWhenProned = false;
-	bWantsToProne = false;
-	bProneLocked = false;
 }
 
 #if WITH_EDITOR
@@ -357,13 +362,24 @@ float UPredMovement::GetMaxAcceleration() const
 	if (IsSwimming())	{ return MaxAccelerationRunning * Multiplier; }
 	if (IsProned())		{ return MaxAccelerationProned * Multiplier; }
 	if (IsCrouching())	{ return MaxAccelerationCrouched * Multiplier; }
+
+	if (IsSprintingInEffect())
+	{
+		return MaxAccelerationSprinting * Multiplier;
+	}
+
+	if (!bUseMaxAccelerationSprintingOnlyAtSpeed && IsSprinting() && IsSprintWithinAllowableInputAngle())
+	{
+		return MaxAccelerationSprinting * Multiplier;
+	}
 	
 	switch (GetGaitMode())
 	{
 	case EPredGaitMode::Stroll: return MaxAccelerationStrolling * Multiplier;
 	case EPredGaitMode::Walk: return MaxAcceleration * Multiplier;
-	case EPredGaitMode::Run: return MaxAccelerationRunning * Multiplier;
-	case EPredGaitMode::Sprint: return MaxAccelerationSprinting * Multiplier;
+	case EPredGaitMode::Run:
+	case EPredGaitMode::Sprint:
+		return MaxAccelerationRunning * Multiplier;
 	}
 	return 0.f;
 }

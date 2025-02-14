@@ -61,11 +61,12 @@ https://youtu.be/SHVm57AMruc
 * `merged` branch added to replace `link` branch
   * Available to BP users
   * Covers the needs of common games
+* Added Crouch movement properties to bring it inline with prone properties but only on `merged` branch
+* Added Demo Content to `merged` branch
 * Removed `IsSprintWithinAllowableInputAngle()` from `CanSprintInCurrentState()` to prevent constant exit/re-entry into sprint state
   * `IsSprintingInEffect()` added which checks both `IsSprintWithinAllowableInputAngle()` + `IsSprintingAtSpeed()`
   * `IsSprintWithinAllowableAngle()` exposed to BP from `ASprintCharacter`
-* Added Crouch movement properties to bring it inline with prone properties but only on `merged` branch
-* Added Demo Content to `merged` branch
+* Updated existing movement abilities to use push-model for replication
 
 ### 1.5.2
 * Version number follows Unreal format 1.0.5.2 > 1.5.2

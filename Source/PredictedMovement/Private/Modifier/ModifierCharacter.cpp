@@ -121,19 +121,19 @@ void AModifierCharacter::OnRep_SimulatedBoost(uint8 PrevSimulatedBoost)
 {
 	if (ModifierMovement)
 	{
+		ModifierMovement->Boost.ModifierLevel = SimulatedBoost;
+		ModifierMovement->Boost.RequestedModifierLevel = SimulatedBoost;
+
 		if (SimulatedBoost > 0)
 		{
-			ModifierMovement->Boost.RequestedModifierLevel = SimulatedBoost;
-			ModifierMovement->Boost.StartModifier(SimulatedBoost, true, true);
+			ModifierMovement->Boost.StartModifier(SimulatedBoost, true, true, PrevSimulatedBoost);
 		}
 		else
 		{
 			ModifierMovement->Boost.RemoveAllModifiers();
-			ModifierMovement->Boost.EndModifier(true);
+			ModifierMovement->Boost.EndModifier(true, PrevSimulatedBoost);
 		}
 		ModifierMovement->bNetworkUpdateReceived = true;
-		
-		OnModifierChanged(FModifierTags::Modifier_Type_Buff_Boost, SimulatedBoost, PrevSimulatedBoost);
 	}
 }
 
@@ -216,19 +216,19 @@ void AModifierCharacter::OnRep_SimulatedSlowFall(uint8 PrevSimulatedSlowFall)
 {
 	if (ModifierMovement)
 	{
+		ModifierMovement->SlowFall.ModifierLevel = SimulatedSlowFall;
+		ModifierMovement->SlowFall.RequestedModifierLevel = SimulatedSlowFall;
+
 		if (SimulatedSlowFall > 0)
 		{
-			ModifierMovement->SlowFall.RequestedModifierLevel = SimulatedSlowFall;
-			ModifierMovement->SlowFall.StartModifier(SimulatedSlowFall, true, true);
+			ModifierMovement->SlowFall.StartModifier(SimulatedSlowFall, true, true, PrevSimulatedSlowFall);
 		}
 		else
 		{
 			ModifierMovement->SlowFall.RemoveAllModifiers();
-			ModifierMovement->SlowFall.EndModifier(true);
+			ModifierMovement->SlowFall.EndModifier(true, PrevSimulatedSlowFall);
 		}
 		ModifierMovement->bNetworkUpdateReceived = true;
-		
-		OnModifierChanged(FModifierTags::Modifier_Type_Buff_SlowFall, SimulatedSlowFall, PrevSimulatedSlowFall);
 	}
 }
 
@@ -311,19 +311,19 @@ void AModifierCharacter::OnRep_SimulatedSnare(uint8 PrevSimulatedSnare)
 {
 	if (ModifierMovement)
 	{
+		ModifierMovement->Snare.ModifierLevel = SimulatedSnare;
+		ModifierMovement->Snare.RequestedModifierLevel = SimulatedSnare;
+
 		if (SimulatedSnare > 0)
 		{
-			ModifierMovement->Snare.RequestedModifierLevel = SimulatedSnare;
-			ModifierMovement->Snare.StartModifier(SimulatedSnare, true, true);
+			ModifierMovement->Snare.StartModifier(SimulatedSnare, true, true, PrevSimulatedSnare);
 		}
 		else
 		{
 			ModifierMovement->Snare.RemoveAllModifiers();
-			ModifierMovement->Snare.EndModifier(true);
+			ModifierMovement->Snare.EndModifier(true, PrevSimulatedSnare);
 		}
 		ModifierMovement->bNetworkUpdateReceived = true;
-		
-		OnModifierChanged(FModifierTags::Modifier_Type_Debuff_Snare, SimulatedSnare, PrevSimulatedSnare);
 	}
 }
 

@@ -368,8 +368,8 @@ public:
 
 	void OnModifiersChanged();
 
-	void StartModifier(uint8 Level, bool bCanApplyModifier, bool bClientSimulation = false);
-	void EndModifier(bool bClientSimulation = false);
+	void StartModifier(uint8 Level, bool bCanApplyModifier, bool bClientSimulation = false, uint8 PrevSimulatedLevel = 0);
+	void EndModifier(bool bClientSimulation = false, uint8 PrevSimulatedLevel = 0);
 
 	void UpdateCharacterStateBeforeMovement(bool bCanApplyModifier);
 	void UpdateCharacterStateAfterMovement(bool bCanApplyModifier);

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2023 Jared Taylor. All Rights Reserved.
+﻿// Copyright (c) 2023 Jared Taylor
 
 
 #include "Prone/ProneMovement.h"

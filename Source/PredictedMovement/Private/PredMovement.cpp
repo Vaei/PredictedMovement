@@ -1424,6 +1424,11 @@ void UPredMovement::OnStartSlowFall()
 	}
 }
 
+bool UPredMovement::CanBeSnaredInCurrentState(FGameplayTag ModifierLevel) const
+{
+	return UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics();
+}
+
 void UPredMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 {
 	Boost.UpdateCharacterStateBeforeMovement(CanBoostInCurrentState(FGameplayTag::EmptyTag));

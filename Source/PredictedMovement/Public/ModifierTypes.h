@@ -8,7 +8,7 @@
 #include "Curves/CurveFloat.h"
 #include "ModifierTypes.generated.h"
 
-class AModifierCharacter;
+class APredCharacter;
 class UModifierMovement;
 
 #define LEVEL_NONE UINT8_MAX
@@ -279,7 +279,7 @@ public:
 	TArray<uint8> Modifiers;
 
 	UPROPERTY(Transient)
-	TWeakObjectPtr<AModifierCharacter> CharacterOwner;
+	TWeakObjectPtr<APredCharacter> CharacterOwner;
 
 protected:
 	bool HasValidData() const { return CharacterOwner.IsValid(); }
@@ -354,7 +354,7 @@ public:
 	 * @param InCharacterOwner The character that owns this modifier
 	 * @param InModifierType The type of modifier
 	 */
-	void Initialize(AModifierCharacter* InCharacterOwner, const FGameplayTag& InModifierType);
+	void Initialize(APredCharacter* InCharacterOwner, const FGameplayTag& InModifierType);
 	bool HasInitialized() const { return ModifierType.IsValid(); }
 
 	void AddModifier(uint8 Level);

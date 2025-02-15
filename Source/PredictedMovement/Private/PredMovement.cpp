@@ -54,6 +54,7 @@ UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
 	// Walking
 	MaxAcceleration = 1300.f;
 	MaxWalkSpeed = 240.f;
+	VelocityCheckMitigatorWalking = 0.98f;
 	
 	// Running
 	MaxAccelerationRunning = 1600.f;
@@ -61,6 +62,7 @@ UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
 	BrakingDecelerationRunning = 512.f;
 	GroundFrictionRunning = 12.f;
 	BrakingFrictionRunning = 4.f;
+	VelocityCheckMitigatorRunning = 0.98f;
 
 	bWantsToWalk = false;
 	
@@ -87,7 +89,8 @@ UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
 	MaxBrakingDecelerationScalarStaminaDrained = 0.5f;
 
 	// Stamina
-	SetMaxStamina(100.f);
+	BaseMaxStamina = 100.f;
+	SetMaxStamina(BaseMaxStamina);
 	SprintStaminaDrainRate = 34.f;
 	StaminaRegenRate = 20.f;
 	StaminaDrainedRegenRate = 10.f;
@@ -265,6 +268,11 @@ void UPredMovement::PostEditChangeProperty(struct FPropertyChangedEvent& Propert
 		// Compute MaxInputAngleSprint from the Angle.
 		SetMaxInputAngleSprint(MaxInputAngleSprint);
 	}
+	else if (PropertyThatChanged && PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(ThisClass, BaseMaxStamina))
+	{
+		// Update max stamina
+		SetMaxStamina(BaseMaxStamina);
+	}
 }
 #endif
 
@@ -320,7 +328,7 @@ void UPredMovement::BeginPlay()
 
 EPredGaitMode UPredMovement::GetGaitMode() const
 {
-	if (IsSprinting() && IsSprintWithinAllowableInputAngle())
+	if (IsSprinting())
 	{
 		return EPredGaitMode::Sprint;
 	}
@@ -375,7 +383,7 @@ bool UPredMovement::IsWalkingAtSpeed() const
 
 	// When struggling to surpass walk speed, which can occur with heavy rotation and low acceleration, we
 	// mitigate the check so there isn't a constant re-entry that can occur as an edge case
-	return Vel >= FMath::Square(GetBasicMaxSpeed()) * VelocityCheckMitigatorWalking;
+	return Vel >= FMath::Square(GetBasicMaxSpeed() * GetGaitSpeedFactor()) * VelocityCheckMitigatorWalking;
 }
 
 bool UPredMovement::IsRunning() const
@@ -397,7 +405,7 @@ bool UPredMovement::IsRunningAtSpeed() const
 
 	// When struggling to surpass walk speed, which can occur with heavy rotation and low acceleration, we
 	// mitigate the check so there isn't a constant re-entry that can occur as an edge case
-	return Vel >= FMath::Square(GetBasicMaxSpeed()) * VelocityCheckMitigatorRunning;
+	return Vel >= FMath::Square(GetBasicMaxSpeed() * GetGaitSpeedFactor()) * VelocityCheckMitigatorRunning;
 }
 
 bool UPredMovement::IsSprintingAtSpeed() const
@@ -413,7 +421,19 @@ bool UPredMovement::IsSprintingAtSpeed() const
 
 	// When struggling to surpass walk speed, which can occur with heavy rotation and low acceleration, we
 	// mitigate the check so there isn't a constant re-entry that can occur as an edge case
-	return Vel >= FMath::Square(GetBasicMaxSpeed()) * VelocityCheckMitigatorSprinting;
+	return Vel >= FMath::Square(GetBasicMaxSpeed() * GetGaitSpeedFactor()) * VelocityCheckMitigatorSprinting;
+}
+
+float UPredMovement::GetGaitSpeedFactor() const
+{
+	// Infinite recursion protection to avoid stack overflow -- we must exclude Haste from speed checks
+	// e.g. IsSprintWithinAllowableInputAngle() ➜ IsSprintingAtSpeed() ➜ GetMaxSpeed() ➜ GetMaxSpeedScalar() ➜ IsSprintingInEffect() ➜ IsSprintWithinAllowableInputAngle()
+	const float StaminaDrained = IsStaminaDrained() ? MaxWalkSpeedScalarStaminaDrained : 1.f;
+	const float AimingDownSights = IsAimingDownSights() ? MaxWalkSpeedAimingDownSightsScalar : 1.f;
+	const float BoostScalar = GetBoostSpeedScalar();
+	const float SlowScalar = GetSlowSpeedScalar();
+	const float SnareScalar = GetSnareSpeedScalar();
+	return StaminaDrained * AimingDownSights * BoostScalar * SlowScalar * SnareScalar;
 }
 
 float UPredMovement::GetMaxAccelerationScalar() const
@@ -925,7 +945,12 @@ bool UPredMovement::CanSprintInCurrentState() const
 
 bool UPredMovement::IsSprintWithinAllowableInputAngle() const
 {
-	if (!bRestrictSprintInputAngle && MaxInputAngleSprint <= 0.f)
+	if (!UpdatedComponent)
+	{
+		return false;
+	}
+	
+	if (!bRestrictSprintInputAngle || MaxInputAngleSprint <= 0.f)
 	{
 		return true;
 	}

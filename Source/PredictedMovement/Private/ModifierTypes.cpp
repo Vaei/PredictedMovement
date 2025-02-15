@@ -1,9 +1,9 @@
 ﻿// Copyright (c) 2023 Jared Taylor. All Rights Reserved.
 
 
-#include "Modifier/ModifierTypes.h"
+#include "ModifierTypes.h"
 
-#include "Modifier/ModifierCharacter.h"
+#include "PredCharacter.h"
 #include "Algo/Accumulate.h"
 #include "Algo/MaxElement.h"
 
@@ -36,7 +36,7 @@ uint8 FMovementModifier::GetNumModifiersByLevel(uint8 Level) const
 	}).Num();
 }
 
-void FMovementModifier::Initialize(AModifierCharacter* InCharacterOwner, const FGameplayTag& InModifierType)
+void FMovementModifier::Initialize(APredCharacter* InCharacterOwner, const FGameplayTag& InModifierType)
 {
 	CharacterOwner = InCharacterOwner;
 	ModifierType = InModifierType;

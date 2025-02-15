@@ -497,6 +497,16 @@ struct PREDICTEDMOVEMENT_API FClientAuthStack
 	UPROPERTY()
 	TArray<FClientAuthData> Stack;
 
+	bool operator==(const FClientAuthStack& Other) const
+	{
+		return Stack == Other.Stack;
+	}
+
+	bool operator!=(const FClientAuthStack& Other) const
+	{
+		return !(*this == Other);
+	}
+
 	FClientAuthData* GetLatest()
 	{
 		return Stack.Num() > 0 ? &Stack.Last() : nullptr;

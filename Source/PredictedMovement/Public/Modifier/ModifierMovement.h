@@ -92,6 +92,7 @@ protected:
 	
 public:
 	/**
+	 * Boost increases movement speed and acceleration
 	 * Scaling applied on a per-boost-level basis
 	 * Every tag defined here must also be defined in the FModifierData Boost property
 	 */
@@ -108,6 +109,7 @@ public:
 	
 public:
 	/**
+	 * Slow Fall reduces GravityScale
 	 * Scaling applied on a per-slow-fall-level basis
 	 * Every tag defined here must also be defined in the FModifierData SlowFall property
 	 */
@@ -116,6 +118,7 @@ public:
 	
 public:
 	/**
+	 * Snare reduces movement speed and acceleration
 	 * Scaling applied on a per-snare-level basis
 	 * Every tag defined here must also be defined in the FModifierData Snare property
 	 */

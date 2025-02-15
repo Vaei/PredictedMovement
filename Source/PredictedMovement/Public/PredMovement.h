@@ -244,6 +244,10 @@ public:
 	uint8 bWantsToSprint:1;
 
 public:
+	/** How much Stamina to start with */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float BaseMaxStamina;
+	
 	/** Modify maximum speed when stamina is drained. */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
 	float MaxWalkSpeedScalarStaminaDrained;
@@ -487,6 +491,7 @@ public:
 	virtual bool IsRunning() const;
 	virtual bool IsRunningAtSpeed() const;
 	virtual bool IsSprintingAtSpeed() const;
+	virtual float GetGaitSpeedFactor() const;
 	
 	virtual bool IsSprintingInEffect() const { return IsSprintingAtSpeed() && IsSprintWithinAllowableInputAngle(); }
 	virtual float GetMaxAccelerationScalar() const;

@@ -177,12 +177,7 @@ void UModifierMovement::SetUpdatedCharacter()
 
 bool UModifierMovement::CanBoostInCurrentState(FGameplayTag ModifierLevel) const
 {
-	if (!UpdatedComponent || UpdatedComponent->IsSimulatingPhysics())
-	{
-		return false;
-	}
-
-	return true;
+	return UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics();
 }
 
 bool UModifierMovement::CanSlowFallInCurrentState(FGameplayTag ModifierLevel) const
@@ -210,12 +205,7 @@ void UModifierMovement::OnStartSlowFall()
 
 bool UModifierMovement::CanBeSnaredInCurrentState(FGameplayTag ModifierLevel) const
 {
-	if (!UpdatedComponent || UpdatedComponent->IsSimulatingPhysics())
-	{
-		return false;
-	}
-
-	return true;
+	return UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics();
 }
 
 void FSavedMove_Character_Modifier::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel,
@@ -282,7 +272,7 @@ bool FSavedMove_Character_Modifier::IsImportantMove(const FSavedMovePtr& LastAck
 		return true;
 	}
 
-	return FSavedMove_Character::IsImportantMove(LastAckedMove);
+	return Super::IsImportantMove(LastAckedMove);
 }
 
 bool FSavedMove_Character_Modifier::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter,

@@ -3,7 +3,7 @@
 #include "PredTags.h"
 
 
-namespace FModifierTags
+namespace FPredTags
 {
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Modifier_Type_Buff_SlowFall,		"Modifier.Type.Buff.SlowFall", "Reduce Gravity to a % of its normal value");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Modifier_Type_Buff_Boost,		"Modifier.Type.Buff.Boost", "Increase Movement Speed");

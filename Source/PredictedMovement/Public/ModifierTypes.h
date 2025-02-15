@@ -132,11 +132,11 @@ struct PREDICTEDMOVEMENT_API FFallingModifierParams
 	bool bGravityScalarFromVelocityZ;
 
 	/** Gravity is multiplied by this amount */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(ClampMin="0", UIMin="0", ForceUnits="x", EditCondition="!bGravityScalarFromVelocity", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(ClampMin="0", UIMin="0", ForceUnits="x", EditCondition="!bGravityScalarFromVelocityZ", EditConditionHides))
 	float GravityScalar;
 
 	/** Gravity scale curve based on fall velocity */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(EditCondition="bGravityScalarFromVelocity", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(EditCondition="bGravityScalarFromVelocityZ", EditConditionHides))
 	UCurveFloat* GravityScalarFallVelocityCurve;
 
 	/** Set Velocity.Z = 0.f when air fall starts */

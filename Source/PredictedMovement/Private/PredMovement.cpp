@@ -157,7 +157,11 @@ UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
 	// Init SlowFall Levels
 	SlowFall.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Buff_SlowFall_Test); // 1.00x Reduction for 0.00x Gravity
 
-	SlowFallLevels.Add(FPredTags::Modifier_Type_Buff_SlowFall_Test, { 0.00f });
+	FFallingModifierParams SlowFallParam = { 0.00f };
+	SlowFallParam.bRemoveVelocityZOnStart = true;
+	SlowFallParam.bOverrideAirControl = true;
+	SlowFallParam.AirControlOverride = 1.f;  // Full air control
+	SlowFallLevels.Add(FPredTags::Modifier_Type_Buff_SlowFall_Test, SlowFallParam);
 	
 	// Init Snare Levels
 	Snare.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Debuff_Snare_Test); 	// 0.75x Speed Snare
@@ -414,43 +418,70 @@ bool UPredMovement::IsSprintingAtSpeed() const
 
 float UPredMovement::GetMaxAccelerationScalar() const
 {
-	return (IsStaminaDrained() ? MaxAccelerationScalarStaminaDrained : 1.f) *
-		(IsAimingDownSights() ? MaxAccelerationAimingDownSightsScalar : 1.f);
+	const float StaminaDrained = IsStaminaDrained() ? MaxAccelerationScalarStaminaDrained : 1.f;
+	const float AimingDownSights = IsAimingDownSights() ? MaxAccelerationAimingDownSightsScalar : 1.f;
+	const float BoostScalar = GetBoostAccelScalar();
+	const float SlowScalar = GetSlowAccelScalar();
+	const float SnareScalar = GetSnareAccelScalar();
+	const float HasteScalar = IsSprintingInEffect() ? GetHasteAccelScalar() : 1.f;
+	return StaminaDrained * AimingDownSights * BoostScalar * SlowScalar * SnareScalar * HasteScalar;
 }
 
 float UPredMovement::GetMaxSpeedScalar() const
 {
-	return (IsStaminaDrained() ? MaxWalkSpeedScalarStaminaDrained : 1.f) *
-		(IsAimingDownSights() ? MaxWalkSpeedAimingDownSightsScalar : 1.f);
+	const float StaminaDrained = IsStaminaDrained() ? MaxWalkSpeedScalarStaminaDrained : 1.f;
+	const float AimingDownSights = IsAimingDownSights() ? MaxWalkSpeedAimingDownSightsScalar : 1.f;
+	const float BoostScalar = GetBoostSpeedScalar();
+	const float SlowScalar = GetSlowSpeedScalar();
+	const float SnareScalar = GetSnareSpeedScalar();
+	const float HasteScalar = IsSprintingInEffect() ? GetHasteSpeedScalar() : 1.f;
+	return StaminaDrained * AimingDownSights * BoostScalar * SlowScalar * SnareScalar * HasteScalar;
 }
 
 float UPredMovement::GetMaxBrakingDecelerationScalar() const
 {
-	return (IsStaminaDrained() ? MaxBrakingDecelerationScalarStaminaDrained : 1.f) *
-		(IsAimingDownSights() ? BrakingDecelerationAimingDownSightsScalar : 1.f);
+	const float StaminaDrained = IsStaminaDrained() ? MaxBrakingDecelerationScalarStaminaDrained : 1.f;
+	const float AimingDownSights = IsAimingDownSights() ? BrakingDecelerationAimingDownSightsScalar : 1.f;
+	const float BoostScalar = GetBoostBrakingScalar();
+	const float SlowScalar = GetSlowBrakingScalar();
+	const float SnareScalar = GetSnareBrakingScalar();
+	const float HasteScalar = IsSprintingInEffect() ? GetHasteBrakingScalar() : 1.f;
+	return StaminaDrained * AimingDownSights * BoostScalar * SlowScalar * SnareScalar * HasteScalar;
 }
 
 float UPredMovement::GetGroundFrictionScalar() const
 {
-	return IsAimingDownSights() ? GroundFrictionAimingDownSightsScalar : 1.f;
+	const float AimingDownSights = IsAimingDownSights() ? GroundFrictionAimingDownSightsScalar : 1.f;
+	const float BoostScalar = GetBoostGroundFrictionScalar();
+	const float SlowScalar = GetSlowGroundFrictionScalar();
+	const float SnareScalar = GetSnareGroundFrictionScalar();
+	const float HasteScalar = IsSprintingInEffect() ? GetHasteGroundFrictionScalar() : 1.f;
+	return AimingDownSights * BoostScalar * SlowScalar * SnareScalar * HasteScalar;
 }
 
 float UPredMovement::GetBrakingFrictionScalar() const
 {
-	return IsAimingDownSights() ? BrakingFrictionAimingDownSightsScalar : 1.f;
+	const float AimingDownSights = IsAimingDownSights() ? BrakingFrictionAimingDownSightsScalar : 1.f;
+	const float BoostScalar = GetBoostBrakingFrictionScalar();
+	const float SlowScalar = GetSlowBrakingFrictionScalar();
+	const float SnareScalar = GetSnareBrakingFrictionScalar();
+	const float HasteScalar = IsSprintingInEffect() ? GetHasteBrakingFrictionScalar() : 1.f;
+	return AimingDownSights * BoostScalar * SlowScalar * SnareScalar * HasteScalar;
 }
 
 float UPredMovement::GetGravityZScalar() const
 {
-	return GetSlowFallGravityZScalar();
+	const float SlowFallScalar = GetSlowFallGravityZScalar();
+	return SlowFallScalar;
 }
 
 float UPredMovement::GetRootMotionTranslationScalar() const
 {
 	// Allowing boost to affect root motion will increase attack range, dodge range, etc., it is disabled by default
-	return (bSnareAffectsRootMotion ? GetSnareSpeedScalar() : 1.f) *
-			(bBoostAffectsRootMotion ? GetBoostSpeedScalar() : 1.f) *
-			(bSlowAffectsRootMotion ? GetSlowSpeedScalar() : 1.f);
+	const float BoostScalar = bBoostAffectsRootMotion ? GetBoostSpeedScalar() : 1.f;
+	const float SlowScalar = bSlowAffectsRootMotion ? GetSlowSpeedScalar() : 1.f;
+	const float SnareScalar = bSnareAffectsRootMotion ? GetSnareSpeedScalar() : 1.f;
+	return BoostScalar * SlowScalar * SnareScalar;
 }
 
 float UPredMovement::GetMaxAcceleration() const
@@ -471,8 +502,9 @@ float UPredMovement::GetMaxAcceleration() const
 	{
 		return MaxAccelerationSprinting * Scalar;
 	}
-	
-	switch (GetGaitMode())
+
+	const EPredGaitMode GaitMode = GetGaitMode();
+	switch (GaitMode)
 	{
 	case EPredGaitMode::Stroll: return MaxAccelerationStrolling * Scalar;
 	case EPredGaitMode::Walk: return MaxAcceleration * Scalar;
@@ -490,8 +522,9 @@ float UPredMovement::GetBasicMaxSpeed() const
 	if (IsProned())		{ return MaxWalkSpeedProned; }
 	if (IsCrouching())	{ return MaxWalkSpeedCrouched; }
 	if (MovementMode == MOVE_Custom) { return MaxCustomMovementSpeed; }
-	
-	switch (GetGaitMode())
+
+	const EPredGaitMode GaitMode = GetGaitMode();
+	switch (GaitMode)
 	{
 	case EPredGaitMode::Stroll: return MaxWalkSpeedStrolling;
 	case EPredGaitMode::Walk: return MaxWalkSpeed;
@@ -515,8 +548,9 @@ float UPredMovement::GetMaxBrakingDeceleration() const
 	if (IsSwimming()) { return BrakingDecelerationSwimming * Scalar; }
 	if (IsProned()) { return BrakingDecelerationProned * Scalar; }
 	if (IsCrouching()) { return BrakingDecelerationCrouched * Scalar; }
-	
-	switch (GetGaitMode())
+
+	const EPredGaitMode GaitMode = GetGaitMode();
+	switch (GaitMode)
 	{
 		case EPredGaitMode::Stroll: return BrakingDecelerationStrolling * Scalar;
 		case EPredGaitMode::Walk: return BrakingDecelerationWalking * Scalar;
@@ -533,7 +567,8 @@ float UPredMovement::GetGroundFriction(float DefaultGroundFriction) const
 	if (IsProned()) { return GroundFrictionProned * Scalar; }
 	if (IsCrouching()) { return GroundFrictionCrouched * Scalar; }
 
-	switch (GetGaitMode())
+	const EPredGaitMode GaitMode = GetGaitMode();
+	switch (GaitMode)
 	{
 		case EPredGaitMode::Stroll: return GroundFrictionStrolling * Scalar;
 		case EPredGaitMode::Walk: return DefaultGroundFriction * Scalar;
@@ -551,7 +586,8 @@ float UPredMovement::GetBrakingFriction() const
 	if (IsProned()) { return BrakingFrictionProned * Scalar; }
 	if (IsCrouching()) { return BrakingFrictionCrouched * Scalar; }
 
-	switch (GetGaitMode())
+	const EPredGaitMode GaitMode = GetGaitMode();
+	switch (GaitMode)
 	{
 		case EPredGaitMode::Stroll: return BrakingFrictionStrolling * Scalar;
 		case EPredGaitMode::Walk: return BrakingFriction * Scalar;

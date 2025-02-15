@@ -4,6 +4,7 @@
 #include "PredMovement.h"
 
 #include "PredCharacter.h"
+#include "PredTags.h"
 #include "Components/CapsuleComponent.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(PredMovement)
@@ -17,6 +18,16 @@ namespace PredMovementCVars
 		DrawStaminaValues,
 		TEXT("Whether to draw stamina values to screen.\n")
 		TEXT("0: Disable, 1: Enable, 2: Enable Local Client Only, 3: Enable Authority Only"),
+		ECVF_Default);
+#endif
+
+#if !UE_BUILD_SHIPPING
+	static bool bClientAuthDisabled = false;
+	FAutoConsoleVariableRef CVarClientAuthDisabled(
+		TEXT("p.ClientAuth.Disabled"),
+		bClientAuthDisabled,
+		TEXT("Override client authority to disabled.\n")
+		TEXT("If true, disable client authority"),
 		ECVF_Default);
 #endif
 }
@@ -88,11 +99,11 @@ UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
 	NetworkStaminaCorrectionThreshold = 2.f;
 
 	// Aim Down Sights
-	MaxWalkSpeedAimingDownSightsMultiplier = 0.333f;
-	MaxAccelerationAimingDownSightsMultiplier = 0.666f;
-	BrakingDecelerationAimingDownSightsMultiplier = 0.75f;
-	GroundFrictionAimingDownSightsMultiplier = 1.f;
-	BrakingFrictionAimingDownSightsMultiplier = 1.f;
+	MaxWalkSpeedAimingDownSightsScalar = 0.333f;
+	MaxAccelerationAimingDownSightsScalar = 0.666f;
+	BrakingDecelerationAimingDownSightsScalar = 0.75f;
+	GroundFrictionAimingDownSightsScalar = 1.f;
+	BrakingFrictionAimingDownSightsScalar = 1.f;
 
 	// Crouch
 	SetCrouchedHalfHeight(54.f);
@@ -116,6 +127,47 @@ UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
 	bCanWalkOffLedgesWhenProned = false;
 	bWantsToProne = false;
 	bProneLocked = false;
+
+	// Init activation sources
+	Boost.ActivationSource		= EModifierActivationSource::LocalPredicted;		// We apply this to ourselves
+	Haste.ActivationSource		= EModifierActivationSource::LocalPredicted;		// We apply this to ourselves
+	Slow.ActivationSource		= EModifierActivationSource::LocalPredicted;		// We apply this to ourselves
+	SlowFall.ActivationSource	= EModifierActivationSource::LocalPredicted;		// We apply this to ourselves
+	Snare.ActivationSource		= EModifierActivationSource::ServerInitiated;		// Others apply this to us
+
+	// Init data types used for levels as gameplay tags instead of enums
+	Boost.LevelType		= EModifierLevelType::FGameplayTag;
+	Haste.LevelType		= EModifierLevelType::FGameplayTag;
+	Slow.LevelType		= EModifierLevelType::FGameplayTag;
+	SlowFall.LevelType	= EModifierLevelType::FGameplayTag;
+	Snare.LevelType		= EModifierLevelType::FGameplayTag;
+
+	// Init Boost Levels
+	Boost.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Buff_Boost_Test); 		// 1.50x Speed Boost
+	BoostLevels.Add(FPredTags::Modifier_Type_Buff_Boost_Test, { 1.50f });
+
+	// Init Haste Levels
+	Haste.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Buff_Haste_Test); 		// 1.50x Sprint Haste
+	HasteLevels.Add(FPredTags::Modifier_Type_Buff_Haste_Test, { 1.50f });
+
+	// Init Slow Levels
+	Slow.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Debuff_Slow_Test); 		// 0.50x Speed Slow
+	SlowLevels.Add(FPredTags::Modifier_Type_Debuff_Slow_Test, { 0.50f });
+	
+	// Init SlowFall Levels
+	SlowFall.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Buff_SlowFall_Test); // 1.00x Reduction for 0.00x Gravity
+
+	SlowFallLevels.Add(FPredTags::Modifier_Type_Buff_SlowFall_Test, { 0.00f });
+	
+	// Init Snare Levels
+	Snare.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Debuff_Snare_Test); 	// 0.75x Speed Snare
+	SnareLevels.Add(FPredTags::Modifier_Type_Debuff_Snare_Test, { 0.25f });
+
+	// Auth params for Snare
+	FClientAuthParams& SnareParams = ClientAuthParams.Add(FPredTags::Modifier_Type_Debuff_Snare);
+	SnareParams.bEnableClientAuth = true;
+	SnareParams.MaxClientAuthDistance = 150.f;  // For something like a knockback, a greater distance would be sensible
+	SnareParams.RejectClientAuthDistance = 800.f;
 }
 
 void FPredMoveResponseDataContainer::ServerFillResponseData(const UCharacterMovementComponent& CharacterMovement,
@@ -127,6 +179,12 @@ void FPredMoveResponseDataContainer::ServerFillResponseData(const UCharacterMove
 	const UPredMovement* MoveComp = Cast<UPredMovement>(&CharacterMovement);
 	bStaminaDrained = MoveComp->IsStaminaDrained();
 	Stamina = MoveComp->GetStamina();
+
+	if (Snare != MoveComp->Snare)
+	{
+		Snare = MoveComp->Snare;
+	}
+	ClientAuthStack = MoveComp->ClientAuthStack;
 }
 
 bool FPredMoveResponseDataContainer::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,
@@ -142,6 +200,10 @@ bool FPredMoveResponseDataContainer::Serialize(UCharacterMovementComponent& Char
 	{
 		Ar << Stamina;
 		Ar << bStaminaDrained;
+
+		bool bOutSuccess;
+		Snare.NetSerialize(Ar, PackageMap, bOutSuccess);
+		ClientAuthStack.NetSerialize(Ar, PackageMap, bOutSuccess);
 	}
 
 	return !Ar.IsError();
@@ -162,6 +224,12 @@ void FPredNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Character&
 	
 	const FSavedMove_Character_Pred& SavedMove = static_cast<const FSavedMove_Character_Pred&>(ClientMove);
 	Stamina = SavedMove.EndStamina;
+	
+	Boost = SavedMove.Boost;
+	Haste = SavedMove.Haste;
+	Slow = SavedMove.Slow;
+	SlowFall = SavedMove.SlowFall;
+	Snare = SavedMove.Snare;
 }
 
 bool FPredNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,
@@ -169,7 +237,15 @@ bool FPredNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovem
 {
 	Super::Serialize(CharacterMovement, Ar, PackageMap, MoveType);
 
+	// Client ➜ Server
 	SerializeOptionalValue<float>(Ar.IsSaving(), Ar, Stamina, 0.f);
+
+	bool bOutSuccess;
+	Boost.NetSerialize(Ar, PackageMap, bOutSuccess);
+	Haste.NetSerialize(Ar, PackageMap, bOutSuccess);
+	Slow.NetSerialize(Ar, PackageMap, bOutSuccess);
+	SlowFall.NetSerialize(Ar, PackageMap, bOutSuccess);
+	Snare.NetSerialize(Ar, PackageMap, bOutSuccess);
 	
 	return !Ar.IsError();
 }
@@ -197,7 +273,7 @@ void UPredMovement::PostLoad()
 {
 	Super::PostLoad();
 
-	PredCharacterOwner = Cast<APredCharacter>(PawnOwner);
+	SetUpdatedCharacter();
 }
 
 void UPredMovement::OnRegister()
@@ -213,8 +289,18 @@ void UPredMovement::OnRegister()
 void UPredMovement::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
 {
 	Super::SetUpdatedComponent(NewUpdatedComponent);
+	SetUpdatedCharacter();
+}
 
+void UPredMovement::SetUpdatedCharacter()
+{
 	PredCharacterOwner = Cast<APredCharacter>(PawnOwner);
+
+	Boost.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Buff_Boost);
+	Haste.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Buff_Haste);
+	Slow.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Debuff_Slow);
+	SlowFall.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Buff_SlowFall);
+	Snare.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Debuff_Snare);
 }
 
 void UPredMovement::BeginPlay()
@@ -326,60 +412,73 @@ bool UPredMovement::IsSprintingAtSpeed() const
 	return Vel >= FMath::Square(GetBasicMaxSpeed()) * VelocityCheckMitigatorSprinting;
 }
 
-float UPredMovement::GetMaxAccelerationMultiplier() const
+float UPredMovement::GetMaxAccelerationScalar() const
 {
 	return (IsStaminaDrained() ? MaxAccelerationScalarStaminaDrained : 1.f) *
-		(IsAimingDownSights() ? MaxAccelerationAimingDownSightsMultiplier : 1.f);
+		(IsAimingDownSights() ? MaxAccelerationAimingDownSightsScalar : 1.f);
 }
 
-float UPredMovement::GetMaxSpeedMultiplier() const
+float UPredMovement::GetMaxSpeedScalar() const
 {
 	return (IsStaminaDrained() ? MaxWalkSpeedScalarStaminaDrained : 1.f) *
-		(IsAimingDownSights() ? MaxWalkSpeedAimingDownSightsMultiplier : 1.f);
+		(IsAimingDownSights() ? MaxWalkSpeedAimingDownSightsScalar : 1.f);
 }
 
-float UPredMovement::GetMaxBrakingDecelerationMultiplier() const
+float UPredMovement::GetMaxBrakingDecelerationScalar() const
 {
 	return (IsStaminaDrained() ? MaxBrakingDecelerationScalarStaminaDrained : 1.f) *
-		(IsAimingDownSights() ? BrakingDecelerationAimingDownSightsMultiplier : 1.f);
+		(IsAimingDownSights() ? BrakingDecelerationAimingDownSightsScalar : 1.f);
 }
 
-float UPredMovement::GetGroundFrictionMultiplier() const
+float UPredMovement::GetGroundFrictionScalar() const
 {
-	return IsAimingDownSights() ? GroundFrictionAimingDownSightsMultiplier : 1.f;
+	return IsAimingDownSights() ? GroundFrictionAimingDownSightsScalar : 1.f;
 }
 
-float UPredMovement::GetBrakingFrictionMultiplier() const
+float UPredMovement::GetBrakingFrictionScalar() const
 {
-	return IsAimingDownSights() ? BrakingFrictionAimingDownSightsMultiplier : 1.f;
+	return IsAimingDownSights() ? BrakingFrictionAimingDownSightsScalar : 1.f;
+}
+
+float UPredMovement::GetGravityZScalar() const
+{
+	return GetSlowFallGravityZScalar();
+}
+
+float UPredMovement::GetRootMotionTranslationScalar() const
+{
+	// Allowing boost to affect root motion will increase attack range, dodge range, etc., it is disabled by default
+	return (bSnareAffectsRootMotion ? GetSnareSpeedScalar() : 1.f) *
+			(bBoostAffectsRootMotion ? GetBoostSpeedScalar() : 1.f) *
+			(bSlowAffectsRootMotion ? GetSlowSpeedScalar() : 1.f);
 }
 
 float UPredMovement::GetMaxAcceleration() const
 { 
-	const float Multiplier = GetMaxAccelerationMultiplier();
+	const float Scalar = GetMaxAccelerationScalar();
 	
-	if (IsFlying())		{ return MaxAccelerationRunning * Multiplier; }
-	if (IsSwimming())	{ return MaxAccelerationRunning * Multiplier; }
-	if (IsProned())		{ return MaxAccelerationProned * Multiplier; }
-	if (IsCrouching())	{ return MaxAccelerationCrouched * Multiplier; }
+	if (IsFlying())		{ return MaxAccelerationRunning * Scalar; }
+	if (IsSwimming())	{ return MaxAccelerationRunning * Scalar; }
+	if (IsProned())		{ return MaxAccelerationProned * Scalar; }
+	if (IsCrouching())	{ return MaxAccelerationCrouched * Scalar; }
 
 	if (IsSprintingInEffect())
 	{
-		return MaxAccelerationSprinting * Multiplier;
+		return MaxAccelerationSprinting * Scalar;
 	}
 
 	if (!bUseMaxAccelerationSprintingOnlyAtSpeed && IsSprinting() && IsSprintWithinAllowableInputAngle())
 	{
-		return MaxAccelerationSprinting * Multiplier;
+		return MaxAccelerationSprinting * Scalar;
 	}
 	
 	switch (GetGaitMode())
 	{
-	case EPredGaitMode::Stroll: return MaxAccelerationStrolling * Multiplier;
-	case EPredGaitMode::Walk: return MaxAcceleration * Multiplier;
+	case EPredGaitMode::Stroll: return MaxAccelerationStrolling * Scalar;
+	case EPredGaitMode::Walk: return MaxAcceleration * Scalar;
 	case EPredGaitMode::Run:
 	case EPredGaitMode::Sprint:
-		return MaxAccelerationRunning * Multiplier;
+		return MaxAccelerationRunning * Scalar;
 	}
 	return 0.f;
 }
@@ -404,42 +503,42 @@ float UPredMovement::GetBasicMaxSpeed() const
 
 float UPredMovement::GetMaxSpeed() const
 {
-	return GetBasicMaxSpeed() * GetMaxSpeedMultiplier();
+	return GetBasicMaxSpeed() * GetMaxSpeedScalar();
 }
 
 float UPredMovement::GetMaxBrakingDeceleration() const
 {
-	const float Multiplier = GetMaxBrakingDecelerationMultiplier();
+	const float Scalar = GetMaxBrakingDecelerationScalar();
 	
-	if (IsFlying()) { return BrakingDecelerationFlying * Multiplier; }
-	if (IsFalling()) { return BrakingDecelerationFalling * Multiplier; }
-	if (IsSwimming()) { return BrakingDecelerationSwimming * Multiplier; }
-	if (IsProned()) { return BrakingDecelerationProned * Multiplier; }
-	if (IsCrouching()) { return BrakingDecelerationCrouched * Multiplier; }
+	if (IsFlying()) { return BrakingDecelerationFlying * Scalar; }
+	if (IsFalling()) { return BrakingDecelerationFalling * Scalar; }
+	if (IsSwimming()) { return BrakingDecelerationSwimming * Scalar; }
+	if (IsProned()) { return BrakingDecelerationProned * Scalar; }
+	if (IsCrouching()) { return BrakingDecelerationCrouched * Scalar; }
 	
 	switch (GetGaitMode())
 	{
-		case EPredGaitMode::Stroll: return BrakingDecelerationStrolling * Multiplier;
-		case EPredGaitMode::Walk: return BrakingDecelerationWalking * Multiplier;
-		case EPredGaitMode::Run: return BrakingDecelerationRunning * Multiplier;
-		case EPredGaitMode::Sprint: return BrakingDecelerationSprinting * Multiplier;
+		case EPredGaitMode::Stroll: return BrakingDecelerationStrolling * Scalar;
+		case EPredGaitMode::Walk: return BrakingDecelerationWalking * Scalar;
+		case EPredGaitMode::Run: return BrakingDecelerationRunning * Scalar;
+		case EPredGaitMode::Sprint: return BrakingDecelerationSprinting * Scalar;
 	}
 	return 0.f;
 }
 
 float UPredMovement::GetGroundFriction(float DefaultGroundFriction) const
 {
-	const float Multiplier = GetGroundFrictionMultiplier();
+	const float Scalar = GetGroundFrictionScalar();
 
-	if (IsProned()) { return GroundFrictionProned * Multiplier; }
-	if (IsCrouching()) { return GroundFrictionCrouched * Multiplier; }
+	if (IsProned()) { return GroundFrictionProned * Scalar; }
+	if (IsCrouching()) { return GroundFrictionCrouched * Scalar; }
 
 	switch (GetGaitMode())
 	{
-		case EPredGaitMode::Stroll: return GroundFrictionStrolling * Multiplier;
-		case EPredGaitMode::Walk: return DefaultGroundFriction * Multiplier;
-		case EPredGaitMode::Run: return GroundFrictionRunning * Multiplier;
-		case EPredGaitMode::Sprint: return GroundFrictionSprinting * Multiplier;
+		case EPredGaitMode::Stroll: return GroundFrictionStrolling * Scalar;
+		case EPredGaitMode::Walk: return DefaultGroundFriction * Scalar;
+		case EPredGaitMode::Run: return GroundFrictionRunning * Scalar;
+		case EPredGaitMode::Sprint: return GroundFrictionSprinting * Scalar;
 	}
 
 	return DefaultGroundFriction;
@@ -447,20 +546,36 @@ float UPredMovement::GetGroundFriction(float DefaultGroundFriction) const
 
 float UPredMovement::GetBrakingFriction() const
 {
-	const float Multiplier = GetBrakingFrictionMultiplier();
+	const float Scalar = GetBrakingFrictionScalar();
 
-	if (IsProned()) { return BrakingFrictionProned * Multiplier; }
-	if (IsCrouching()) { return BrakingFrictionCrouched * Multiplier; }
+	if (IsProned()) { return BrakingFrictionProned * Scalar; }
+	if (IsCrouching()) { return BrakingFrictionCrouched * Scalar; }
 
 	switch (GetGaitMode())
 	{
-		case EPredGaitMode::Stroll: return BrakingFrictionStrolling * Multiplier;
-		case EPredGaitMode::Walk: return BrakingFriction * Multiplier;
-		case EPredGaitMode::Run: return BrakingFrictionRunning * Multiplier;
-		case EPredGaitMode::Sprint: return BrakingFrictionSprinting * Multiplier;
+		case EPredGaitMode::Stroll: return BrakingFrictionStrolling * Scalar;
+		case EPredGaitMode::Walk: return BrakingFriction * Scalar;
+		case EPredGaitMode::Run: return BrakingFrictionRunning * Scalar;
+		case EPredGaitMode::Sprint: return BrakingFrictionSprinting * Scalar;
 	}
 	
 	return BrakingFriction;
+}
+
+float UPredMovement::GetGravityZ() const
+{
+	return Super::GetGravityZ() * GetGravityZScalar();
+}
+
+FVector UPredMovement::GetAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration)
+{
+	// Slow fall air control
+	if (const FFallingModifierParams* Params = GetSlowFallLevelParams())
+	{
+		TickAirControl = Params->GetAirControl(TickAirControl);
+	}
+	
+	return Super::GetAirControl(DeltaTime, TickAirControl, FallAcceleration);
 }
 
 void UPredMovement::CalcStamina(float DeltaTime)
@@ -1278,8 +1393,45 @@ bool UPredMovement::CanCrouchInCurrentState() const
 	return Super::CanCrouchInCurrentState() && (!IsSprinting() || bCanSprintDuringCrouch);
 }
 
+bool UPredMovement::CanBoostInCurrentState(FGameplayTag ModifierLevel) const
+{
+	return UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics();
+}
+
+bool UPredMovement::CanHasteInCurrentState(FGameplayTag ModifierLevel) const
+{
+	return UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics();
+}
+
+bool UPredMovement::CanSlowInCurrentState(FGameplayTag ModifierLevel) const
+{
+	return UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics();
+}
+
+bool UPredMovement::CanSlowFallInCurrentState(FGameplayTag ModifierLevel) const
+{
+	return UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics();
+}
+
+void UPredMovement::OnStartSlowFall()
+{
+	if (const FFallingModifierParams* Params = GetSlowFallLevelParams())
+	{
+		if (Params->bRemoveVelocityZOnStart)
+		{
+			Velocity.Z = 0.f;
+		}
+	}
+}
+
 void UPredMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 {
+	Boost.UpdateCharacterStateBeforeMovement(CanBoostInCurrentState(FGameplayTag::EmptyTag));
+	Haste.UpdateCharacterStateBeforeMovement(CanHasteInCurrentState(FGameplayTag::EmptyTag));
+	Slow.UpdateCharacterStateBeforeMovement(CanSlowInCurrentState(FGameplayTag::EmptyTag));
+	SlowFall.UpdateCharacterStateBeforeMovement(CanSlowFallInCurrentState(FGameplayTag::EmptyTag));
+	Snare.UpdateCharacterStateBeforeMovement(CanBeSnaredInCurrentState(FGameplayTag::EmptyTag));
+	
 	// Proxies get replicated Sprint state.
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
@@ -1378,6 +1530,12 @@ void UPredMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 
 void UPredMovement::UpdateCharacterStateAfterMovement(float DeltaSeconds)
 {
+	Boost.UpdateCharacterStateAfterMovement(CanBoostInCurrentState(FGameplayTag::EmptyTag));
+	Haste.UpdateCharacterStateAfterMovement(CanHasteInCurrentState(FGameplayTag::EmptyTag));
+	Slow.UpdateCharacterStateAfterMovement(CanSlowInCurrentState(FGameplayTag::EmptyTag));
+	SlowFall.UpdateCharacterStateAfterMovement(CanSlowFallInCurrentState(FGameplayTag::EmptyTag));
+	Snare.UpdateCharacterStateAfterMovement(CanBeSnaredInCurrentState(FGameplayTag::EmptyTag));
+	
 	// Proxies get replicated Sprint state.
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
@@ -1431,17 +1589,118 @@ void UPredMovement::ServerMove_PerformMovement(const FCharacterNetworkMoveData& 
 	
 	const FPredNetworkMoveData& PredMoveData = static_cast<const FPredNetworkMoveData&>(MoveData);
 
+	// << operator copies only the RequestedModifierLevel and Modifiers stack, i.e. requested state not current state
+
+	// Local Predicted Modifiers Only
+	Boost << PredMoveData.Boost;
+	Haste << PredMoveData.Haste;
+	Slow << PredMoveData.Slow;
+	SlowFall << PredMoveData.SlowFall;
+	
 	Super::ServerMove_PerformMovement(MoveData);
+}
+
+void UPredMovement::ClientHandleMoveResponse(const FCharacterMoveResponseDataContainer& MoveResponse)
+{
+	// This occurs on AutonomousProxy, when the server sends the move response
+	// This is where we receive the snare, and can override the server's location, assuming it has given us authority
+
+	// Server >> SendClientAdjustment() ➜ ServerSendMoveResponse
+	// ➜ ServerFillResponseData() + MoveResponsePacked_ServerSend() >> Client
+	// >> ClientMoveResponsePacked() ➜ ClientHandleMoveResponse()
+
+	const FPredMoveResponseDataContainer& ModifierMoveResponse = static_cast<const FPredMoveResponseDataContainer&>(MoveResponse);
+
+	// Handle Snare & Client Authority
+	ClientAuthStack = ModifierMoveResponse.ClientAuthStack;
+	if (FClientAuthData* ClientAuthData = GetClientAuthData())
+	{
+		if (Snare != ModifierMoveResponse.Snare)
+		{
+			// Apply Snare correction
+			Snare << ModifierMoveResponse.Snare;
+
+			if (ClientAuthData)
+			{
+				if (FMath::IsNearlyZero(ClientAuthData->Alpha))
+				{
+					ClientAuthData->Alpha = 0.f;
+				}
+				else
+				{
+					FlushServerMoves();
+				}
+			}
+		}
+	
+		if (ClientAuthData->Alpha > 0.f)
+		{
+			const bool bAdjustClientData = !MoveResponse.IsGoodMove();
+			FNetworkPredictionData_Client_Character* ClientData = bAdjustClientData ? GetPredictionData_Client_Character() : nullptr;
+
+			// Do not allow us to apply a partial move based on our own authoritative location that is in the past,
+			// after server sends it back to us
+			if (bAdjustClientData)
+			{
+				check(ClientData);
+				if (ClientData->LastAckedMove.IsValid())
+				{
+					FCharacterMoveResponseDataContainer& MutableResponse = const_cast<FCharacterMoveResponseDataContainer&>(MoveResponse);
+					ClientData->LastAckedMove->SavedLocation = MutableResponse.ClientAdjustment.NewLoc;
+				}
+			}
+
+			// Cache the old location because the server will apply our own past authoritative location when calling Super!
+			FVector OldLocation = UpdatedComponent->GetComponentLocation();
+		
+			Super::ClientHandleMoveResponse(MoveResponse);
+		
+			FVector NewLocation = UpdatedComponent->GetComponentLocation();
+
+			// Clamp the location to the server's authoritative location based on the authority alpha
+			const FVector ClampedLocation = FMath::Lerp<FVector>(OldLocation, NewLocation, 1.f - ClientAuthData->Alpha);
+			UpdatedComponent->SetWorldLocation(ClampedLocation, false);
+
+			// Block the next ClientUpdatePositionAfterServerUpdate() from replaying moves, this will overwrite our authority
+			// @TODO Do we need to make sure it applies non-location moves?
+			if (bAdjustClientData)
+			{
+				ClientData->bUpdatePosition = false;
+			}
+		}
+		else
+		{
+			Super::ClientHandleMoveResponse(MoveResponse);
+		}
+	}
+	else
+	{
+		// Apply Snare correction
+		Snare << ModifierMoveResponse.Snare;
+		Super::ClientHandleMoveResponse(MoveResponse);
+	}
 }
 
 bool UPredMovement::ClientUpdatePositionAfterServerUpdate()
 {
+	const FMovementModifier SavedBoost = Boost;
+	const FMovementModifier SavedHaste = Haste;
+	const FMovementModifier SavedSlow = Slow;
+	const FMovementModifier SavedSlowFall = SlowFall;
+	const FMovementModifier SavedSnare = Snare;
 	const bool bRealStroll = bWantsToStroll;
 	const bool bRealWalk = bWantsToWalk;
 	const bool bRealSprint = bWantsToSprint;
 	const bool bRealProne = bWantsToProne;
 	const bool bRealAimDownSights = bWantsToAimDownSights;
+	
 	const bool bResult = Super::ClientUpdatePositionAfterServerUpdate();
+
+	Boost = SavedBoost;
+	Haste = SavedHaste;
+	Slow = SavedSlow;
+	SlowFall = SavedSlowFall;
+	Snare = SavedSnare;
 	bWantsToStroll = bRealStroll;
 	bWantsToWalk = bRealWalk;
 	bWantsToSprint = bRealSprint;
@@ -1449,6 +1708,41 @@ bool UPredMovement::ClientUpdatePositionAfterServerUpdate()
 	bWantsToAimDownSights = bRealAimDownSights;
 
 	return bResult;
+}
+
+bool UPredMovement::CanDelaySendingMove(const FSavedMovePtr& NewMove)
+{
+	// Don't delay sending moves if the modifiers changed over the course of the move
+	// ^= is the same as != but it also evaluates the current level rather than only the requested level
+	
+	const TSharedPtr<FSavedMove_Character_Pred>& SavedMove = StaticCastSharedPtr<FSavedMove_Character_Pred>(NewMove);
+
+	if (SavedMove->Boost ^= SavedMove->EndBoost)
+	{
+		return false;
+	}
+
+	if (SavedMove->Haste ^= SavedMove->EndHaste)
+	{
+		return false;
+	}
+
+	if (SavedMove->Slow ^= SavedMove->EndSlow)
+	{
+		return false;
+	}
+
+	if (SavedMove->SlowFall ^= SavedMove->EndSlowFall)
+	{
+		return false;
+	}
+
+	if (SavedMove->Snare ^= SavedMove->EndSnare)
+	{
+		return false;
+	}
+	
+	return Super::CanDelaySendingMove(NewMove);
 }
 
 void UPredMovement::OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData,
@@ -1496,8 +1790,56 @@ bool UPredMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTim
 	{
 		return true;
 	}
+
+	// Trigger client correction if modifiers have different ModifierLevel or Modifiers Array
+	// De-syncs can happen when we set the Modifier directly in Gameplay code (i.e. GAS)
+	if (CurrentMoveData->Snare != Snare)
+	{
+		return true;
+	}
     
 	return false;
+}
+
+void UPredMovement::ServerMoveHandleClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
+	const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName,
+	uint8 ClientMovementMode)
+{
+	// This is the entry-point for determining how to handle client corrections; we can determine they are out of sync
+	// and make any changes that suit our needs
+	
+	// Client >> TickComponent ➜ ControlledCharacterMove ➜ CallServerMove ➜ ReplicateMoveToServer >> Server
+	// >> ServerMove ➜ ServerMoveHandleClientError
+
+	const FPredNetworkMoveData* CurrentMoveData = static_cast<const FPredNetworkMoveData*>(GetCurrentNetworkMoveData());
+
+	// Initialize client authority when the client is about to receive a correction that applies Snare
+#if !UE_BUILD_SHIPPING
+	if (!PredMovementCVars::bClientAuthDisabled)
+#endif
+	{
+		if (CurrentMoveData->Snare != Snare)
+		{
+			// Snare inits client authority here, however other states may want to do it elsewhere, this is not a requirement
+			InitClientAuth(FPredTags::Modifier_Type_Debuff_Snare);
+		}
+
+		// Update client authority time remaining
+		ClientAuthStack.Update(DeltaTime);
+
+		// Apply these thresholds to control client authority
+		FVector ClientLoc = FRepMovement::RebaseOntoZeroOrigin(RelativeClientLocation, this);
+		if (ServerShouldGrantClientPositionAuthority(ClientLoc))
+		{
+			// Apply client authoritative position directly -- Subsequent moves will resolve overlapping conditions
+			UpdatedComponent->SetWorldLocation(ClientLoc, false);
+		}
+	}
+
+	// The move prepared here will finally be sent in the next ReplicateMoveToServer()
+	
+	Super::ServerMoveHandleClientError(ClientTimeStamp, DeltaTime, Accel, RelativeClientLocation, ClientMovementBase,
+		ClientBaseBoneName, ClientMovementMode);
 }
 
 void UPredMovement::UpdateFromCompressedFlags(uint8 Flags)
@@ -1559,6 +1901,12 @@ void FSavedMove_Character_Pred::Clear()
 	bStaminaDrained = false;
 	StartStamina = 0.f;
 	EndStamina = 0.f;
+
+	Boost = {};
+	Haste = {};
+	Slow = {};
+	SlowFall = {};
+	Snare = {};
 }
 
 void FSavedMove_Character_Pred::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel,
@@ -1574,6 +1922,12 @@ void FSavedMove_Character_Pred::SetMoveFor(ACharacter* C, float InDeltaTime, FVe
 		bWantsToWalk = MoveComp->bWantsToWalk;
 		bWantsToSprint = MoveComp->bWantsToSprint;
 		bWantsToAimDownSights = MoveComp->bWantsToAimDownSights;
+
+		// Local Predicted Modifiers
+		Boost = MoveComp->Boost;
+		Haste = MoveComp->Haste;
+		Slow = MoveComp->Slow;
+		SlowFall = MoveComp->SlowFall;
 	}
 }
 
@@ -1590,9 +1944,51 @@ void FSavedMove_Character_Pred::PrepMoveFor(ACharacter* C)
 bool FSavedMove_Character_Pred::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter,
 	float MaxDelta) const
 {
+	// We combine moves for the purpose of reducing the number of moves sent to the server, especially when exceeding
+	// 60 fps (by default, see ClientNetSendMoveDeltaTime).
+	// By combining moves, we can send fewer moves, but still have the same outcome.
+	
+	// If we didn't handle move combining, and then we used OnStartSprint() to modify our Velocity directly, it would
+	// de-sync if we exceed 60fps. This is where move combining kicks in and starts using Pending Moves instead.
+	
+	// When combining moves, the PendingMove is passed into the NewMove. Locally, before sending a Move to the Server,
+	// the AutonomousProxy Client will already have processed the current PendingMove (it's only pending for being sent,
+	// not processed).
+
+	// Since combining will happen before processing a move, PendingMove might end up being processed twice; once last
+	// frame, and once as part of the new combined move.
+	
 	const TSharedPtr<FSavedMove_Character_Pred>& SavedMove = StaticCastSharedPtr<FSavedMove_Character_Pred>(NewMove);
 
 	if (bStaminaDrained != SavedMove->bStaminaDrained)
+	{
+		return false;
+	}
+	
+	// We can only combine moves if they will result in the same state as if both moves were processed individually,
+	// because the AutonomousProxy Client processes them individually prior to sending them to the server.
+
+	if (Boost != SavedMove->Boost)
+	{
+		return false;
+	}
+
+	if (Haste != SavedMove->Haste)
+	{
+		return false;
+	}
+
+	if (Slow != SavedMove->Slow)
+	{
+		return false;
+	}
+
+	if (SlowFall != SavedMove->SlowFall)
+	{
+		return false;
+	}
+	
+	if (Snare != SavedMove->Snare)
 	{
 		return false;
 	}
@@ -1611,17 +2007,30 @@ void FSavedMove_Character_Pred::CombineWith(const FSavedMove_Character* OldMove,
 	{
 		MoveComp->SetStamina(SavedOldMove->StartStamina);
 		MoveComp->SetStaminaDrained(SavedOldMove->bStaminaDrained);
+		
+		// Server Initiated Modifiers
+		MoveComp->Snare << SavedOldMove->Snare;
 	}
 }
 
 void FSavedMove_Character_Pred::SetInitialPosition(ACharacter* C)
 {
+	// To counter the PendingMove potentially being processed twice, we need to make sure to reset the state of the CMC
+	// back to the "InitialPosition" (state) it had before the PendingMove got processed.
+	
 	Super::SetInitialPosition(C);
 
 	if (const UPredMovement* MoveComp = C ? Cast<UPredMovement>(C->GetCharacterMovement()) : nullptr)
 	{
+		// Retrieve the value from our CMC to revert the saved move value back to this.
 		bStaminaDrained = MoveComp->IsStaminaDrained();
 		StartStamina = MoveComp->GetStamina();
+
+		Boost = MoveComp->Boost;
+		Haste = MoveComp->Haste;
+		Slow = MoveComp->Slow;
+		SlowFall = MoveComp->SlowFall;
+		Snare = MoveComp->Snare;
 	}
 }
 
@@ -1631,11 +2040,44 @@ void FSavedMove_Character_Pred::PostUpdate(ACharacter* C, EPostUpdateMode PostUp
 	if (UPredMovement* MoveComp = C ? Cast<UPredMovement>(C->GetCharacterMovement()) : nullptr)
 	{
 		EndStamina = MoveComp->GetStamina();
+
+		EndBoost = MoveComp->Boost;
+		EndHaste = MoveComp->Haste;
+		EndSlow = MoveComp->Slow;
+		EndSlowFall = MoveComp->SlowFall;
+		EndSnare = MoveComp->Snare;
 	
 		if (PostUpdateMode == PostUpdate_Record)
 		{
 			// Don't combine moves if the properties changed over the course of the move
 			if (bStaminaDrained != MoveComp->IsStaminaDrained())
+			{
+				bForceNoCombine = true;
+			}
+
+			// ^= is the same as != but it also evaluates the current level rather than only the requested level
+
+			if (Boost ^= EndBoost)
+			{
+				bForceNoCombine = true;
+			}
+
+			if (Haste ^= EndHaste)
+			{
+				bForceNoCombine = true;
+			}
+			
+			if (Slow ^= EndSlow)
+			{
+				bForceNoCombine = true;
+			}
+
+			if (SlowFall ^= EndSlowFall)
+			{
+				bForceNoCombine = true;
+			}
+
+			if (Snare ^= EndSnare)
 			{
 				bForceNoCombine = true;
 			}
@@ -1645,9 +2087,211 @@ void FSavedMove_Character_Pred::PostUpdate(ACharacter* C, EPostUpdateMode PostUp
 	Super::PostUpdate(C, PostUpdateMode);
 }
 
+bool FSavedMove_Character_Pred::IsImportantMove(const FSavedMovePtr& LastAckedMove) const
+{
+	const TSharedPtr<FSavedMove_Character_Pred>& SavedMove = StaticCastSharedPtr<FSavedMove_Character_Pred>(LastAckedMove);
+	if (Boost != SavedMove->Boost || Boost != SavedMove->EndBoost)
+	{
+		return true;
+	}
+
+	if (Haste != SavedMove->Haste || Haste != SavedMove->EndHaste)
+	{
+		return true;
+	}
+
+	if (Slow != SavedMove->Slow || Slow != SavedMove->EndSlow)
+	{
+		return true;
+	}
+
+	if (SlowFall != SavedMove->SlowFall || SlowFall != SavedMove->EndSlowFall)
+	{
+		return true;
+	}
+
+	if (Snare != SavedMove->Snare || Snare != SavedMove->EndSnare)
+	{
+		return true;
+	}
+	
+	return Super::IsImportantMove(LastAckedMove);
+}
+
 FSavedMovePtr FNetworkPredictionData_Client_Character_Pred::AllocateNewMove()
 {
 	return MakeShared<FSavedMove_Character_Pred>();
+}
+
+void UPredMovement::InitClientAuth(FGameplayTag ClientAuthSource, float OverrideDuration)
+{
+	if (const FClientAuthParams* Params = GetClientAuthParams(ClientAuthSource))
+	{
+		if (Params->bEnableClientAuth)
+		{
+			const float Duration = OverrideDuration > 0.f ? OverrideDuration : Params->ClientAuthTime;
+			ClientAuthStack.Stack.Add(FClientAuthData(ClientAuthSource, Duration));
+
+			// Limit the number of auth data entries
+			// IMPORTANT: We do not allow serializing more than 8, if this changes, update the serialization code too
+			if (ClientAuthStack.Stack.Num() > 8)
+			{
+				ClientAuthStack.Stack.RemoveAt(0);
+			}
+		}
+	}
+	else
+	{
+#if !UE_BUILD_SHIPPING
+		FMessageLog("PIE").Error(FText::FromString(FString::Printf(TEXT("ClientAuthSource '%s' not found in ClientAuthParams"), *ClientAuthSource.ToString())));
+#else
+		UE_LOG(LogModifierMovement, Error, TEXT("ClientAuthSource '%s' not found"), *ClientAuthSource.ToString());
+#endif
+	}
+}
+
+bool UPredMovement::ServerShouldGrantClientPositionAuthority(FVector& ClientLoc)
+{
+	// Already ignoring client movement error checks and correction
+	if (bIgnoreClientMovementErrorChecksAndCorrection)
+	{
+		return false;
+	}
+
+	// Abort if client authority is not enabled
+#if !UE_BUILD_SHIPPING
+	if (PredMovementCVars::bClientAuthDisabled)
+	{
+		return false;
+	}
+#endif
+
+	// Get auth data
+	FClientAuthData* ClientAuthData = GetClientAuthData();
+	if (!ClientAuthData)
+	{
+		// No auth data, can't do anything
+		return false;
+	}
+
+	// Get auth params
+	FClientAuthParams* Params = GetClientAuthParams(ClientAuthData->Source);
+	if (!Params)
+	{
+		// No auth params, can't do anything
+		return false;
+	}
+
+	if (!Params->bEnableClientAuth)
+	{
+		return false;
+	}
+
+	// Validate auth data
+#if !UE_BUILD_SHIPPING
+	if (UNLIKELY(ClientAuthData->TimeRemaining <= 0.f))
+	{
+		// ServerMoveHandleClientError() should have removed the auth data already
+		ensure(false);
+		return false;
+	}
+#endif
+	
+	// Reset alpha, we're going to calculate it now
+	ClientAuthData->Alpha = 0.f;
+
+	// How far the client is from the server
+	const FVector ServerLoc = UpdatedComponent->GetComponentLocation();
+	FVector LocDiff = ServerLoc - ClientLoc;
+
+	// No change or almost no change occurred
+	if (LocDiff.IsNearlyZero())
+	{
+		// Grant full authority
+		ClientAuthData->Alpha = 1.f;
+		return true;
+	}
+
+	// If the client is too far away from the server, reject the client position entirely, potential cheater
+	if (LocDiff.SizeSquared() >= FMath::Square(Params->RejectClientAuthDistance))
+	{
+		OnClientAuthRejected(ClientLoc, ServerLoc, LocDiff);
+		return false;
+	}
+
+	// If the client is not within the maximum allowable distance, accept the client position, but only partially
+	if (LocDiff.Size() >= Params->MaxClientAuthDistance)
+	{
+		// Accept only a portion of the client's location
+		ClientAuthData->Alpha = Params->MaxClientAuthDistance / LocDiff.Size();
+		ClientLoc = FMath::Lerp<FVector>(ServerLoc, ClientLoc, ClientAuthData->Alpha);
+		LocDiff = ServerLoc - ClientLoc;
+	}
+	else
+	{
+		// Accept full client location
+		ClientAuthData->Alpha = 1.f;
+	}
+
+	return true;
+}
+
+void UPredMovement::TickCharacterPose(float DeltaTime)
+{
+	/*
+	 * ACharacter::GetAnimRootMotionTranslationScale() is non-virtual, so we have to duplicate the entire function.
+	 * All we do here is scale CharacterOwner->GetAnimRootMotionTranslationScale() by GetRootMotionTranslationScalar()
+	 * 
+	 * This allows our snares to affect root motion.
+	 */
+	
+	if (DeltaTime < MIN_TICK_TIME)
+	{
+		return;
+	}
+
+	check(CharacterOwner && CharacterOwner->GetMesh());
+	USkeletalMeshComponent* CharacterMesh = CharacterOwner->GetMesh();
+
+	// bAutonomousTickPose is set, we control TickPose from the Character's Movement and Networking updates, and bypass the Component's update.
+	// (Or Simulating Root Motion for remote clients)
+	CharacterMesh->bIsAutonomousTickPose = true;
+
+	if (CharacterMesh->ShouldTickPose())
+	{
+		// Keep track of if we're playing root motion, just in case the root motion montage ends this frame.
+		const bool bWasPlayingRootMotion = CharacterOwner->IsPlayingRootMotion();
+
+		CharacterMesh->TickPose(DeltaTime, true);
+
+		// Grab root motion now that we have ticked the pose
+		if (CharacterOwner->IsPlayingRootMotion() || bWasPlayingRootMotion)
+		{
+			FRootMotionMovementParams RootMotion = CharacterMesh->ConsumeRootMotion();
+			if (RootMotion.bHasRootMotion)
+			{
+				RootMotion.ScaleRootMotionTranslation(CharacterOwner->GetAnimRootMotionTranslationScale() * GetRootMotionTranslationScalar());
+				RootMotionParams.Accumulate(RootMotion);
+			}
+
+#if !(UE_BUILD_SHIPPING)
+			// Debugging
+			{
+				FAnimMontageInstance* RootMotionMontageInstance = CharacterOwner->GetRootMotionAnimMontageInstance();
+				UE_LOG(LogRootMotion, Log, TEXT("UCharacterMovementComponent::TickCharacterPose Role: %s, RootMotionMontage: %s, MontagePos: %f, DeltaTime: %f, ExtractedRootMotion: %s, AccumulatedRootMotion: %s")
+					, *UEnum::GetValueAsString(TEXT("Engine.ENetRole"), CharacterOwner->GetLocalRole())
+					, *GetNameSafe(RootMotionMontageInstance ? RootMotionMontageInstance->Montage : NULL)
+					, RootMotionMontageInstance ? RootMotionMontageInstance->GetPosition() : -1.f
+					, DeltaTime
+					, *RootMotion.GetRootMotionTransform().GetTranslation().ToCompactString()
+					, *RootMotionParams.GetRootMotionTransform().GetTranslation().ToCompactString()
+					);
+			}
+#endif // !(UE_BUILD_SHIPPING)
+		}
+	}
+
+	CharacterMesh->bIsAutonomousTickPose = false;
 }
 
 FNetworkPredictionData_Client* UPredMovement::GetPredictionData_Client() const

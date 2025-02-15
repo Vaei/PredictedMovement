@@ -3,8 +3,11 @@
 
 #include "PredCharacter.h"
 
+#include "GameplayTagContainer.h"
 #include "Net/UnrealNetwork.h"
 #include "PredMovement.h"
+#include "PredTags.h"
+#include "ModifierTypes.h"
 #include "Net/Core/PushModel/PushModel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(PredCharacter)
@@ -34,6 +37,10 @@ void APredCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsStrolling, SharedParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsWalking, SharedParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsSprinting, SharedParams);
+
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedBoost, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedSlowFall, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedSnare, SharedParams);
 }
 
 void APredCharacter::SetGaitMode(EPredGaitMode NewGaitMode)
@@ -562,6 +569,564 @@ void APredCharacter::OnEndProne(float HeightAdjust, float ScaledHeightAdjust)
 	}
 	K2_OnEndProne(HeightAdjust, ScaledHeightAdjust);
 }
+
+
+void APredCharacter::OnModifierChanged(const FGameplayTag& ModifierType, uint8 ModifierLevel, uint8 PrevModifierLevel)
+{
+	// Events for when a modifier is added, removed or changed
+	if (ModifierLevel > 0 && PrevModifierLevel == 0)
+	{
+		OnModifierAdded(ModifierType, ModifierLevel, PrevModifierLevel);
+	}
+	else if (ModifierLevel == 0 && PrevModifierLevel > 0)
+	{
+		OnModifierRemoved(ModifierType, ModifierLevel, PrevModifierLevel);
+	}
+
+	K2_OnModifierChanged(ModifierType, ModifierLevel, PrevModifierLevel);
+
+	// Replicate to simulated proxies
+	if (HasAuthority())
+	{
+		if (ModifierType == FPredTags::Modifier_Type_Buff_Boost)
+		{
+			SimulatedBoost = ModifierLevel;
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedBoost, this);			// Push-model
+		}
+		else if (ModifierType == FPredTags::Modifier_Type_Buff_SlowFall)
+		{
+			SimulatedSlowFall = ModifierLevel;
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedSlowFall, this);		// Push-model
+		}
+		else if (ModifierType == FPredTags::Modifier_Type_Debuff_Snare)
+		{
+			SimulatedSnare = ModifierLevel;
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedSnare, this);			// Push-model
+		}
+	}
+}
+
+void APredCharacter::OnModifierAdded(const FGameplayTag& ModifierType, uint8 ModifierLevel, uint8 PrevModifierLevel)
+{
+	// @TIP: Set Loose Gameplay Tag Here (Not Replicated)
+	// DO NOT ADD or REMOVE HERE! Net corrections can violate this!
+
+	if (!PredMovement)
+	{
+		return;
+	}
+
+	if (ModifierType == FPredTags::Modifier_Type_Buff_Boost)
+	{
+		PredMovement->OnStartBoost();
+	}
+	else if (ModifierType == FPredTags::Modifier_Type_Buff_SlowFall)
+	{
+		PredMovement->OnStartSlowFall();
+	}
+	else if (ModifierType == FPredTags::Modifier_Type_Debuff_Snare)
+	{
+		PredMovement->OnStartSnare();
+	}
+
+	K2_OnModifierAdded(ModifierType, ModifierLevel, PrevModifierLevel);
+}
+
+void APredCharacter::OnModifierRemoved(const FGameplayTag& ModifierType, uint8 ModifierLevel, uint8 PrevModifierLevel)
+{
+	// @TIP: Set Loose Gameplay Tag Here (Not Replicated)
+	// DO NOT ADD or REMOVE HERE! Net corrections can violate this!
+
+	if (ModifierType == FPredTags::Modifier_Type_Buff_Boost)
+	{
+		PredMovement->OnEndBoost();
+	}
+	else if (ModifierType == FPredTags::Modifier_Type_Buff_SlowFall)
+	{
+		PredMovement->OnEndSlowFall();
+	}
+	else if (ModifierType == FPredTags::Modifier_Type_Debuff_Snare)
+	{
+		PredMovement->OnEndSnare();
+	}
+
+	K2_OnModifierRemoved(ModifierType, ModifierLevel, PrevModifierLevel);
+}
+
+/* Boost (Non-Generic) Implementation */
+
+void APredCharacter::OnRep_SimulatedBoost(uint8 PrevSimulatedBoost)
+{
+	if (PredMovement)
+	{
+		PredMovement->Boost.ModifierLevel = SimulatedBoost;
+		PredMovement->Boost.RequestedModifierLevel = SimulatedBoost;
+
+		if (SimulatedBoost > 0)
+		{
+			PredMovement->Boost.StartModifier(SimulatedBoost, true, true, PrevSimulatedBoost);
+		}
+		else
+		{
+			PredMovement->Boost.RemoveAllModifiers();
+			PredMovement->Boost.EndModifier(true, PrevSimulatedBoost);
+		}
+		PredMovement->bNetworkUpdateReceived = true;
+	}
+}
+
+void APredCharacter::Boost(FGameplayTag ModifierLevel)
+{
+	if (PredMovement)
+	{
+		if (const uint8 Level = PredMovement->Boost.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			PredMovement->Boost.AddModifier(Level);
+		}
+	}
+}
+
+void APredCharacter::RemoveBoost(FGameplayTag ModifierLevel)
+{
+	if (PredMovement)
+	{
+		if (const uint8 Level = PredMovement->Boost.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			PredMovement->Boost.RemoveModifier(Level);
+		}
+	}
+}
+
+void APredCharacter::RemoveAllBoosts()
+{
+	if (PredMovement)
+	{
+		PredMovement->Boost.RemoveAllModifiers();
+	}
+}
+
+void APredCharacter::RemoveAllBoostsOfLevel(FGameplayTag ModifierLevel)
+{
+	if (PredMovement)
+	{
+		if (const uint8 Level = PredMovement->Boost.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			PredMovement->Boost.RemoveAllModifiersByLevel(Level);
+		}
+	}
+}
+
+bool APredCharacter::IsBoosted() const
+{
+	return PredMovement && PredMovement->Boost.HasModifier();
+}
+
+bool APredCharacter::WantsBoost() const
+{
+	return PredMovement && PredMovement->Boost.WantsModifier();
+}
+
+FGameplayTag APredCharacter::GetBoostLevel() const
+{
+	return PredMovement ? PredMovement->Boost.GetModifierLevel() : FGameplayTag::EmptyTag;
+}
+
+int32 APredCharacter::GetNumBoosts() const
+{
+	return PredMovement ? PredMovement->Boost.GetNumModifiers() : 0;
+}
+
+int32 APredCharacter::GetNumBoostsByLevel(FGameplayTag ModifierLevel) const
+{
+	if (PredMovement)
+	{
+		const uint8 Level = PredMovement->Boost.GetModifierLevelByte(ModifierLevel);
+		return Level != LEVEL_NONE ? PredMovement->Boost.GetNumModifiersByLevel(Level) : 0;
+	}
+	return 0;
+}
+
+/* ~Boost (Non-Generic) Implementation */
+
+/* Haste (Non-Generic) Implementation */
+
+void APredCharacter::OnRep_SimulatedHaste(uint8 PrevSimulatedHaste)
+{
+	if (PredMovement)
+	{
+		PredMovement->Haste.ModifierLevel = SimulatedHaste;
+		PredMovement->Haste.RequestedModifierLevel = SimulatedHaste;
+
+		if (SimulatedHaste > 0)
+		{
+			PredMovement->Haste.StartModifier(SimulatedHaste, true, true, PrevSimulatedHaste);
+		}
+		else
+		{
+			PredMovement->Haste.RemoveAllModifiers();
+			PredMovement->Haste.EndModifier(true, PrevSimulatedHaste);
+		}
+		PredMovement->bNetworkUpdateReceived = true;
+	}
+}
+
+void APredCharacter::Haste(FGameplayTag ModifierLevel)
+{
+	if (PredMovement)
+	{
+		if (const uint8 Level = PredMovement->Haste.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			PredMovement->Haste.AddModifier(Level);
+		}
+	}
+}
+
+void APredCharacter::RemoveHaste(FGameplayTag ModifierLevel)
+{
+	if (PredMovement)
+	{
+		if (const uint8 Level = PredMovement->Haste.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			PredMovement->Haste.RemoveModifier(Level);
+		}
+	}
+}
+
+void APredCharacter::RemoveAllHastes()
+{
+	if (PredMovement)
+	{
+		PredMovement->Haste.RemoveAllModifiers();
+	}
+}
+
+void APredCharacter::RemoveAllHastesOfLevel(FGameplayTag ModifierLevel)
+{
+	if (PredMovement)
+	{
+		if (const uint8 Level = PredMovement->Haste.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			PredMovement->Haste.RemoveAllModifiersByLevel(Level);
+		}
+	}
+}
+
+bool APredCharacter::IsHaste() const
+{
+	return PredMovement && PredMovement->Haste.HasModifier();
+}
+
+bool APredCharacter::WantsHaste() const
+{
+	return PredMovement && PredMovement->Haste.WantsModifier();
+}
+
+FGameplayTag APredCharacter::GetHasteLevel() const
+{
+	return PredMovement ? PredMovement->Haste.GetModifierLevel() : FGameplayTag::EmptyTag;
+}
+
+int32 APredCharacter::GetNumHastes() const
+{
+	return PredMovement ? PredMovement->Haste.GetNumModifiers() : 0;
+}
+
+int32 APredCharacter::GetNumHastesByLevel(FGameplayTag ModifierLevel) const
+{
+	if (PredMovement)
+	{
+		const uint8 Level = PredMovement->Haste.GetModifierLevelByte(ModifierLevel);
+		return Level != LEVEL_NONE ? PredMovement->Haste.GetNumModifiersByLevel(Level) : 0;
+	}
+	return 0;
+}
+
+/* ~Haste (Non-Generic) Implementation */
+
+/* Slow (Non-Generic) Implementation */
+
+void APredCharacter::OnRep_SimulatedSlow(uint8 PrevSimulatedSlow)
+{
+	if (PredMovement)
+	{
+		PredMovement->Slow.ModifierLevel = SimulatedSlow;
+		PredMovement->Slow.RequestedModifierLevel = SimulatedSlow;
+
+		if (SimulatedSlow > 0)
+		{
+			PredMovement->Slow.StartModifier(SimulatedSlow, true, true, PrevSimulatedSlow);
+		}
+		else
+		{
+			PredMovement->Slow.RemoveAllModifiers();
+			PredMovement->Slow.EndModifier(true, PrevSimulatedSlow);
+		}
+		PredMovement->bNetworkUpdateReceived = true;
+	}
+}
+
+void APredCharacter::Slow(FGameplayTag ModifierLevel)
+{
+	if (PredMovement)
+	{
+		if (const uint8 Level = PredMovement->Slow.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			PredMovement->Slow.AddModifier(Level);
+		}
+	}
+}
+
+void APredCharacter::RemoveSlow(FGameplayTag ModifierLevel)
+{
+	if (PredMovement)
+	{
+		if (const uint8 Level = PredMovement->Slow.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			PredMovement->Slow.RemoveModifier(Level);
+		}
+	}
+}
+
+void APredCharacter::RemoveAllSlows()
+{
+	if (PredMovement)
+	{
+		PredMovement->Slow.RemoveAllModifiers();
+	}
+}
+
+void APredCharacter::RemoveAllSlowsOfLevel(FGameplayTag ModifierLevel)
+{
+	if (PredMovement)
+	{
+		if (const uint8 Level = PredMovement->Slow.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			PredMovement->Slow.RemoveAllModifiersByLevel(Level);
+		}
+	}
+}
+
+bool APredCharacter::IsSlowed() const
+{
+	return PredMovement && PredMovement->Slow.HasModifier();
+}
+
+bool APredCharacter::WantsSlow() const
+{
+	return PredMovement && PredMovement->Slow.WantsModifier();
+}
+
+FGameplayTag APredCharacter::GetSlowLevel() const
+{
+	return PredMovement ? PredMovement->Slow.GetModifierLevel() : FGameplayTag::EmptyTag;
+}
+
+int32 APredCharacter::GetNumSlows() const
+{
+	return PredMovement ? PredMovement->Slow.GetNumModifiers() : 0;
+}
+
+int32 APredCharacter::GetNumSlowsByLevel(FGameplayTag ModifierLevel) const
+{
+	if (PredMovement)
+	{
+		const uint8 Level = PredMovement->Slow.GetModifierLevelByte(ModifierLevel);
+		return Level != LEVEL_NONE ? PredMovement->Slow.GetNumModifiersByLevel(Level) : 0;
+	}
+	return 0;
+}
+
+/* ~Slow (Non-Generic) Implementation */
+
+/* SlowFall (Non-Generic) Implementation */
+
+void APredCharacter::OnRep_SimulatedSlowFall(uint8 PrevSimulatedSlowFall)
+{
+	if (PredMovement)
+	{
+		PredMovement->SlowFall.ModifierLevel = SimulatedSlowFall;
+		PredMovement->SlowFall.RequestedModifierLevel = SimulatedSlowFall;
+
+		if (SimulatedSlowFall > 0)
+		{
+			PredMovement->SlowFall.StartModifier(SimulatedSlowFall, true, true, PrevSimulatedSlowFall);
+		}
+		else
+		{
+			PredMovement->SlowFall.RemoveAllModifiers();
+			PredMovement->SlowFall.EndModifier(true, PrevSimulatedSlowFall);
+		}
+		PredMovement->bNetworkUpdateReceived = true;
+	}
+}
+
+void APredCharacter::SlowFall(FGameplayTag ModifierLevel)
+{
+	if (PredMovement)
+	{
+		if (const uint8 Level = PredMovement->SlowFall.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			PredMovement->SlowFall.AddModifier(Level);
+		}
+	}
+}
+
+void APredCharacter::RemoveSlowFall(FGameplayTag ModifierLevel)
+{
+	if (PredMovement)
+	{
+		if (const uint8 Level = PredMovement->SlowFall.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			PredMovement->SlowFall.RemoveModifier(Level);
+		}
+	}
+}
+
+void APredCharacter::RemoveAllSlowFall()
+{
+	if (PredMovement)
+	{
+		PredMovement->SlowFall.RemoveAllModifiers();
+	}
+}
+
+void APredCharacter::RemoveAllSlowFallOfLevel(FGameplayTag ModifierLevel)
+{
+	if (PredMovement)
+	{
+		if (const uint8 Level = PredMovement->SlowFall.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			PredMovement->SlowFall.RemoveAllModifiersByLevel(Level);
+		}
+	}
+}
+
+bool APredCharacter::IsSlowFall() const
+{
+	return PredMovement && PredMovement->SlowFall.HasModifier();
+}
+
+bool APredCharacter::WantsSlowFall() const
+{
+	return PredMovement && PredMovement->SlowFall.WantsModifier();
+}
+
+FGameplayTag APredCharacter::GetSlowFallLevel() const
+{
+	return PredMovement ? PredMovement->SlowFall.GetModifierLevel() : FGameplayTag::EmptyTag;
+}
+
+int32 APredCharacter::GetNumSlowFalls() const
+{
+	return PredMovement ? PredMovement->SlowFall.GetNumModifiers() : 0;
+}
+
+int32 APredCharacter::GetNumSlowFallsByLevel(FGameplayTag ModifierLevel) const
+{
+	if (PredMovement)
+	{
+		const uint8 Level = PredMovement->SlowFall.GetModifierLevelByte(ModifierLevel);
+		return Level != LEVEL_NONE ? PredMovement->SlowFall.GetNumModifiersByLevel(Level) : 0;
+	}
+	return 0;
+}
+
+/* ~SlowFall (Non-Generic) Implementation */
+
+/* Snare (Non-Generic) Implementation */
+
+void APredCharacter::OnRep_SimulatedSnare(uint8 PrevSimulatedSnare)
+{
+	if (PredMovement)
+	{
+		PredMovement->Snare.ModifierLevel = SimulatedSnare;
+		PredMovement->Snare.RequestedModifierLevel = SimulatedSnare;
+
+		if (SimulatedSnare > 0)
+		{
+			PredMovement->Snare.StartModifier(SimulatedSnare, true, true, PrevSimulatedSnare);
+		}
+		else
+		{
+			PredMovement->Snare.RemoveAllModifiers();
+			PredMovement->Snare.EndModifier(true, PrevSimulatedSnare);
+		}
+		PredMovement->bNetworkUpdateReceived = true;
+	}
+}
+
+void APredCharacter::Snare(FGameplayTag ModifierLevel)
+{
+	if (PredMovement)
+	{
+		if (const uint8 Level = PredMovement->Snare.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			PredMovement->Snare.AddModifier(Level);
+		}
+	}
+}
+
+void APredCharacter::RemoveSnare(FGameplayTag ModifierLevel)
+{
+	if (PredMovement)
+	{
+		if (const uint8 Level = PredMovement->Snare.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			PredMovement->Snare.RemoveModifier(Level);
+		}
+	}
+}
+
+void APredCharacter::RemoveAllSnares()
+{
+	if (PredMovement)
+	{
+		PredMovement->Snare.RemoveAllModifiers();
+	}
+}
+
+void APredCharacter::RemoveAllSnaresOfLevel(FGameplayTag ModifierLevel)
+{
+	if (PredMovement)
+	{
+		if (const uint8 Level = PredMovement->Snare.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
+		{
+			PredMovement->Snare.RemoveAllModifiersByLevel(Level);
+		}
+	}
+}
+
+bool APredCharacter::IsSnared() const
+{
+	return PredMovement && PredMovement->Snare.HasModifier();
+}
+
+bool APredCharacter::WantsSnare() const
+{
+	return PredMovement && PredMovement->Snare.WantsModifier();
+}
+
+FGameplayTag APredCharacter::GetSnareLevel() const
+{
+	return PredMovement ? PredMovement->Snare.GetModifierLevel() : FGameplayTag::EmptyTag;
+}
+
+int32 APredCharacter::GetNumSnares() const
+{
+	return PredMovement ? PredMovement->Snare.GetNumModifiers() : 0;
+}
+
+int32 APredCharacter::GetNumSnaresByLevel(FGameplayTag ModifierLevel) const
+{
+	if (PredMovement)
+	{
+		const uint8 Level = PredMovement->Snare.GetModifierLevelByte(ModifierLevel);
+		return Level != LEVEL_NONE ? PredMovement->Snare.GetNumModifiersByLevel(Level) : 0;
+	}
+	return 0;
+}
+
+/* ~Snare (Non-Generic) Implementation */
 
 void APredCharacter::FlushServerMoves()
 {

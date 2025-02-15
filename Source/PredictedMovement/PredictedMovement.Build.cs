@@ -12,7 +12,6 @@ public class PredictedMovement : ModuleRules
 			new string[]
 			{
 				"Core",
-				"GameplayTags",
 			}
 			);
 		
@@ -22,6 +21,7 @@ public class PredictedMovement : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"NetCore",
+				"GameplayTags",
 			}
 			);
 	}

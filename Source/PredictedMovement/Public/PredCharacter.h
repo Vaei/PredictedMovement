@@ -50,6 +50,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Character)
 	virtual void SetGaitMode(EPredGaitMode NewGaitMode);
 
+	/** @return GaitMode based on Player's Input */
+	UFUNCTION(BlueprintPure, Category=Character)
+	EPredGaitMode GetGaitMode() const;
+
+	/** @return GaitMode based on current speed */
+	UFUNCTION(BlueprintPure, Category=Character)
+	EPredGaitMode GetGaitAtSpeed() const;
+
+	UFUNCTION(BlueprintPure, Category=Character)
+	static FString GetGaitModeAsString(EPredGaitMode GaitMode);
+	
 public:
 	void SetIsStrolling(bool bNewStrolling);
 

@@ -67,6 +67,28 @@ void APredCharacter::SetGaitMode(EPredGaitMode NewGaitMode)
 	}
 }
 
+EPredGaitMode APredCharacter::GetGaitMode() const
+{
+	return PredMovement ? PredMovement->GetGaitMode() : EPredGaitMode::Run;
+}
+
+EPredGaitMode APredCharacter::GetGaitAtSpeed() const
+{
+	return PredMovement ? PredMovement->GetGaitModeAtSpeed() : EPredGaitMode::Run;
+}
+
+FString APredCharacter::GetGaitModeAsString(EPredGaitMode GaitMode)
+{
+	switch (GaitMode)
+	{
+	case EPredGaitMode::Stroll: return TEXT("Stroll");
+	case EPredGaitMode::Walk: return TEXT("Walk");
+	case EPredGaitMode::Run: return TEXT("Run");
+	case EPredGaitMode::Sprint: return TEXT("Sprint");
+	default: return TEXT("None");
+	}
+}
+
 /* STROLLING */
 
 void APredCharacter::SetIsStrolling(bool bNewStrolling)

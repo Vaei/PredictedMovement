@@ -52,17 +52,17 @@ https://youtu.be/SHVm57AMruc
     e.g. `Snare.Level2`, `Snare.50_Pct`, `Snare.Hamstring`, etc.
   * Local Predicted & Server Initiated modifiers
   * Boost, SlowFall, Snare included by default on `main` branch
-  * Boost, Slow, SlowFall, Snare included by default on `merged branch`
+  * Boost, Slow, SlowFall, Snare included by default on `single-cmc` branch
 * Partial Location-Only Client Authority solution added
   * For server initiated modifiers in particular, but you can call for it anywhere for anything
   * Utilized out of the box when Snare modifier is applied so that the client receiving the snare doesn't de-sync
   * Authorities can stack if you want to extend the system to average them out, or similar
 * Wiki added
-* `merged` branch added to replace `link` branch
+* `single-cmc` branch added to replace `link` branch
   * Available to BP users
   * Covers the needs of common games
-* Added Crouch movement properties to bring it inline with prone properties but only on `merged` branch
-* Added Demo Content to `merged` branch
+* Added Crouch movement properties to bring it inline with prone properties but only on `single-cmc` branch
+* Added Demo Content to `single-cmc` branch
 * Removed `IsSprintWithinAllowableInputAngle()` from `CanSprintInCurrentState()` to prevent constant exit/re-entry into sprint state
   * `IsSprintingInEffect()` added which checks both `IsSprintWithinAllowableInputAngle()` + `IsSprintingAtSpeed()`
   * `IsSprintWithinAllowableAngle()` exposed to BP from `ASprintCharacter`

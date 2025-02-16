@@ -1718,9 +1718,7 @@ void UPredMovement::ClientHandleMoveResponse(const FCharacterMoveResponseDataCon
 
 			// Cache the old location because the server will apply our own past authoritative location when calling Super!
 			FVector OldLocation = UpdatedComponent->GetComponentLocation();
-		
 			Super::ClientHandleMoveResponse(MoveResponse);
-		
 			FVector NewLocation = UpdatedComponent->GetComponentLocation();
 
 			// Clamp the location to the server's authoritative location based on the authority alpha

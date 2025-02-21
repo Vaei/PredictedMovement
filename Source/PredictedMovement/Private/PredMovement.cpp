@@ -1760,11 +1760,12 @@ bool UPredMovement::ClientUpdatePositionAfterServerUpdate()
 	
 	const bool bResult = Super::ClientUpdatePositionAfterServerUpdate();
 
-	Boost = SavedBoost;
-	Haste = SavedHaste;
-	Slow = SavedSlow;
-	SlowFall = SavedSlowFall;
-	Snare = SavedSnare;
+	// operator<< Will not copy the current level. We only take the requested level!
+	Boost << SavedBoost;
+	Haste << SavedHaste;
+	Slow << SavedSlow;
+	SlowFall << SavedSlowFall;
+	Snare << SavedSnare;
 	bWantsToStroll = bRealStroll;
 	bWantsToWalk = bRealWalk;
 	bWantsToSprint = bRealSprint;

@@ -54,6 +54,18 @@ void FMovementModifier::Initialize(APredCharacter* InCharacterOwner, const FGame
 
 void FMovementModifier::AddModifier(uint8 Level)
 {
+	// Don't apply on simulated proxy
+	if (CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+
+	// Only apply the modifier if it's a server-initiated event and we are authority
+	if (ActivationSource == EModifierActivationSource::ServerInitiated && !CharacterOwner->HasAuthority())
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -87,6 +99,18 @@ void FMovementModifier::AddModifier(uint8 Level)
 
 void FMovementModifier::RemoveModifier(uint8 Level)
 {
+	// Don't apply on simulated proxy
+	if (CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+
+	// Only apply the modifier if it's a server-initiated event and we are authority
+	if (ActivationSource == EModifierActivationSource::ServerInitiated && !CharacterOwner->HasAuthority())
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -116,6 +140,18 @@ void FMovementModifier::RemoveModifier(uint8 Level)
 
 void FMovementModifier::RemoveAllModifiers()
 {
+	// Don't apply on simulated proxy
+	if (CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+
+	// Only apply the modifier if it's a server-initiated event and we are authority
+	if (ActivationSource == EModifierActivationSource::ServerInitiated && !CharacterOwner->HasAuthority())
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -135,6 +171,18 @@ void FMovementModifier::RemoveAllModifiers()
 
 void FMovementModifier::RemoveAllModifiersByLevel(uint8 Level)
 {
+	// Don't apply on simulated proxy
+	if (CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+
+	// Only apply the modifier if it's a server-initiated event and we are authority
+	if (ActivationSource == EModifierActivationSource::ServerInitiated && !CharacterOwner->HasAuthority())
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -154,6 +202,18 @@ void FMovementModifier::RemoveAllModifiersByLevel(uint8 Level)
 
 void FMovementModifier::RemoveAllModifiersExceptLevel(uint8 Level)
 {
+	// Don't apply on simulated proxy
+	if (CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+
+	// Only apply the modifier if it's a server-initiated event and we are authority
+	if (ActivationSource == EModifierActivationSource::ServerInitiated && !CharacterOwner->HasAuthority())
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -172,6 +232,18 @@ void FMovementModifier::RemoveAllModifiersExceptLevel(uint8 Level)
 
 void FMovementModifier::SetModifiers(const TArray<uint8>& NewModifiers)
 {
+	// Don't apply on simulated proxy
+	if (CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+
+	// Only apply the modifier if it's a server-initiated event and we are authority
+	if (ActivationSource == EModifierActivationSource::ServerInitiated && !CharacterOwner->HasAuthority())
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -191,6 +263,18 @@ void FMovementModifier::SetModifiers(const TArray<uint8>& NewModifiers)
 
 void FMovementModifier::SetModifierLevel(uint8 Level)
 {
+	// Don't apply on simulated proxy
+	if (CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+
+	// Only apply the modifier if it's a server-initiated event and we are authority
+	if (ActivationSource == EModifierActivationSource::ServerInitiated && !CharacterOwner->HasAuthority())
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;

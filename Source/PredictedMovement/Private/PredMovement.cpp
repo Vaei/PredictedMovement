@@ -1492,11 +1492,11 @@ bool UPredMovement::CanBeSnaredInCurrentState(FGameplayTag ModifierLevel) const
 
 void UPredMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 {
-	Boost.UpdateCharacterStateBeforeMovement(CanBoostInCurrentState(FGameplayTag::EmptyTag));
-	Haste.UpdateCharacterStateBeforeMovement(CanHasteInCurrentState(FGameplayTag::EmptyTag));
-	Slow.UpdateCharacterStateBeforeMovement(CanSlowInCurrentState(FGameplayTag::EmptyTag));
-	SlowFall.UpdateCharacterStateBeforeMovement(CanSlowFallInCurrentState(FGameplayTag::EmptyTag));
-	Snare.UpdateCharacterStateBeforeMovement(CanBeSnaredInCurrentState(FGameplayTag::EmptyTag));
+	Boost.UpdateCharacterStateBeforeMovement(CanBoostInCurrentState(Boost.GetModifierLevel()));
+	Haste.UpdateCharacterStateBeforeMovement(CanHasteInCurrentState(Haste.GetModifierLevel()));
+	Slow.UpdateCharacterStateBeforeMovement(CanSlowInCurrentState(Slow.GetModifierLevel()));
+	SlowFall.UpdateCharacterStateBeforeMovement(CanSlowFallInCurrentState(SlowFall.GetModifierLevel()));
+	Snare.UpdateCharacterStateBeforeMovement(CanBeSnaredInCurrentState(Snare.GetModifierLevel()));
 	
 	// Proxies get replicated Sprint state.
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
@@ -1596,11 +1596,11 @@ void UPredMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 
 void UPredMovement::UpdateCharacterStateAfterMovement(float DeltaSeconds)
 {
-	Boost.UpdateCharacterStateAfterMovement(CanBoostInCurrentState(FGameplayTag::EmptyTag));
-	Haste.UpdateCharacterStateAfterMovement(CanHasteInCurrentState(FGameplayTag::EmptyTag));
-	Slow.UpdateCharacterStateAfterMovement(CanSlowInCurrentState(FGameplayTag::EmptyTag));
-	SlowFall.UpdateCharacterStateAfterMovement(CanSlowFallInCurrentState(FGameplayTag::EmptyTag));
-	Snare.UpdateCharacterStateAfterMovement(CanBeSnaredInCurrentState(FGameplayTag::EmptyTag));
+	Boost.UpdateCharacterStateAfterMovement(CanBoostInCurrentState(Boost.GetModifierLevel()));
+	Haste.UpdateCharacterStateAfterMovement(CanHasteInCurrentState(Haste.GetModifierLevel()));
+	Slow.UpdateCharacterStateAfterMovement(CanSlowInCurrentState(Slow.GetModifierLevel()));
+	SlowFall.UpdateCharacterStateAfterMovement(CanSlowFallInCurrentState(SlowFall.GetModifierLevel()));
+	Snare.UpdateCharacterStateAfterMovement(CanBeSnaredInCurrentState(Snare.GetModifierLevel()));
 	
 	// Proxies get replicated Sprint state.
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)

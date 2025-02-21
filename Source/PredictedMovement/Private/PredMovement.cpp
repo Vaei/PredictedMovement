@@ -232,11 +232,11 @@ void FPredNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Character&
 	const FSavedMove_Character_Pred& SavedMove = static_cast<const FSavedMove_Character_Pred&>(ClientMove);
 	Stamina = SavedMove.EndStamina;
 	
-	Boost = SavedMove.Boost;
-	Haste = SavedMove.Haste;
-	Slow = SavedMove.Slow;
-	SlowFall = SavedMove.SlowFall;
-	Snare = SavedMove.Snare;
+	Boost = SavedMove.EndBoost;
+	Haste = SavedMove.EndHaste;
+	Slow = SavedMove.EndSlow;
+	SlowFall = SavedMove.EndSlowFall;
+	Snare = SavedMove.EndSnare;
 }
 
 bool FPredNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,

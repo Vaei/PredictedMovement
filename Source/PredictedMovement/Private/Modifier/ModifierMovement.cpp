@@ -566,9 +566,11 @@ bool UModifierMovement::ClientUpdatePositionAfterServerUpdate()
 	const FMovementModifier SavedSlowFall = SlowFall;
 	const FMovementModifier SavedSnare = Snare;
 	bool bResult = Super::ClientUpdatePositionAfterServerUpdate();
-	Boost = SavedBoost;
-	SlowFall = SavedSlowFall;
-	Snare = SavedSnare;
+	
+	// operator<< Will not copy the current level. We only take the requested level!
+	Boost << SavedBoost;
+	SlowFall << SavedSlowFall;
+	Snare << SavedSnare;
 	
 	return bResult;
 }

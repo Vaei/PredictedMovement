@@ -1711,15 +1711,15 @@ void UPredMovement::ClientHandleMoveResponse(const FCharacterMoveResponseDataCon
 				check(ClientData);
 				if (ClientData->LastAckedMove.IsValid())
 				{
-					FCharacterMoveResponseDataContainer& MutableResponse = const_cast<FCharacterMoveResponseDataContainer&>(MoveResponse);
+					const FCharacterMoveResponseDataContainer& MutableResponse = const_cast<FCharacterMoveResponseDataContainer&>(MoveResponse);
 					ClientData->LastAckedMove->SavedLocation = MutableResponse.ClientAdjustment.NewLoc;
 				}
 			}
 
 			// Cache the old location because the server will apply our own past authoritative location when calling Super!
-			FVector OldLocation = UpdatedComponent->GetComponentLocation();
+			const FVector OldLocation = UpdatedComponent->GetComponentLocation();
 			Super::ClientHandleMoveResponse(MoveResponse);
-			FVector NewLocation = UpdatedComponent->GetComponentLocation();
+			const FVector NewLocation = UpdatedComponent->GetComponentLocation();
 
 			// Clamp the location to the server's authoritative location based on the authority alpha
 			const FVector ClampedLocation = FMath::Lerp<FVector>(OldLocation, NewLocation, 1.f - ClientAuthData->Alpha);
@@ -1979,7 +1979,7 @@ void FSavedMove_Character_Pred::SetMoveFor(ACharacter* C, float InDeltaTime, FVe
 {
 	Super::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
 
-	if (UPredMovement* MoveComp = C ? Cast<UPredMovement>(C->GetCharacterMovement()) : nullptr)
+	if (const UPredMovement* MoveComp = C ? Cast<UPredMovement>(C->GetCharacterMovement()) : nullptr)
 	{
 		bWantsToProne = MoveComp->bWantsToProne;
 		bProneLocked = MoveComp->bProneLocked;
@@ -2102,7 +2102,7 @@ void FSavedMove_Character_Pred::SetInitialPosition(ACharacter* C)
 void FSavedMove_Character_Pred::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
 {
 	// When considering whether to delay or combine moves, we need to compare the move at the start and the end
-	if (UPredMovement* MoveComp = C ? Cast<UPredMovement>(C->GetCharacterMovement()) : nullptr)
+	if (const UPredMovement* MoveComp = C ? Cast<UPredMovement>(C->GetCharacterMovement()) : nullptr)
 	{
 		EndStamina = MoveComp->GetStamina();
 
@@ -2240,7 +2240,7 @@ bool UPredMovement::ServerShouldGrantClientPositionAuthority(FVector& ClientLoc)
 	}
 
 	// Get auth params
-	FClientAuthParams* Params = GetClientAuthParams(ClientAuthData->Source);
+	const FClientAuthParams* Params = GetClientAuthParams(ClientAuthData->Source);
 	if (!Params)
 	{
 		// No auth params, can't do anything
@@ -2342,7 +2342,7 @@ void UPredMovement::TickCharacterPose(float DeltaTime)
 #if !(UE_BUILD_SHIPPING)
 			// Debugging
 			{
-				FAnimMontageInstance* RootMotionMontageInstance = CharacterOwner->GetRootMotionAnimMontageInstance();
+				const FAnimMontageInstance* RootMotionMontageInstance = CharacterOwner->GetRootMotionAnimMontageInstance();
 				UE_LOG(LogRootMotion, Log, TEXT("UCharacterMovementComponent::TickCharacterPose Role: %s, RootMotionMontage: %s, MontagePos: %f, DeltaTime: %f, ExtractedRootMotion: %s, AccumulatedRootMotion: %s")
 					, *UEnum::GetValueAsString(TEXT("Engine.ENetRole"), CharacterOwner->GetLocalRole())
 					, *GetNameSafe(RootMotionMontageInstance ? RootMotionMontageInstance->Montage : NULL)

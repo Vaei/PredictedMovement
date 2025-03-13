@@ -737,14 +737,14 @@ void UModifierMovement::ServerMoveHandleClientError(float ClientTimeStamp, float
 	if (!FModifierCVars::bClientAuthDisabled)
 #endif
 	{
+		// Update client authority time remaining
+		ClientAuthStack.Update(DeltaTime);
+
 		if (CurrentMoveData->Snare != Snare)
 		{
 			// Snare inits client authority here, however other states may want to do it elsewhere, this is not a requirement
 			InitClientAuth(FModifierTags::Modifier_Type_Debuff_Snare);
 		}
-
-		// Update client authority time remaining
-		ClientAuthStack.Update(DeltaTime);
 
 		// Apply these thresholds to control client authority
 		FVector ClientLoc = FRepMovement::RebaseOntoZeroOrigin(RelativeClientLocation, this);

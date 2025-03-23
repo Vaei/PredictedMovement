@@ -50,17 +50,17 @@ void AModifierCharacter::OnModifierChanged(const FGameplayTag& ModifierType, uin
 	// Replicate to simulated proxies
 	if (HasAuthority())
 	{
-		if (ModifierType == FModifierTags::Modifier_Type_Buff_Boost)
+		if (ModifierType == FModifierTags::Modifier_Type_Local_Boost)
 		{
 			SimulatedBoost = ModifierLevel;
 			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedBoost, this);			// Push-model
 		}
-		else if (ModifierType == FModifierTags::Modifier_Type_Buff_SlowFall)
+		else if (ModifierType == FModifierTags::Modifier_Type_Local_SlowFall)
 		{
 			SimulatedSlowFall = ModifierLevel;
 			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedSlowFall, this);		// Push-model
 		}
-		else if (ModifierType == FModifierTags::Modifier_Type_Debuff_Snare)
+		else if (ModifierType == FModifierTags::Modifier_Type_Server_Snare)
 		{
 			SimulatedSnare = ModifierLevel;
 			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedSnare, this);			// Push-model
@@ -78,15 +78,15 @@ void AModifierCharacter::OnModifierAdded(const FGameplayTag& ModifierType, uint8
 		return;
 	}
 
-	if (ModifierType == FModifierTags::Modifier_Type_Buff_Boost)
+	if (ModifierType == FModifierTags::Modifier_Type_Local_Boost)
 	{
 		ModifierMovement->OnStartBoost();
 	}
-	else if (ModifierType == FModifierTags::Modifier_Type_Buff_SlowFall)
+	else if (ModifierType == FModifierTags::Modifier_Type_Local_SlowFall)
 	{
 		ModifierMovement->OnStartSlowFall();
 	}
-	else if (ModifierType == FModifierTags::Modifier_Type_Debuff_Snare)
+	else if (ModifierType == FModifierTags::Modifier_Type_Server_Snare)
 	{
 		ModifierMovement->OnStartSnare();
 	}
@@ -99,15 +99,15 @@ void AModifierCharacter::OnModifierRemoved(const FGameplayTag& ModifierType, uin
 	// @TIP: Set Loose Gameplay Tag Here (Not Replicated)
 	// DO NOT ADD or REMOVE HERE! Net corrections can violate this!
 
-	if (ModifierType == FModifierTags::Modifier_Type_Buff_Boost)
+	if (ModifierType == FModifierTags::Modifier_Type_Local_Boost)
 	{
 		ModifierMovement->OnEndBoost();
 	}
-	else if (ModifierType == FModifierTags::Modifier_Type_Buff_SlowFall)
+	else if (ModifierType == FModifierTags::Modifier_Type_Local_SlowFall)
 	{
 		ModifierMovement->OnEndSlowFall();
 	}
-	else if (ModifierType == FModifierTags::Modifier_Type_Debuff_Snare)
+	else if (ModifierType == FModifierTags::Modifier_Type_Server_Snare)
 	{
 		ModifierMovement->OnEndSnare();
 	}

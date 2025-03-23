@@ -132,11 +132,11 @@ struct PREDICTEDMOVEMENT_API FFallingModifierParams
 	bool bGravityScalarFromVelocityZ;
 
 	/** Gravity is multiplied by this amount */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(ClampMin="0", UIMin="0", ForceUnits="x", EditCondition="!bGravityScalarFromVelocity", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(ClampMin="0", UIMin="0", ForceUnits="x", EditCondition="!bGravityScalarFromVelocityZ", EditConditionHides))
 	float GravityScalar;
 
 	/** Gravity scale curve based on fall velocity */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(EditCondition="bGravityScalarFromVelocity", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(EditCondition="bGravityScalarFromVelocityZ", EditConditionHides))
 	UCurveFloat* GravityScalarFallVelocityCurve;
 
 	/** Set Velocity.Z = 0.f when air fall starts */
@@ -397,6 +397,16 @@ struct PREDICTEDMOVEMENT_API FClientAuthParams
 		, ClientAuthTime(1.25f)
 		, MaxClientAuthDistance(150.f)
 		, RejectClientAuthDistance(800.f)
+		, Priority(99)
+	{}
+
+	FClientAuthParams(bool bInEnableClientAuth, float InClientAuthTime, float InMaxClientAuthDistance,
+		float InRejectClientAuthDistance, int32 InPriority)
+		: bEnableClientAuth(bInEnableClientAuth)
+		, ClientAuthTime(InClientAuthTime)
+		, MaxClientAuthDistance(InMaxClientAuthDistance)
+		, RejectClientAuthDistance(InRejectClientAuthDistance)
+		, Priority(InPriority)
 	{}
 
 	/**
@@ -425,6 +435,12 @@ struct PREDICTEDMOVEMENT_API FClientAuthParams
 	 */
 	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadOnly, meta=(ClampMin="0", UIMin="0", ForceUnits="cm", EditCondition="bEnableClientAuth", EditConditionHides))
 	float RejectClientAuthDistance;
+	
+	/**
+	 * Optional property that can be used for GetClientAuthData() to determine priority
+	 */
+	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadOnly, meta=(ClampMin="0", UIMin="0", EditCondition="bEnableClientAuth", EditConditionHides))
+	int32 Priority;
 };
 
 /**
@@ -440,47 +456,46 @@ struct PREDICTEDMOVEMENT_API FClientAuthData
 		, TimeRemaining(0.f)
 		, Id(FGuid())
 		, Source(FGameplayTag::EmptyTag)
+		, Priority(99)
 	{}
 
-	FClientAuthData(const FGameplayTag& InSource, float InTimeRemaining)
+	FClientAuthData(const FGameplayTag& InSource, float InTimeRemaining, int32 InPriority)
 		: Alpha(0.f)
 		, TimeRemaining(InTimeRemaining)
 		, Id(FGuid::NewGuid())
 		, Source(InSource)
+		, Priority(InPriority)
 	{}
 
 	UPROPERTY()
 	float Alpha;
 	
-	UPROPERTY(NotReplicated)
+	UPROPERTY()
 	float TimeRemaining;
 
-	UPROPERTY(NotReplicated)
+	UPROPERTY()
 	FGuid Id;
 	
-	UPROPERTY(NotReplicated)
+	UPROPERTY()
 	FGameplayTag Source;
+
+	UPROPERTY()
+	int32 Priority;
+
+	bool IsValid() const
+	{
+		return Id.IsValid() && Source.IsValid();
+	}
 
 	bool operator==(const FClientAuthData& Other) const
 	{
-		return Id.IsValid() && Id == Other.Id;
+		return IsValid() && Id == Other.Id;
 	}
 
 	bool operator!=(const FClientAuthData& Other) const
 	{
 		return !(*this == Other);
 	}
-	
-	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
-};
-
-template<>
-struct TStructOpsTypeTraits<FClientAuthData> : TStructOpsTypeTraitsBase2<FClientAuthData>
-{
-	enum
-	{
-		WithNetSerializer = true
-	};
 };
 
 /**
@@ -497,7 +512,63 @@ struct PREDICTEDMOVEMENT_API FClientAuthStack
 	UPROPERTY()
 	TArray<FClientAuthData> Stack;
 
+	bool operator==(const FClientAuthStack& Other) const
+	{
+		return Stack == Other.Stack;
+	}
+
+	bool operator!=(const FClientAuthStack& Other) const
+	{
+		return !(*this == Other);
+	}
+
+	void SortByPriority()
+	{
+		Stack.Sort([](const FClientAuthData& A, const FClientAuthData& B)
+		{
+			return A.Priority < B.Priority;
+		});
+	}
+
+	TArray<FClientAuthData> FilterPriority(int32 Priority) const
+	{
+		return Stack.FilterByPredicate([Priority](const FClientAuthData& AuthData)
+		{
+			return AuthData.Priority == Priority;
+		});
+	}
+
+	int32 DetermineLowestPriority()
+	{
+		if (Stack.Num() == 0)
+		{
+			return INT32_MAX;
+		}
+		SortByPriority();
+		return Stack[0].Priority;
+	}
+
+	TArray<FClientAuthData> GetLowestPriority()
+	{
+		return FilterPriority(DetermineLowestPriority());
+	}
+
+	FClientAuthData* GetFirst()
+	{
+		return Stack.Num() > 0 ? &Stack[0] : nullptr;
+	}
+
+	const FClientAuthData* GetFirst() const
+	{
+		return Stack.Num() > 0 ? &Stack[0] : nullptr;
+	}
+
 	FClientAuthData* GetLatest()
+	{
+		return Stack.Num() > 0 ? &Stack.Last() : nullptr;
+	}
+	
+	const FClientAuthData* GetLatest() const
 	{
 		return Stack.Num() > 0 ? &Stack.Last() : nullptr;
 	}
@@ -534,15 +605,4 @@ struct PREDICTEDMOVEMENT_API FClientAuthStack
 			return Data.TimeRemaining <= 0.f;
 		});
 	}
-
-	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
-};
-
-template<>
-struct TStructOpsTypeTraits<FClientAuthStack> : TStructOpsTypeTraitsBase2<FClientAuthStack>
-{
-	enum
-	{
-		WithNetSerializer = true
-	};
 };

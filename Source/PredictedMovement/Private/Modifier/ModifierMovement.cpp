@@ -13,6 +13,9 @@
 
 namespace FModifierTags
 {
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_SlowFall,				"Modifier.Type.SlowFall");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Boost,					"Modifier.Type.Boost");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Snare,					"Modifier.Type.Snare");
 	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_SlowFall,		"Modifier.Type.Local.SlowFall");
 	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_SlowFall_25,		"Modifier.Type.Local.SlowFall.25");
 	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_SlowFall_50,		"Modifier.Type.Local.SlowFall.50");
@@ -26,6 +29,7 @@ namespace FModifierTags
 	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Server_Snare_25,		"Modifier.Type.Server.Snare.25");
 	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Server_Snare_50,		"Modifier.Type.Server.Snare.50");
 	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Server_Snare_75,		"Modifier.Type.Server.Snare.75");
+	UE_DEFINE_GAMEPLAY_TAG(ClientAuth_Snare,					"ClientAuth.Snare");
 }
 
 namespace FModifierCVars
@@ -88,7 +92,7 @@ UModifierMovement::UModifierMovement(const FObjectInitializer& ObjectInitializer
 
 	// Auth params for Snare
 	static constexpr int32 DefaultPriority = 5;
-	ClientAuthParams.FindOrAdd(FModifierTags::Modifier_Type_Server_Snare, { DefaultPriority });
+	ClientAuthParams.FindOrAdd(FModifierTags::ClientAuth_Snare, { DefaultPriority });
 }
 
 void FModifierMoveResponseDataContainer::ServerFillResponseData(
@@ -133,9 +137,9 @@ void FModifierNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Charac
 	// ➜ MoveAutonomous (UpdateFromCompressedFlags)
 	
 	const FSavedMove_Character_Modifier& SavedMove = static_cast<const FSavedMove_Character_Modifier&>(ClientMove);
-	Boost = SavedMove.Boost;
-	SlowFall = SavedMove.SlowFall;
-	Snare = SavedMove.Snare;
+	Boost = SavedMove.EndBoost;
+	SlowFall = SavedMove.EndSlowFall;
+	Snare = SavedMove.EndSnare;
 }
 
 bool FModifierNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap, ENetworkMoveType MoveType)
@@ -166,9 +170,9 @@ void UModifierMovement::SetUpdatedComponent(USceneComponent* NewUpdatedComponent
 void UModifierMovement::SetUpdatedCharacter()
 {
 	ModifierCharacterOwner = Cast<AModifierCharacter>(PawnOwner);
-	Boost.Initialize(ModifierCharacterOwner, FModifierTags::Modifier_Type_Local_Boost);
-	SlowFall.Initialize(ModifierCharacterOwner, FModifierTags::Modifier_Type_Local_SlowFall);
-	Snare.Initialize(ModifierCharacterOwner, FModifierTags::Modifier_Type_Server_Snare);
+	Boost.Initialize(ModifierCharacterOwner, FModifierTags::Modifier_Type_Boost);
+	SlowFall.Initialize(ModifierCharacterOwner, FModifierTags::Modifier_Type_SlowFall);
+	Snare.Initialize(ModifierCharacterOwner, FModifierTags::Modifier_Type_Snare);
 }
 
 bool UModifierMovement::CanBoostInCurrentState(FGameplayTag ModifierLevel) const
@@ -358,7 +362,7 @@ void FSavedMove_Character_Modifier::SetInitialPosition(ACharacter* C)
 float UModifierMovement::GetRootMotionTranslationScalar() const
 {
 	// Allowing boost to affect root motion will increase attack range, dodge range, etc., it is disabled by default
-	return (bSnareAffectsRootMotion ? GetSnareSpeedScalar() : 1.f) * (bBoostAffectsRootMotion ? GetBoostSpeedScalar() : 1.f);
+	return (ShouldSnareAffectRootMotion() ? GetSnareSpeedScalar() : 1.f) * (bBoostAffectsRootMotion ? GetBoostSpeedScalar() : 1.f);
 }
 
 float UModifierMovement::GetMaxSpeed() const
@@ -429,18 +433,24 @@ FVector UModifierMovement::GetAirControl(float DeltaTime, float TickAirControl, 
 
 void UModifierMovement::UpdateCharacterStateBeforeMovement(float DeltaTime)
 {
-	Boost.UpdateCharacterStateBeforeMovement(CanBoostInCurrentState(FGameplayTag::EmptyTag));
-	SlowFall.UpdateCharacterStateBeforeMovement(CanSlowFallInCurrentState(FGameplayTag::EmptyTag));
-	Snare.UpdateCharacterStateBeforeMovement(CanBeSnaredInCurrentState(FGameplayTag::EmptyTag));
+	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
+	{
+		Boost.UpdateCharacterStateBeforeMovement(CanBoostInCurrentState(GetBoostLevel()));
+		SlowFall.UpdateCharacterStateBeforeMovement(CanSlowFallInCurrentState(GetSlowFallLevel()));
+		Snare.UpdateCharacterStateBeforeMovement(CanBeSnaredInCurrentState(GetSnareLevel()));
+	}
 	
 	Super::UpdateCharacterStateBeforeMovement(DeltaTime);
 }
 
 void UModifierMovement::UpdateCharacterStateAfterMovement(float DeltaTime)
 {
-	Boost.UpdateCharacterStateAfterMovement(CanBoostInCurrentState(FGameplayTag::EmptyTag));
-	SlowFall.UpdateCharacterStateAfterMovement(CanSlowFallInCurrentState(FGameplayTag::EmptyTag));
-	Snare.UpdateCharacterStateAfterMovement(CanBeSnaredInCurrentState(FGameplayTag::EmptyTag));
+	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
+	{
+		Boost.UpdateCharacterStateAfterMovement(CanBoostInCurrentState(GetBoostLevel()));
+		SlowFall.UpdateCharacterStateAfterMovement(CanSlowFallInCurrentState(GetSlowFallLevel()));
+		Snare.UpdateCharacterStateAfterMovement(CanBeSnaredInCurrentState(GetSnareLevel()));
+	}
 	
 	Super::UpdateCharacterStateAfterMovement(DeltaTime);
 }
@@ -719,7 +729,7 @@ void UModifierMovement::ServerMoveHandleClientError(float ClientTimeStamp, float
 		if (CurrentMoveData->Snare != Snare)
 		{
 			// Snare inits client authority here, however other states may want to do it elsewhere, this is not a requirement
-			InitClientAuthority(FModifierTags::Modifier_Type_Server_Snare);
+			InitClientAuthority(FModifierTags::ClientAuth_Snare);
 		}
 
 		// Apply these thresholds to control client authority

@@ -50,17 +50,17 @@ void AModifierCharacter::OnModifierChanged(const FGameplayTag& ModifierType, uin
 	// Replicate to simulated proxies
 	if (HasAuthority())
 	{
-		if (ModifierType == FModifierTags::Modifier_Type_Local_Boost)
+		if (ModifierType == FModifierTags::Modifier_Type_Boost)
 		{
 			SimulatedBoost = ModifierLevel;
 			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedBoost, this);			// Push-model
 		}
-		else if (ModifierType == FModifierTags::Modifier_Type_Local_SlowFall)
+		else if (ModifierType == FModifierTags::Modifier_Type_SlowFall)
 		{
 			SimulatedSlowFall = ModifierLevel;
 			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedSlowFall, this);		// Push-model
 		}
-		else if (ModifierType == FModifierTags::Modifier_Type_Server_Snare)
+		else if (ModifierType == FModifierTags::Modifier_Type_Snare)
 		{
 			SimulatedSnare = ModifierLevel;
 			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedSnare, this);			// Push-model
@@ -78,15 +78,15 @@ void AModifierCharacter::OnModifierAdded(const FGameplayTag& ModifierType, uint8
 		return;
 	}
 
-	if (ModifierType == FModifierTags::Modifier_Type_Local_Boost)
+	if (ModifierType == FModifierTags::Modifier_Type_Boost)
 	{
 		ModifierMovement->OnStartBoost();
 	}
-	else if (ModifierType == FModifierTags::Modifier_Type_Local_SlowFall)
+	else if (ModifierType == FModifierTags::Modifier_Type_SlowFall)
 	{
 		ModifierMovement->OnStartSlowFall();
 	}
-	else if (ModifierType == FModifierTags::Modifier_Type_Server_Snare)
+	else if (ModifierType == FModifierTags::Modifier_Type_Snare)
 	{
 		ModifierMovement->OnStartSnare();
 	}
@@ -99,15 +99,15 @@ void AModifierCharacter::OnModifierRemoved(const FGameplayTag& ModifierType, uin
 	// @TIP: Set Loose Gameplay Tag Here (Not Replicated)
 	// DO NOT ADD or REMOVE HERE! Net corrections can violate this!
 
-	if (ModifierType == FModifierTags::Modifier_Type_Local_Boost)
+	if (ModifierType == FModifierTags::Modifier_Type_Boost)
 	{
 		ModifierMovement->OnEndBoost();
 	}
-	else if (ModifierType == FModifierTags::Modifier_Type_Local_SlowFall)
+	else if (ModifierType == FModifierTags::Modifier_Type_SlowFall)
 	{
 		ModifierMovement->OnEndSlowFall();
 	}
-	else if (ModifierType == FModifierTags::Modifier_Type_Server_Snare)
+	else if (ModifierType == FModifierTags::Modifier_Type_Snare)
 	{
 		ModifierMovement->OnEndSnare();
 	}
@@ -139,6 +139,11 @@ void AModifierCharacter::OnRep_SimulatedBoost(uint8 PrevSimulatedBoost)
 
 void AModifierCharacter::Boost(FGameplayTag ModifierLevel)
 {
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+	
 	if (ModifierMovement)
 	{
 		if (const uint8 Level = ModifierMovement->Boost.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
@@ -150,6 +155,11 @@ void AModifierCharacter::Boost(FGameplayTag ModifierLevel)
 
 void AModifierCharacter::RemoveBoost(FGameplayTag ModifierLevel)
 {
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+	
 	if (ModifierMovement)
 	{
 		if (const uint8 Level = ModifierMovement->Boost.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
@@ -161,6 +171,11 @@ void AModifierCharacter::RemoveBoost(FGameplayTag ModifierLevel)
 
 void AModifierCharacter::RemoveAllBoosts()
 {
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+	
 	if (ModifierMovement)
 	{
 		ModifierMovement->Boost.RemoveAllModifiers();
@@ -169,6 +184,11 @@ void AModifierCharacter::RemoveAllBoosts()
 
 void AModifierCharacter::RemoveAllBoostsOfLevel(FGameplayTag ModifierLevel)
 {
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+	
 	if (ModifierMovement)
 	{
 		if (const uint8 Level = ModifierMovement->Boost.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
@@ -180,11 +200,19 @@ void AModifierCharacter::RemoveAllBoostsOfLevel(FGameplayTag ModifierLevel)
 
 bool AModifierCharacter::IsBoosted() const
 {
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return SimulatedBoost > 0;
+	}
 	return ModifierMovement && ModifierMovement->Boost.HasModifier();
 }
 
 bool AModifierCharacter::WantsBoost() const
 {
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return SimulatedBoost > 0;
+	}
 	return ModifierMovement && ModifierMovement->Boost.WantsModifier();
 }
 
@@ -234,6 +262,11 @@ void AModifierCharacter::OnRep_SimulatedSlowFall(uint8 PrevSimulatedSlowFall)
 
 void AModifierCharacter::SlowFall(FGameplayTag ModifierLevel)
 {
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+	
 	if (ModifierMovement)
 	{
 		if (const uint8 Level = ModifierMovement->SlowFall.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
@@ -245,6 +278,11 @@ void AModifierCharacter::SlowFall(FGameplayTag ModifierLevel)
 
 void AModifierCharacter::RemoveSlowFall(FGameplayTag ModifierLevel)
 {
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+	
 	if (ModifierMovement)
 	{
 		if (const uint8 Level = ModifierMovement->SlowFall.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
@@ -256,6 +294,11 @@ void AModifierCharacter::RemoveSlowFall(FGameplayTag ModifierLevel)
 
 void AModifierCharacter::RemoveAllSlowFall()
 {
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+	
 	if (ModifierMovement)
 	{
 		ModifierMovement->SlowFall.RemoveAllModifiers();
@@ -264,6 +307,11 @@ void AModifierCharacter::RemoveAllSlowFall()
 
 void AModifierCharacter::RemoveAllSlowFallOfLevel(FGameplayTag ModifierLevel)
 {
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+	
 	if (ModifierMovement)
 	{
 		if (const uint8 Level = ModifierMovement->SlowFall.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
@@ -275,11 +323,19 @@ void AModifierCharacter::RemoveAllSlowFallOfLevel(FGameplayTag ModifierLevel)
 
 bool AModifierCharacter::IsSlowFall() const
 {
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return SimulatedSlowFall > 0;
+	}
 	return ModifierMovement && ModifierMovement->SlowFall.HasModifier();
 }
 
 bool AModifierCharacter::WantsSlowFall() const
 {
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return SimulatedSlowFall > 0;
+	}
 	return ModifierMovement && ModifierMovement->SlowFall.WantsModifier();
 }
 
@@ -329,6 +385,11 @@ void AModifierCharacter::OnRep_SimulatedSnare(uint8 PrevSimulatedSnare)
 
 void AModifierCharacter::Snare(FGameplayTag ModifierLevel)
 {
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+	
 	if (ModifierMovement)
 	{
 		if (const uint8 Level = ModifierMovement->Snare.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
@@ -340,6 +401,11 @@ void AModifierCharacter::Snare(FGameplayTag ModifierLevel)
 
 void AModifierCharacter::RemoveSnare(FGameplayTag ModifierLevel)
 {
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+	
 	if (ModifierMovement)
 	{
 		if (const uint8 Level = ModifierMovement->Snare.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
@@ -351,6 +417,11 @@ void AModifierCharacter::RemoveSnare(FGameplayTag ModifierLevel)
 
 void AModifierCharacter::RemoveAllSnares()
 {
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+	
 	if (ModifierMovement)
 	{
 		ModifierMovement->Snare.RemoveAllModifiers();
@@ -359,6 +430,11 @@ void AModifierCharacter::RemoveAllSnares()
 
 void AModifierCharacter::RemoveAllSnaresOfLevel(FGameplayTag ModifierLevel)
 {
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+	
 	if (ModifierMovement)
 	{
 		if (const uint8 Level = ModifierMovement->Snare.GetModifierLevelByte(ModifierLevel); Level != LEVEL_NONE)
@@ -370,11 +446,19 @@ void AModifierCharacter::RemoveAllSnaresOfLevel(FGameplayTag ModifierLevel)
 
 bool AModifierCharacter::IsSnared() const
 {
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return SimulatedSnare > 0;
+	}
 	return ModifierMovement && ModifierMovement->Snare.HasModifier();
 }
 
 bool AModifierCharacter::WantsSnare() const
 {
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return SimulatedSnare > 0;
+	}
 	return ModifierMovement && ModifierMovement->Snare.WantsModifier();
 }
 

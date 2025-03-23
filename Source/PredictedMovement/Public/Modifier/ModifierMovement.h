@@ -9,6 +9,9 @@
 
 namespace FModifierTags
 {
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_SlowFall);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Boost);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Snare);
 	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Local_SlowFall);
 	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Local_SlowFall_25);
 	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Local_SlowFall_50);
@@ -22,6 +25,7 @@ namespace FModifierTags
 	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Server_Snare_25);
 	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Server_Snare_50);
 	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Server_Snare_75);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(ClientAuth_Snare);
 }
 
 struct PREDICTEDMOVEMENT_API FModifierMoveResponseDataContainer : FCharacterMoveResponseDataContainer
@@ -158,7 +162,7 @@ public:
 	 * @param ModifierLevel The level to check for - optional, leave empty if check is generic
 	 * @return True if we can boost
 	 */
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(Categories="Modifier.Type.Local.Boost"))
+	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(GameplayTagFilter="Modifier.Type.Local.Boost"))
 	virtual bool CanBoostInCurrentState(FGameplayTag ModifierLevel) const;
 
 	virtual void OnStartBoost() {}
@@ -191,7 +195,7 @@ public:
 	 * @param ModifierLevel The level to check for - optional, leave empty if check is generic
 	 * @return True if we can slow fall
 	 */
-	UFUNCTION(BlueprintPure, Category="Character Movement: Jumping / Falling", meta=(Categories="Modifier.Type.Local.SlowFall"))
+	UFUNCTION(BlueprintPure, Category="Character Movement: Jumping / Falling", meta=(GameplayTagFilter="Modifier.Type.Local.SlowFall"))
 	virtual bool CanSlowFallInCurrentState(FGameplayTag ModifierLevel) const;
 
 	virtual void OnStartSlowFall();
@@ -232,7 +236,7 @@ public:
 	 * @param ModifierLevel The level to check for - optional, leave empty if check is generic
 	 * @return True if we can be snared
 	 */
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(Categories="Modifier.Type.Server.Snare"))
+	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(GameplayTagFilter="Modifier.Type.Server.Snare"))
 	virtual bool CanBeSnaredInCurrentState(FGameplayTag ModifierLevel) const;
 
 	virtual void OnStartSnare() {}
@@ -254,6 +258,9 @@ public:
 	virtual float GetSnareBrakingScalar() const { return GetSnareLevelParams() ? GetSnareLevelParams()->BrakingDeceleration : 1.f; }
 	virtual float GetSnareGroundFrictionScalar() const { return GetSnareLevelParams() ? GetSnareLevelParams()->GroundFriction : 1.f; }
 	virtual float GetSnareBrakingFrictionScalar() const { return GetSnareLevelParams() ? GetSnareLevelParams()->BrakingFriction : 1.f; }
+
+	/** Override this for runtime conditionals e.g. Mantle probably doesn't want root motion affected! */
+	virtual bool ShouldSnareAffectRootMotion() const { return bSnareAffectsRootMotion; }
 	
 	virtual float GetMaxSpeedScalar() const { return GetBoostSpeedScalar() * GetSnareSpeedScalar(); }
 	virtual float GetMaxAccelScalar() const { return GetBoostAccelScalar() * GetSnareAccelScalar(); }

@@ -191,7 +191,6 @@ void FPredMoveResponseDataContainer::ServerFillResponseData(const UCharacterMove
 	{
 		Snare = MoveComp->Snare;
 	}
-	ClientAuthStack = MoveComp->ClientAuthStack;
 }
 
 bool FPredMoveResponseDataContainer::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,
@@ -210,7 +209,6 @@ bool FPredMoveResponseDataContainer::Serialize(UCharacterMovementComponent& Char
 
 		bool bOutSuccess;
 		Snare.NetSerialize(Ar, PackageMap, bOutSuccess);
-		ClientAuthStack.NetSerialize(Ar, PackageMap, bOutSuccess);
 	}
 
 	return !Ar.IsError();
@@ -1669,7 +1667,6 @@ void UPredMovement::ServerMove_PerformMovement(const FCharacterNetworkMoveData& 
 void UPredMovement::ClientHandleMoveResponse(const FCharacterMoveResponseDataContainer& MoveResponse)
 {
 	// This occurs on AutonomousProxy, when the server sends the move response
-	// This is where we receive the snare, and can override the server's location, assuming it has given us authority
 
 	// Server >> SendClientAdjustment() ➜ ServerSendMoveResponse()
 	// ➜ ServerFillResponseData() + MoveResponsePacked_ServerSend() >> Client
@@ -1677,72 +1674,10 @@ void UPredMovement::ClientHandleMoveResponse(const FCharacterMoveResponseDataCon
 
 	const FPredMoveResponseDataContainer& ModifierMoveResponse = static_cast<const FPredMoveResponseDataContainer&>(MoveResponse);
 
-	// Handle Snare & Client Authority
-	ClientAuthStack = ModifierMoveResponse.ClientAuthStack;
-	if (FClientAuthData* ClientAuthData = GetClientAuthData())
-	{
-		if (Snare != ModifierMoveResponse.Snare)
-		{
-			// Apply Snare correction
-			Snare << ModifierMoveResponse.Snare;
+	// Apply Snare correction
+	Snare << ModifierMoveResponse.Snare;
 
-			if (ClientAuthData)
-			{
-				if (FMath::IsNearlyZero(ClientAuthData->Alpha))
-				{
-					ClientAuthData->Alpha = 0.f;
-				}
-				else
-				{
-					FlushServerMoves();
-				}
-			}
-		}
-	
-		if (ClientAuthData->Alpha > 0.f)
-		{
-			const bool bAdjustClientData = !MoveResponse.IsGoodMove();
-			FNetworkPredictionData_Client_Character* ClientData = bAdjustClientData ? GetPredictionData_Client_Character() : nullptr;
-
-			// Do not allow us to apply a partial move based on our own authoritative location that is in the past,
-			// after server sends it back to us
-			if (bAdjustClientData)
-			{
-				check(ClientData);
-				if (ClientData->LastAckedMove.IsValid())
-				{
-					const FCharacterMoveResponseDataContainer& MutableResponse = const_cast<FCharacterMoveResponseDataContainer&>(MoveResponse);
-					ClientData->LastAckedMove->SavedLocation = MutableResponse.ClientAdjustment.NewLoc;
-				}
-			}
-
-			// Cache the old location because the server will apply our own past authoritative location when calling Super!
-			const FVector OldLocation = UpdatedComponent->GetComponentLocation();
-			Super::ClientHandleMoveResponse(MoveResponse);
-			const FVector NewLocation = UpdatedComponent->GetComponentLocation();
-
-			// Clamp the location to the server's authoritative location based on the authority alpha
-			const FVector ClampedLocation = FMath::Lerp<FVector>(OldLocation, NewLocation, 1.f - ClientAuthData->Alpha);
-			UpdatedComponent->SetWorldLocation(ClampedLocation, false);
-
-			// Block the next ClientUpdatePositionAfterServerUpdate() from replaying moves, this will overwrite our authority
-			// @TODO Do we need to make sure it applies non-location moves?
-			if (bAdjustClientData)
-			{
-				ClientData->bUpdatePosition = false;
-			}
-		}
-		else
-		{
-			Super::ClientHandleMoveResponse(MoveResponse);
-		}
-	}
-	else
-	{
-		// Apply Snare correction
-		Snare << ModifierMoveResponse.Snare;
-		Super::ClientHandleMoveResponse(MoveResponse);
-	}
+	Super::ClientHandleMoveResponse(MoveResponse);
 }
 
 bool UPredMovement::ClientUpdatePositionAfterServerUpdate()
@@ -1808,6 +1743,49 @@ bool UPredMovement::CanDelaySendingMove(const FSavedMovePtr& NewMove)
 	}
 	
 	return Super::CanDelaySendingMove(NewMove);
+}
+
+FClientAuthData* UPredMovement::GetClientAuthData()
+{
+	ClientAuthStack.SortByPriority();
+	return ClientAuthStack.GetFirst();
+}
+
+FClientAuthParams UPredMovement::GetClientAuthParams(const FClientAuthData* ClientAuthData)
+{
+	if (!ClientAuthData)
+	{
+		return {};
+	}
+	
+	FClientAuthParams Params = { false, 0.f, 0.f, 0.f, ClientAuthData->Priority };
+
+	// Get all active client auth data that matches the priority
+	TArray<FClientAuthData> Priority = ClientAuthStack.FilterPriority(ClientAuthData->Priority);
+
+	// Combine the parameters
+	int32 Num = 0;
+	for (const FClientAuthData& Data : Priority)
+	{
+		if (const FClientAuthParams* DataParams = GetClientAuthParamsForSource(Data.Source))
+		{
+			Params.ClientAuthTime += DataParams->ClientAuthTime;
+			Params.MaxClientAuthDistance += DataParams->MaxClientAuthDistance;
+			Params.RejectClientAuthDistance += DataParams->RejectClientAuthDistance;
+			Num++;
+		}
+	}
+
+	// Average the parameters
+	Params.bEnableClientAuth = Num > 0;
+	if (Num > 1)
+	{
+		Params.ClientAuthTime /= Num;
+		Params.MaxClientAuthDistance /= Num;
+		Params.RejectClientAuthDistance /= Num;
+	}
+
+	return Params;
 }
 
 void UPredMovement::OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData,
@@ -1883,14 +1861,14 @@ void UPredMovement::ServerMoveHandleClientError(float ClientTimeStamp, float Del
 	if (!PredMovementCVars::bClientAuthDisabled)
 #endif
 	{
+		// Update client authority time remaining
+		ClientAuthStack.Update(DeltaTime);
+
 		if (CurrentMoveData->Snare != Snare)
 		{
 			// Snare inits client authority here, however other states may want to do it elsewhere, this is not a requirement
-			InitClientAuth(FPredTags::Modifier_Type_Debuff_Snare);
+			InitClientAuthority(FPredTags::Modifier_Type_Debuff_Snare);
 		}
-
-		// Update client authority time remaining
-		ClientAuthStack.Update(DeltaTime);
 
 		// Apply these thresholds to control client authority
 		FVector ClientLoc = FRepMovement::RebaseOntoZeroOrigin(RelativeClientLocation, this);
@@ -2188,14 +2166,19 @@ FSavedMovePtr FNetworkPredictionData_Client_Character_Pred::AllocateNewMove()
 	return MakeShared<FSavedMove_Character_Pred>();
 }
 
-void UPredMovement::InitClientAuth(FGameplayTag ClientAuthSource, float OverrideDuration)
+void UPredMovement::InitClientAuthority(FGameplayTag ClientAuthSource, float OverrideDuration)
 {
-	if (const FClientAuthParams* Params = GetClientAuthParams(ClientAuthSource))
+	if (!CharacterOwner || !CharacterOwner->HasAuthority())
+	{
+		return;
+	}
+	
+	if (const FClientAuthParams* Params = GetClientAuthParamsForSource(ClientAuthSource))
 	{
 		if (Params->bEnableClientAuth)
 		{
 			const float Duration = OverrideDuration > 0.f ? OverrideDuration : Params->ClientAuthTime;
-			ClientAuthStack.Stack.Add(FClientAuthData(ClientAuthSource, Duration));
+			ClientAuthStack.Stack.Add(FClientAuthData(ClientAuthSource, Duration, Params->Priority));
 
 			// Limit the number of auth data entries
 			// IMPORTANT: We do not allow serializing more than 8, if this changes, update the serialization code too
@@ -2233,21 +2216,17 @@ bool UPredMovement::ServerShouldGrantClientPositionAuthority(FVector& ClientLoc)
 
 	// Get auth data
 	FClientAuthData* ClientAuthData = GetClientAuthData();
-	if (!ClientAuthData)
+	if (!ClientAuthData || !ClientAuthData->IsValid())
 	{
 		// No auth data, can't do anything
 		return false;
 	}
 
 	// Get auth params
-	const FClientAuthParams* Params = GetClientAuthParams(ClientAuthData->Source);
-	if (!Params)
-	{
-		// No auth params, can't do anything
-		return false;
-	}
+	const FClientAuthParams Params = GetClientAuthParams(ClientAuthData);
 
-	if (!Params->bEnableClientAuth)
+	// Disabled
+	if (!Params.bEnableClientAuth)
 	{
 		return false;
 	}
@@ -2257,8 +2236,7 @@ bool UPredMovement::ServerShouldGrantClientPositionAuthority(FVector& ClientLoc)
 	if (UNLIKELY(ClientAuthData->TimeRemaining <= 0.f))
 	{
 		// ServerMoveHandleClientError() should have removed the auth data already
-		ensure(false);
-		return false;
+		return ensure(false);
 	}
 #endif
 	
@@ -2278,17 +2256,17 @@ bool UPredMovement::ServerShouldGrantClientPositionAuthority(FVector& ClientLoc)
 	}
 
 	// If the client is too far away from the server, reject the client position entirely, potential cheater
-	if (LocDiff.SizeSquared() >= FMath::Square(Params->RejectClientAuthDistance))
+	if (LocDiff.SizeSquared() >= FMath::Square(Params.RejectClientAuthDistance))
 	{
 		OnClientAuthRejected(ClientLoc, ServerLoc, LocDiff);
 		return false;
 	}
 
 	// If the client is not within the maximum allowable distance, accept the client position, but only partially
-	if (LocDiff.Size() >= Params->MaxClientAuthDistance)
+	if (LocDiff.Size() >= Params.MaxClientAuthDistance)
 	{
 		// Accept only a portion of the client's location
-		ClientAuthData->Alpha = Params->MaxClientAuthDistance / LocDiff.Size();
+		ClientAuthData->Alpha = Params.MaxClientAuthDistance / LocDiff.Size();
 		ClientLoc = FMath::Lerp<FVector>(ServerLoc, ClientLoc, ClientAuthData->Alpha);
 		LocDiff = ServerLoc - ClientLoc;
 	}

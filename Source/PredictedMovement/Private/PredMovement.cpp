@@ -154,8 +154,8 @@ UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
 	HasteLevels.Add(FPredTags::Modifier_Type_Local_Haste_Test, { 1.50f });
 
 	// Init Slow Levels
-	Slow.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Server_Slow_Test); 		// 0.50x Speed Slow
-	SlowLevels.Add(FPredTags::Modifier_Type_Server_Slow_Test, { 0.50f });
+	Slow.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Local_Slow_Test); 		// 0.50x Speed Slow
+	SlowLevels.Add(FPredTags::Modifier_Type_Local_Slow_Test, { 0.50f });
 	
 	// Init SlowFall Levels
 	SlowFall.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Local_SlowFall_Test); // 1.00x Reduction for 0.00x Gravity
@@ -171,10 +171,8 @@ UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
 	SnareLevels.Add(FPredTags::Modifier_Type_Server_Snare_Test, { 0.25f });
 
 	// Auth params for Snare
-	FClientAuthParams& SnareParams = ClientAuthParams.Add(FPredTags::Modifier_Type_Server_Snare);
-	SnareParams.bEnableClientAuth = true;
-	SnareParams.MaxClientAuthDistance = 150.f;  // For something like a knockback, a greater distance would be sensible
-	SnareParams.RejectClientAuthDistance = 800.f;
+	static constexpr int32 DefaultPriority = 5;
+	ClientAuthParams.FindOrAdd(FPredTags::ClientAuth_Snare, { DefaultPriority });
 }
 
 void FPredMoveResponseDataContainer::ServerFillResponseData(const UCharacterMovementComponent& CharacterMovement,
@@ -308,7 +306,7 @@ void UPredMovement::SetUpdatedCharacter()
 
 	Boost.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Local_Boost);
 	Haste.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Local_Haste);
-	Slow.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Server_Slow);
+	Slow.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Local_Slow);
 	SlowFall.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Local_SlowFall);
 	Snare.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Server_Snare);
 }
@@ -496,9 +494,9 @@ float UPredMovement::GetGravityZScalar() const
 float UPredMovement::GetRootMotionTranslationScalar() const
 {
 	// Allowing boost to affect root motion will increase attack range, dodge range, etc., it is disabled by default
-	const float BoostScalar = bBoostAffectsRootMotion ? GetBoostSpeedScalar() : 1.f;
-	const float SlowScalar = bSlowAffectsRootMotion ? GetSlowSpeedScalar() : 1.f;
-	const float SnareScalar = bSnareAffectsRootMotion ? GetSnareSpeedScalar() : 1.f;
+	const float BoostScalar = ShouldBoostAffectRootMotion() ? GetBoostSpeedScalar() : 1.f;
+	const float SlowScalar = ShouldSlowAffectRootMotion() ? GetSlowSpeedScalar() : 1.f;
+	const float SnareScalar = ShouldSnareAffectRootMotion() ? GetSnareSpeedScalar() : 1.f;
 	return BoostScalar * SlowScalar * SnareScalar;
 }
 
@@ -1490,15 +1488,14 @@ bool UPredMovement::CanBeSnaredInCurrentState(FGameplayTag ModifierLevel) const
 
 void UPredMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 {
-	Boost.UpdateCharacterStateBeforeMovement(CanBoostInCurrentState(Boost.GetModifierLevel()));
-	Haste.UpdateCharacterStateBeforeMovement(CanHasteInCurrentState(Haste.GetModifierLevel()));
-	Slow.UpdateCharacterStateBeforeMovement(CanSlowInCurrentState(Slow.GetModifierLevel()));
-	SlowFall.UpdateCharacterStateBeforeMovement(CanSlowFallInCurrentState(SlowFall.GetModifierLevel()));
-	Snare.UpdateCharacterStateBeforeMovement(CanBeSnaredInCurrentState(Snare.GetModifierLevel()));
-	
-	// Proxies get replicated Sprint state.
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
+		Boost.UpdateCharacterStateBeforeMovement(CanBoostInCurrentState(GetBoostLevel()));
+		Haste.UpdateCharacterStateBeforeMovement(CanHasteInCurrentState(GetHasteLevel()));
+		Slow.UpdateCharacterStateBeforeMovement(CanSlowInCurrentState(GetSlowLevel()));
+		SlowFall.UpdateCharacterStateBeforeMovement(CanSlowFallInCurrentState(GetSlowFallLevel()));
+		Snare.UpdateCharacterStateBeforeMovement(CanBeSnaredInCurrentState(GetSnareLevel()));
+	
 		/* We can't sprint if we're prone, we must clear input in the character */
 		
 		// Check for a change in Sprint state. Players toggle Sprint by changing bWantsToSprint.
@@ -1594,15 +1591,14 @@ void UPredMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 
 void UPredMovement::UpdateCharacterStateAfterMovement(float DeltaSeconds)
 {
-	Boost.UpdateCharacterStateAfterMovement(CanBoostInCurrentState(Boost.GetModifierLevel()));
-	Haste.UpdateCharacterStateAfterMovement(CanHasteInCurrentState(Haste.GetModifierLevel()));
-	Slow.UpdateCharacterStateAfterMovement(CanSlowInCurrentState(Slow.GetModifierLevel()));
-	SlowFall.UpdateCharacterStateAfterMovement(CanSlowFallInCurrentState(SlowFall.GetModifierLevel()));
-	Snare.UpdateCharacterStateAfterMovement(CanBeSnaredInCurrentState(Snare.GetModifierLevel()));
-	
-	// Proxies get replicated Sprint state.
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
+		Boost.UpdateCharacterStateAfterMovement(CanBoostInCurrentState(GetBoostLevel()));
+		Haste.UpdateCharacterStateAfterMovement(CanHasteInCurrentState(GetHasteLevel()));
+		Slow.UpdateCharacterStateAfterMovement(CanSlowInCurrentState(GetSlowLevel()));
+		SlowFall.UpdateCharacterStateAfterMovement(CanSlowFallInCurrentState(GetSlowFallLevel()));
+		Snare.UpdateCharacterStateAfterMovement(CanBeSnaredInCurrentState(GetSnareLevel()));
+	
 		// UnSprint if no longer allowed to be Sprinting
 		if (IsSprinting() && !CanSprintInCurrentState())
 		{
@@ -1675,7 +1671,11 @@ void UPredMovement::ClientHandleMoveResponse(const FCharacterMoveResponseDataCon
 	const FPredMoveResponseDataContainer& ModifierMoveResponse = static_cast<const FPredMoveResponseDataContainer&>(MoveResponse);
 
 	// Apply Snare correction
-	Snare << ModifierMoveResponse.Snare;
+	if (Snare != ModifierMoveResponse.Snare)
+	{
+		// << operator copies only the RequestedModifierLevel and Modifiers stack, i.e. requested state not current state
+		Snare << ModifierMoveResponse.Snare;
+	}
 
 	Super::ClientHandleMoveResponse(MoveResponse);
 }
@@ -1824,7 +1824,7 @@ void UPredMovement::ServerMoveHandleClientError(float ClientTimeStamp, float Del
 		if (CurrentMoveData->Snare != Snare)
 		{
 			// Snare inits client authority here, however other states may want to do it elsewhere, this is not a requirement
-			InitClientAuthority(FPredTags::Modifier_Type_Server_Snare);
+			InitClientAuthority(FPredTags::ClientAuth_Snare);
 		}
 
 		// Apply these thresholds to control client authority

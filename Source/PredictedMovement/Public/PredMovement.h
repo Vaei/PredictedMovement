@@ -19,7 +19,6 @@ struct PREDICTEDMOVEMENT_API FPredMoveResponseDataContainer : FCharacterMoveResp
 	bool bStaminaDrained;
 	
 	FMovementModifier Snare;
-	FClientAuthStack ClientAuthStack;
 	
 	virtual void ServerFillResponseData(const UCharacterMovementComponent& CharacterMovement, const FClientAdjustment& PendingAdjustment) override;
 	virtual bool Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap) override;
@@ -947,7 +946,7 @@ public:
 
 	virtual void ServerMove_PerformMovement(const FCharacterNetworkMoveData& MoveData) override;
 	virtual void ClientHandleMoveResponse(const FCharacterMoveResponseDataContainer& MoveResponse) override;
-
+	
 	/*
 	 * ClientHandleMoveResponse appears more correct because it has a MoveResponse passed in, and
 	 * it doesn't require the ugly versioning pre-compiler macro, but it occurs at the wrong point
@@ -984,8 +983,9 @@ public:
 	UPROPERTY()
 	FClientAuthStack ClientAuthStack;
 
-	FClientAuthData* GetClientAuthData() { return ClientAuthStack.GetLatest(); }
-	FClientAuthParams* GetClientAuthParams(const FGameplayTag& Source) { return ClientAuthParams.Find(Source); }
+	virtual FClientAuthData* GetClientAuthData();
+	FClientAuthParams* GetClientAuthParamsForSource(const FGameplayTag& Source) { return ClientAuthParams.Find(Source); }
+	virtual FClientAuthParams GetClientAuthParams(const FClientAuthData* ClientAuthData);
 
 protected:
 	/**
@@ -996,14 +996,16 @@ protected:
 	 */
 	virtual void OnClientAuthRejected(const FVector& ClientLoc, const FVector& ServerLoc, const FVector& LocDiff) {}
 
+public:
 	/** 
 	 * Grant the client position authority, based on the current state of the character.
 	 * @param ClientAuthSource What the client is requesting authority for, not used by default, requires override
 	 * @param OverrideDuration Override the default client authority time, -1.f to use default
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Character Movement (Networking)")
-	virtual void InitClientAuth(FGameplayTag ClientAuthSource, float OverrideDuration = -1.f);
-	
+	virtual void InitClientAuthority(FGameplayTag ClientAuthSource, float OverrideDuration = -1.f);
+
+protected:
 	virtual bool ServerShouldGrantClientPositionAuthority(FVector& ClientLoc);
 
 protected:

@@ -704,7 +704,7 @@ public:
 	 * @param ModifierLevel The level to check for - optional, leave empty if check is generic
 	 * @return True if we can boost
 	 */
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(FilterGameplayTag="Modifier.Type.Buff.Boost"))
+	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(FilterGameplayTag="Modifier.Type.Local.Boost"))
 	virtual bool CanBoostInCurrentState(FGameplayTag ModifierLevel) const;
 
 	virtual void OnStartBoost() {}
@@ -749,7 +749,7 @@ public:
 	 * @param ModifierLevel The level to check for - optional, leave empty if check is generic
 	 * @return True if we can Haste
 	 */
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(FilterGameplayTag="Modifier.Type.Buff.Haste"))
+	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(FilterGameplayTag="Modifier.Type.Local.Haste"))
 	virtual bool CanHasteInCurrentState(FGameplayTag ModifierLevel) const;
 
 	virtual void OnStartHaste() {}
@@ -802,7 +802,7 @@ public:
 	 * @param ModifierLevel The level to check for - optional, leave empty if check is generic
 	 * @return True if we can Slow
 	 */
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(FilterGameplayTag="Modifier.Type.Debuff.Slow"))
+	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(FilterGameplayTag="Modifier.Type.Local.Slow"))
 	virtual bool CanSlowInCurrentState(FGameplayTag ModifierLevel) const;
 
 	virtual void OnStartSlow() {}
@@ -847,7 +847,7 @@ public:
 	 * @param ModifierLevel The level to check for - optional, leave empty if check is generic
 	 * @return True if we can slow fall
 	 */
-	UFUNCTION(BlueprintPure, Category="Character Movement: Jumping / Falling", meta=(FilterGameplayTag="Modifier.Type.Buff.SlowFall"))
+	UFUNCTION(BlueprintPure, Category="Character Movement: Jumping / Falling", meta=(FilterGameplayTag="Modifier.Type.Local.SlowFall"))
 	virtual bool CanSlowFallInCurrentState(FGameplayTag ModifierLevel) const;
 
 	virtual void OnStartSlowFall();
@@ -899,7 +899,7 @@ public:
 	 * @param ModifierLevel The level to check for - optional, leave empty if check is generic
 	 * @return True if we can be snared
 	 */
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(FilterGameplayTag="Modifier.Type.Debuff.Snare"))
+	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(FilterGameplayTag="Modifier.Type.Server.Snare"))
 	virtual bool CanBeSnaredInCurrentState(FGameplayTag ModifierLevel) const;
 
 	virtual void OnStartSnare() {}
@@ -939,6 +939,11 @@ public:
 	virtual float GetSnareBrakingScalar() const { return GetSnareLevelParams() ? GetSnareLevelParams()->BrakingDeceleration : 1.f; }
 	virtual float GetSnareGroundFrictionScalar() const { return GetSnareLevelParams() ? GetSnareLevelParams()->GroundFriction : 1.f; }
 	virtual float GetSnareBrakingFrictionScalar() const { return GetSnareLevelParams() ? GetSnareLevelParams()->BrakingFriction : 1.f; }
+
+	/** Override this for runtime conditionals e.g. Mantle probably doesn't want root motion affected! */
+	virtual bool ShouldSnareAffectRootMotion() const { return bSnareAffectsRootMotion; }
+	virtual bool ShouldSlowAffectRootMotion() const { return bSlowAffectsRootMotion; }
+	virtual bool ShouldBoostAffectRootMotion() const { return bBoostAffectsRootMotion; }
 	
 public:
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;

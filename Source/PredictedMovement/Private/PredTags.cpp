@@ -5,15 +5,15 @@
 
 namespace FPredTags
 {
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Modifier_Type_Buff_SlowFall,		"Modifier.Type.Buff.SlowFall", "Reduce Gravity to a % of its normal value");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Modifier_Type_Buff_Boost,		"Modifier.Type.Buff.Boost", "Increase Movement Speed");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Modifier_Type_Buff_Haste,		"Modifier.Type.Buff.Haste", "Increase Movement Speed but only while Sprinting");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Modifier_Type_Debuff_Slow,		"Modifier.Type.Debuff.Slow", "Reduce Movement Speed");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Modifier_Type_Debuff_Snare,		"Modifier.Type.Debuff.Snare", "Reduced Movement Speed applied by server");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Modifier_Type_Local_SlowFall,	"Modifier.Type.Local.SlowFall", "Reduce Gravity to a % of its normal value");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Modifier_Type_Local_Boost,		"Modifier.Type.Local.Boost", "Increase Movement Speed");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Modifier_Type_Local_Haste,		"Modifier.Type.Local.Haste", "Increase Movement Speed but only while Sprinting");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Modifier_Type_Server_Slow,		"Modifier.Type.Server.Slow", "Reduce Movement Speed");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Modifier_Type_Server_Snare,		"Modifier.Type.Server.Snare", "Reduced Movement Speed applied by server");
 
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_SlowFall_Test,		"Modifier.Type.Buff.SlowFall.Test");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_Boost_Test,			"Modifier.Type.Buff.Boost.Test");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_Haste_Test,			"Modifier.Type.Buff.Haste.Test");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Slow_Test,			"Modifier.Type.Debuff.Slow.Test");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Snare_Test,			"Modifier.Type.Debuff.Snare.Test");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_SlowFall_Test,		"Modifier.Type.Local.SlowFall.Test");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_Boost_Test,			"Modifier.Type.Local.Boost.Test");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_Haste_Test,			"Modifier.Type.Local.Haste.Test");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Server_Slow_Test,			"Modifier.Type.Server.Slow.Test");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Server_Snare_Test,			"Modifier.Type.Server.Snare.Test");
 }

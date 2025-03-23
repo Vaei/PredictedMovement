@@ -58,7 +58,7 @@ UModifierMovement::UModifierMovement(const FObjectInitializer& ObjectInitializer
 	Snare.LevelType		= EModifierLevelType::FGameplayTag;
 
 	// Init boost levels
-	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Local_Boost_25);		// 1.25x Speed Boost
+	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Local_Boost_25);			// 1.25x Speed Boost
 	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Local_Boost_50); 		// 1.50x Speed Boost
 	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Local_Boost_75); 		// 1.75x Speed Boost
 
@@ -87,10 +87,8 @@ UModifierMovement::UModifierMovement(const FObjectInitializer& ObjectInitializer
 	SnareLevels.Add(FModifierTags::Modifier_Type_Server_Snare_75, { 0.25f });
 
 	// Auth params for Snare
-	FClientAuthParams& SnareParams = ClientAuthParams.Add(FModifierTags::Modifier_Type_Server_Snare);
-	SnareParams.bEnableClientAuth = true;
-	SnareParams.MaxClientAuthDistance = 150.f;  // For something like a knockback, a greater distance would be sensible
-	SnareParams.RejectClientAuthDistance = 800.f;
+	static constexpr int32 DefaultPriority = 5;
+	ClientAuthParams.FindOrAdd(FModifierTags::Modifier_Type_Server_Snare, { DefaultPriority });
 }
 
 void FModifierMoveResponseDataContainer::ServerFillResponseData(

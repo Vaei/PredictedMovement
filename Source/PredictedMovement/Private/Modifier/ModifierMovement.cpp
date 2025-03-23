@@ -9,23 +9,23 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ModifierMovement)
 
-DEFINE_LOG_CATEGORY_STATIC(LogModifierMovement, Log, All);
+// DEFINE_LOG_CATEGORY_STATIC(LogModifierMovement, Log, All);
 
 namespace FModifierTags
 {
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_SlowFall,		"Modifier.Type.Buff.SlowFall");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_SlowFall_25,	"Modifier.Type.Buff.SlowFall.25");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_SlowFall_50,	"Modifier.Type.Buff.SlowFall.50");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_SlowFall_75,	"Modifier.Type.Buff.SlowFall.75");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_SlowFall_100, "Modifier.Type.Buff.SlowFall.100");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_Boost,		"Modifier.Type.Buff.Boost");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_Boost_25,		"Modifier.Type.Buff.Boost.25");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_Boost_50,		"Modifier.Type.Buff.Boost.50");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Buff_Boost_75,		"Modifier.Type.Buff.Boost.75");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Snare,		"Modifier.Type.Debuff.Snare");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Snare_25,	"Modifier.Type.Debuff.Snare.25");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Snare_50,	"Modifier.Type.Debuff.Snare.50");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Debuff_Snare_75,	"Modifier.Type.Debuff.Snare.75");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_SlowFall,		"Modifier.Type.Local.SlowFall");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_SlowFall_25,		"Modifier.Type.Local.SlowFall.25");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_SlowFall_50,		"Modifier.Type.Local.SlowFall.50");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_SlowFall_75,		"Modifier.Type.Local.SlowFall.75");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_SlowFall_100,	"Modifier.Type.Local.SlowFall.100");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_Boost,			"Modifier.Type.Local.Boost");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_Boost_25,		"Modifier.Type.Local.Boost.25");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_Boost_50,		"Modifier.Type.Local.Boost.50");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_Boost_75,		"Modifier.Type.Local.Boost.75");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Server_Snare,			"Modifier.Type.Server.Snare");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Server_Snare_25,		"Modifier.Type.Server.Snare.25");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Server_Snare_50,		"Modifier.Type.Server.Snare.50");
+	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Server_Snare_75,		"Modifier.Type.Server.Snare.75");
 }
 
 namespace FModifierCVars
@@ -41,6 +41,58 @@ namespace FModifierCVars
 #endif
 }
 
+UModifierMovement::UModifierMovement(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SetMoveResponseDataContainer(ModifierMoveResponseDataContainer);
+    SetNetworkMoveDataContainer(ModifierMoveDataContainer);
+
+	// Init activation sources
+	Boost.ActivationSource		= EModifierActivationSource::LocalPredicted;		// We apply this to ourselves
+	SlowFall.ActivationSource	= EModifierActivationSource::LocalPredicted;		// We apply this to ourselves
+	Snare.ActivationSource		= EModifierActivationSource::ServerInitiated;		// Others apply this to us
+
+	// Init data types used for levels as gameplay tags instead of enums
+	Boost.LevelType		= EModifierLevelType::FGameplayTag;
+	SlowFall.LevelType	= EModifierLevelType::FGameplayTag;
+	Snare.LevelType		= EModifierLevelType::FGameplayTag;
+
+	// Init boost levels
+	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Local_Boost_25);		// 1.25x Speed Boost
+	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Local_Boost_50); 		// 1.50x Speed Boost
+	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Local_Boost_75); 		// 1.75x Speed Boost
+
+	BoostLevels.Add(FModifierTags::Modifier_Type_Local_Boost_25, { 1.25f });
+	BoostLevels.Add(FModifierTags::Modifier_Type_Local_Boost_50, { 1.50f });
+	BoostLevels.Add(FModifierTags::Modifier_Type_Local_Boost_75, { 1.75f });
+
+	// Init slow fall levels
+	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Local_SlowFall_25);	// 0.25x Reduction from 0.75x Gravity
+	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Local_SlowFall_50); 	// 0.50x Reduction from 0.50x Gravity
+	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Local_SlowFall_75); 	// 0.75x Reduction from 0.25x Gravity
+	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Local_SlowFall_100); 	// 1.00x Reduction from 0.00x Gravity
+
+	SlowFallLevels.Add(FModifierTags::Modifier_Type_Local_SlowFall_25, { 0.75f });
+	SlowFallLevels.Add(FModifierTags::Modifier_Type_Local_SlowFall_50, { 0.50f });
+	SlowFallLevels.Add(FModifierTags::Modifier_Type_Local_SlowFall_75, { 0.25f });
+	SlowFallLevels.Add(FModifierTags::Modifier_Type_Local_SlowFall_100, { 0.00f });
+	
+	// Init snare levels
+	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Server_Snare_25); 	// 0.25x Speed Snare
+	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Server_Snare_50); 	// 0.50x Speed Snare
+	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Server_Snare_75); 	// 0.75x Speed Snare
+	
+	SnareLevels.Add(FModifierTags::Modifier_Type_Server_Snare_25, { 0.75f });
+	SnareLevels.Add(FModifierTags::Modifier_Type_Server_Snare_50, { 0.50f });
+	SnareLevels.Add(FModifierTags::Modifier_Type_Server_Snare_75, { 0.25f });
+
+	// Auth params for Snare
+	FClientAuthParams& SnareParams = ClientAuthParams.Add(FModifierTags::Modifier_Type_Server_Snare);
+	SnareParams.bEnableClientAuth = true;
+	SnareParams.MaxClientAuthDistance = 150.f;  // For something like a knockback, a greater distance would be sensible
+	SnareParams.RejectClientAuthDistance = 800.f;
+}
+
 void FModifierMoveResponseDataContainer::ServerFillResponseData(
 	const UCharacterMovementComponent& CharacterMovement, const FClientAdjustment& PendingAdjustment)
 {
@@ -52,7 +104,6 @@ void FModifierMoveResponseDataContainer::ServerFillResponseData(
 	{
 		Snare = MoveComp->Snare;
 	}
-	ClientAuthStack = MoveComp->ClientAuthStack;
 }
 
 bool FModifierMoveResponseDataContainer::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,
@@ -68,7 +119,6 @@ bool FModifierMoveResponseDataContainer::Serialize(UCharacterMovementComponent& 
 	{
 		bool bOutSuccess;
 		Snare.NetSerialize(Ar, PackageMap, bOutSuccess);
-		ClientAuthStack.NetSerialize(Ar, PackageMap, bOutSuccess);
 	}
 
 	return !Ar.IsError();
@@ -103,58 +153,6 @@ bool FModifierNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterM
     return !Ar.IsError();
 }
 
-UModifierMovement::UModifierMovement(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-	SetMoveResponseDataContainer(ModifierMoveResponseDataContainer);
-    SetNetworkMoveDataContainer(ModifierMoveDataContainer);
-
-	// Init activation sources
-	Boost.ActivationSource		= EModifierActivationSource::LocalPredicted;		// We apply this to ourselves
-	SlowFall.ActivationSource	= EModifierActivationSource::LocalPredicted;		// We apply this to ourselves
-	Snare.ActivationSource		= EModifierActivationSource::ServerInitiated;		// Others apply this to us
-
-	// Init data types used for levels as gameplay tags instead of enums
-	Boost.LevelType		= EModifierLevelType::FGameplayTag;
-	SlowFall.LevelType	= EModifierLevelType::FGameplayTag;
-	Snare.LevelType		= EModifierLevelType::FGameplayTag;
-
-	// Init boost levels
-	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_25);		// 1.25x Speed Boost
-	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_50); 		// 1.50x Speed Boost
-	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_Boost_75); 		// 1.75x Speed Boost
-
-	BoostLevels.Add(FModifierTags::Modifier_Type_Buff_Boost_25, { 1.25f });
-	BoostLevels.Add(FModifierTags::Modifier_Type_Buff_Boost_50, { 1.50f });
-	BoostLevels.Add(FModifierTags::Modifier_Type_Buff_Boost_75, { 1.75f });
-
-	// Init slow fall levels
-	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_SlowFall_25);	// 0.25x Reduction from 0.75x Gravity
-	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_SlowFall_50); 	// 0.50x Reduction from 0.50x Gravity
-	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_SlowFall_75); 	// 0.75x Reduction from 0.25x Gravity
-	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Buff_SlowFall_100); 	// 1.00x Reduction from 0.00x Gravity
-
-	SlowFallLevels.Add(FModifierTags::Modifier_Type_Buff_SlowFall_25, { 0.75f });
-	SlowFallLevels.Add(FModifierTags::Modifier_Type_Buff_SlowFall_50, { 0.50f });
-	SlowFallLevels.Add(FModifierTags::Modifier_Type_Buff_SlowFall_75, { 0.25f });
-	SlowFallLevels.Add(FModifierTags::Modifier_Type_Buff_SlowFall_100, { 0.00f });
-	
-	// Init snare levels
-	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_25); 	// 0.25x Speed Snare
-	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_50); 	// 0.50x Speed Snare
-	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Debuff_Snare_75); 	// 0.75x Speed Snare
-	
-	SnareLevels.Add(FModifierTags::Modifier_Type_Debuff_Snare_25, { 0.75f });
-	SnareLevels.Add(FModifierTags::Modifier_Type_Debuff_Snare_50, { 0.50f });
-	SnareLevels.Add(FModifierTags::Modifier_Type_Debuff_Snare_75, { 0.25f });
-
-	// Auth params for Snare
-	FClientAuthParams& SnareParams = ClientAuthParams.Add(FModifierTags::Modifier_Type_Debuff_Snare);
-	SnareParams.bEnableClientAuth = true;
-	SnareParams.MaxClientAuthDistance = 150.f;  // For something like a knockback, a greater distance would be sensible
-	SnareParams.RejectClientAuthDistance = 800.f;
-}
-
 void UModifierMovement::PostLoad()
 {
 	Super::PostLoad();
@@ -170,9 +168,9 @@ void UModifierMovement::SetUpdatedComponent(USceneComponent* NewUpdatedComponent
 void UModifierMovement::SetUpdatedCharacter()
 {
 	ModifierCharacterOwner = Cast<AModifierCharacter>(PawnOwner);
-	Boost.Initialize(ModifierCharacterOwner, FModifierTags::Modifier_Type_Buff_Boost);
-	SlowFall.Initialize(ModifierCharacterOwner, FModifierTags::Modifier_Type_Buff_SlowFall);
-	Snare.Initialize(ModifierCharacterOwner, FModifierTags::Modifier_Type_Debuff_Snare);
+	Boost.Initialize(ModifierCharacterOwner, FModifierTags::Modifier_Type_Local_Boost);
+	SlowFall.Initialize(ModifierCharacterOwner, FModifierTags::Modifier_Type_Local_SlowFall);
+	Snare.Initialize(ModifierCharacterOwner, FModifierTags::Modifier_Type_Server_Snare);
 }
 
 bool UModifierMovement::CanBoostInCurrentState(FGameplayTag ModifierLevel) const
@@ -213,8 +211,9 @@ void FSavedMove_Character_Modifier::SetMoveFor(ACharacter* C, float InDeltaTime,
 {
 	FSavedMove_Character::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
 
-	if (UModifierMovement* Movement = CastChecked<AModifierCharacter>(C)->GetModifierCharacterMovement())
+	if (const UModifierMovement* Movement = CastChecked<AModifierCharacter>(C)->GetModifierCharacterMovement())
 	{
+		// Local Predicted Modifiers
 		Boost = Movement->Boost;
 		SlowFall = Movement->SlowFall;
 	}
@@ -223,7 +222,7 @@ void FSavedMove_Character_Modifier::SetMoveFor(ACharacter* C, float InDeltaTime,
 void FSavedMove_Character_Modifier::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
 {
 	// When considering whether to delay or combine moves, we need to compare the move at the start and the end
-	if (UModifierMovement* Movement = CastChecked<AModifierCharacter>(C)->GetModifierCharacterMovement())
+	if (const UModifierMovement* Movement = CastChecked<AModifierCharacter>(C)->GetModifierCharacterMovement())
 	{
 		EndBoost = Movement->Boost;
 		EndSlowFall = Movement->SlowFall;
@@ -327,6 +326,7 @@ void FSavedMove_Character_Modifier::CombineWith(const FSavedMove_Character* OldM
 
 	if (UModifierMovement* MoveComp = C ? Cast<UModifierMovement>(C->GetCharacterMovement()) : nullptr)
 	{
+		// Server Initiated Modifiers
 		MoveComp->Snare << SavedOldMove->Snare;
 	}
 }
@@ -447,14 +447,62 @@ void UModifierMovement::UpdateCharacterStateAfterMovement(float DeltaTime)
 	Super::UpdateCharacterStateAfterMovement(DeltaTime);
 }
 
-void UModifierMovement::InitClientAuth(FGameplayTag ClientAuthSource, float OverrideDuration)
+FClientAuthData* UModifierMovement::GetClientAuthData()
 {
-	if (const FClientAuthParams* Params = GetClientAuthParams(ClientAuthSource))
+	ClientAuthStack.SortByPriority();
+	return ClientAuthStack.GetFirst();
+}
+
+FClientAuthParams UModifierMovement::GetClientAuthParams(const FClientAuthData* ClientAuthData)
+{
+	if (!ClientAuthData)
+	{
+		return {};
+	}
+	
+	FClientAuthParams Params = { false, 0.f, 0.f, 0.f, ClientAuthData->Priority };
+
+	// Get all active client auth data that matches the priority
+	TArray<FClientAuthData> Priority = ClientAuthStack.FilterPriority(ClientAuthData->Priority);
+
+	// Combine the parameters
+	int32 Num = 0;
+	for (const FClientAuthData& Data : Priority)
+	{
+		if (const FClientAuthParams* DataParams = GetClientAuthParamsForSource(Data.Source))
+		{
+			Params.ClientAuthTime += DataParams->ClientAuthTime;
+			Params.MaxClientAuthDistance += DataParams->MaxClientAuthDistance;
+			Params.RejectClientAuthDistance += DataParams->RejectClientAuthDistance;
+			Num++;
+		}
+	}
+
+	// Average the parameters
+	Params.bEnableClientAuth = Num > 0;
+	if (Num > 1)
+	{
+		Params.ClientAuthTime /= Num;
+		Params.MaxClientAuthDistance /= Num;
+		Params.RejectClientAuthDistance /= Num;
+	}
+
+	return Params;
+}
+
+void UModifierMovement::InitClientAuthority(FGameplayTag ClientAuthSource, float OverrideDuration)
+{
+	if (!CharacterOwner || !CharacterOwner->HasAuthority())
+	{
+		return;
+	}
+	
+	if (const FClientAuthParams* Params = GetClientAuthParamsForSource(ClientAuthSource))
 	{
 		if (Params->bEnableClientAuth)
 		{
 			const float Duration = OverrideDuration > 0.f ? OverrideDuration : Params->ClientAuthTime;
-			ClientAuthStack.Stack.Add(FClientAuthData(ClientAuthSource, Duration));
+			ClientAuthStack.Stack.Add(FClientAuthData(ClientAuthSource, Duration, Params->Priority));
 
 			// Limit the number of auth data entries
 			// IMPORTANT: We do not allow serializing more than 8, if this changes, update the serialization code too
@@ -492,21 +540,17 @@ bool UModifierMovement::ServerShouldGrantClientPositionAuthority(FVector& Client
 
 	// Get auth data
 	FClientAuthData* ClientAuthData = GetClientAuthData();
-	if (!ClientAuthData)
+	if (!ClientAuthData || !ClientAuthData->IsValid())
 	{
 		// No auth data, can't do anything
 		return false;
 	}
 
 	// Get auth params
-	FClientAuthParams* Params = GetClientAuthParams(ClientAuthData->Source);
-	if (!Params)
-	{
-		// No auth params, can't do anything
-		return false;
-	}
+	const FClientAuthParams Params = GetClientAuthParams(ClientAuthData);
 
-	if (!Params->bEnableClientAuth)
+	// Disabled
+	if (!Params.bEnableClientAuth)
 	{
 		return false;
 	}
@@ -516,8 +560,7 @@ bool UModifierMovement::ServerShouldGrantClientPositionAuthority(FVector& Client
 	if (UNLIKELY(ClientAuthData->TimeRemaining <= 0.f))
 	{
 		// ServerMoveHandleClientError() should have removed the auth data already
-		ensure(false);
-		return false;
+		return ensure(false);
 	}
 #endif
 	
@@ -537,17 +580,17 @@ bool UModifierMovement::ServerShouldGrantClientPositionAuthority(FVector& Client
 	}
 
 	// If the client is too far away from the server, reject the client position entirely, potential cheater
-	if (LocDiff.SizeSquared() >= FMath::Square(Params->RejectClientAuthDistance))
+	if (LocDiff.SizeSquared() >= FMath::Square(Params.RejectClientAuthDistance))
 	{
 		OnClientAuthRejected(ClientLoc, ServerLoc, LocDiff);
 		return false;
 	}
 
 	// If the client is not within the maximum allowable distance, accept the client position, but only partially
-	if (LocDiff.Size() >= Params->MaxClientAuthDistance)
+	if (LocDiff.Size() >= Params.MaxClientAuthDistance)
 	{
 		// Accept only a portion of the client's location
-		ClientAuthData->Alpha = Params->MaxClientAuthDistance / LocDiff.Size();
+		ClientAuthData->Alpha = Params.MaxClientAuthDistance / LocDiff.Size();
 		ClientLoc = FMath::Lerp<FVector>(ServerLoc, ClientLoc, ClientAuthData->Alpha);
 		LocDiff = ServerLoc - ClientLoc;
 	}
@@ -567,7 +610,7 @@ bool UModifierMovement::ClientUpdatePositionAfterServerUpdate()
 	const FMovementModifier SavedSnare = Snare;
 	bool bResult = Super::ClientUpdatePositionAfterServerUpdate();
 	
-	// operator<< Will not copy the current level. We only take the requested level!
+	// operator<< will not copy the current level. We only take the requested level!
 	Boost << SavedBoost;
 	SlowFall << SavedSlowFall;
 	Snare << SavedSnare;
@@ -620,82 +663,17 @@ void UModifierMovement::ServerMove_PerformMovement(const FCharacterNetworkMoveDa
 void UModifierMovement::ClientHandleMoveResponse(const FCharacterMoveResponseDataContainer& MoveResponse)
 {
 	// This occurs on AutonomousProxy, when the server sends the move response
-	// This is where we receive the snare, and can override the server's location, assuming it has given us authority
 
-	// Server >> SendClientAdjustment() ➜ ServerSendMoveResponse
+	// Server >> SendClientAdjustment() ➜ ServerSendMoveResponse()
 	// ➜ ServerFillResponseData() + MoveResponsePacked_ServerSend() >> Client
 	// >> ClientMoveResponsePacked() ➜ ClientHandleMoveResponse()
 
 	const FModifierMoveResponseDataContainer& ModifierMoveResponse = static_cast<const FModifierMoveResponseDataContainer&>(MoveResponse);
 
-	// Handle Snare & Client Authority
-	ClientAuthStack = ModifierMoveResponse.ClientAuthStack;
-	if (FClientAuthData* ClientAuthData = GetClientAuthData())
-	{
-		if (Snare != ModifierMoveResponse.Snare)
-		{
-			// Apply Snare correction
-			Snare << ModifierMoveResponse.Snare;
+	// Apply Snare correction
+	Snare << ModifierMoveResponse.Snare;
 
-			if (ClientAuthData)
-			{
-				if (FMath::IsNearlyZero(ClientAuthData->Alpha))
-				{
-					ClientAuthData->Alpha = 0.f;
-				}
-				else
-				{
-					FlushServerMoves();
-				}
-			}
-		}
-	
-		if (ClientAuthData->Alpha > 0.f)
-		{
-			const bool bAdjustClientData = !MoveResponse.IsGoodMove();
-			FNetworkPredictionData_Client_Character* ClientData = bAdjustClientData ? GetPredictionData_Client_Character() : nullptr;
-
-			// Do not allow us to apply a partial move based on our own authoritative location that is in the past,
-			// after server sends it back to us
-			if (bAdjustClientData)
-			{
-				check(ClientData);
-				if (ClientData->LastAckedMove.IsValid())
-				{
-					FCharacterMoveResponseDataContainer& MutableResponse = const_cast<FCharacterMoveResponseDataContainer&>(MoveResponse);
-					ClientData->LastAckedMove->SavedLocation = MutableResponse.ClientAdjustment.NewLoc;
-				}
-			}
-
-			// Cache the old location because the server will apply our own past authoritative location when calling Super!
-			FVector OldLocation = UpdatedComponent->GetComponentLocation();
-		
-			Super::ClientHandleMoveResponse(MoveResponse);
-		
-			FVector NewLocation = UpdatedComponent->GetComponentLocation();
-
-			// Clamp the location to the server's authoritative location based on the authority alpha
-			const FVector ClampedLocation = FMath::Lerp<FVector>(OldLocation, NewLocation, 1.f - ClientAuthData->Alpha);
-			UpdatedComponent->SetWorldLocation(ClampedLocation, false);
-
-			// Block the next ClientUpdatePositionAfterServerUpdate() from replaying moves, this will overwrite our authority
-			// @TODO Do we need to make sure it applies non-location moves?
-			if (bAdjustClientData)
-			{
-				ClientData->bUpdatePosition = false;
-			}
-		}
-		else
-		{
-			Super::ClientHandleMoveResponse(MoveResponse);
-		}
-	}
-	else
-	{
-		// Apply Snare correction
-		Snare << ModifierMoveResponse.Snare;
-		Super::ClientHandleMoveResponse(MoveResponse);
-	}
+	Super::ClientHandleMoveResponse(MoveResponse);
 }
 
 bool UModifierMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel, const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
@@ -743,7 +721,7 @@ void UModifierMovement::ServerMoveHandleClientError(float ClientTimeStamp, float
 		if (CurrentMoveData->Snare != Snare)
 		{
 			// Snare inits client authority here, however other states may want to do it elsewhere, this is not a requirement
-			InitClientAuth(FModifierTags::Modifier_Type_Debuff_Snare);
+			InitClientAuthority(FModifierTags::Modifier_Type_Server_Snare);
 		}
 
 		// Apply these thresholds to control client authority
@@ -818,7 +796,7 @@ void UModifierMovement::TickCharacterPose(float DeltaTime)
 #if !(UE_BUILD_SHIPPING)
 			// Debugging
 			{
-				FAnimMontageInstance* RootMotionMontageInstance = CharacterOwner->GetRootMotionAnimMontageInstance();
+				const FAnimMontageInstance* RootMotionMontageInstance = CharacterOwner->GetRootMotionAnimMontageInstance();
 				UE_LOG(LogRootMotion, Log, TEXT("UCharacterMovementComponent::TickCharacterPose Role: %s, RootMotionMontage: %s, MontagePos: %f, DeltaTime: %f, ExtractedRootMotion: %s, AccumulatedRootMotion: %s")
 					, *UEnum::GetValueAsString(TEXT("Engine.ENetRole"), CharacterOwner->GetLocalRole())
 					, *GetNameSafe(RootMotionMontageInstance ? RootMotionMontageInstance->Montage : NULL)

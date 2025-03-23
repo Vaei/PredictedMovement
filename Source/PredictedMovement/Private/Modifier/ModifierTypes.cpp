@@ -54,6 +54,18 @@ void FMovementModifier::Initialize(AModifierCharacter* InCharacterOwner, const F
 
 void FMovementModifier::AddModifier(uint8 Level)
 {
+	// Don't apply on simulated proxy
+	if (CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+
+	// Only apply the modifier if it's a server-initiated event and we are authority
+	if (ActivationSource == EModifierActivationSource::ServerInitiated && !CharacterOwner->HasAuthority())
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -87,6 +99,18 @@ void FMovementModifier::AddModifier(uint8 Level)
 
 void FMovementModifier::RemoveModifier(uint8 Level)
 {
+	// Don't apply on simulated proxy
+	if (CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+
+	// Only apply the modifier if it's a server-initiated event and we are authority
+	if (ActivationSource == EModifierActivationSource::ServerInitiated && !CharacterOwner->HasAuthority())
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -116,6 +140,18 @@ void FMovementModifier::RemoveModifier(uint8 Level)
 
 void FMovementModifier::RemoveAllModifiers()
 {
+	// Don't apply on simulated proxy
+	if (CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+
+	// Only apply the modifier if it's a server-initiated event and we are authority
+	if (ActivationSource == EModifierActivationSource::ServerInitiated && !CharacterOwner->HasAuthority())
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -135,6 +171,18 @@ void FMovementModifier::RemoveAllModifiers()
 
 void FMovementModifier::RemoveAllModifiersByLevel(uint8 Level)
 {
+	// Don't apply on simulated proxy
+	if (CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+
+	// Only apply the modifier if it's a server-initiated event and we are authority
+	if (ActivationSource == EModifierActivationSource::ServerInitiated && !CharacterOwner->HasAuthority())
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -154,6 +202,18 @@ void FMovementModifier::RemoveAllModifiersByLevel(uint8 Level)
 
 void FMovementModifier::RemoveAllModifiersExceptLevel(uint8 Level)
 {
+	// Don't apply on simulated proxy
+	if (CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+
+	// Only apply the modifier if it's a server-initiated event and we are authority
+	if (ActivationSource == EModifierActivationSource::ServerInitiated && !CharacterOwner->HasAuthority())
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -172,6 +232,18 @@ void FMovementModifier::RemoveAllModifiersExceptLevel(uint8 Level)
 
 void FMovementModifier::SetModifiers(const TArray<uint8>& NewModifiers)
 {
+	// Don't apply on simulated proxy
+	if (CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+
+	// Only apply the modifier if it's a server-initiated event and we are authority
+	if (ActivationSource == EModifierActivationSource::ServerInitiated && !CharacterOwner->HasAuthority())
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -191,6 +263,18 @@ void FMovementModifier::SetModifiers(const TArray<uint8>& NewModifiers)
 
 void FMovementModifier::SetModifierLevel(uint8 Level)
 {
+	// Don't apply on simulated proxy
+	if (CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+
+	// Only apply the modifier if it's a server-initiated event and we are authority
+	if (ActivationSource == EModifierActivationSource::ServerInitiated && !CharacterOwner->HasAuthority())
+	{
+		return;
+	}
+	
 	if (!ensureAlwaysMsgf(HasInitialized(), TEXT("Modifier %s has not been initialized"), *ModifierType.ToString()))
 	{
 		return;
@@ -348,45 +432,6 @@ bool FMovementModifier::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool&
 	for (uint8 i = 0; i < NumModifiers; ++i)
 	{
 		Ar << Modifiers[i];
-	}
-
-	return !Ar.IsError();
-}
-
-bool FClientAuthData::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
-{
-	Ar << Alpha;
-	
-	return !Ar.IsError();
-}
-
-bool FClientAuthStack::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
-{
-	// Serialize the number of elements
-	static constexpr uint8 MaxStack = 8;
-
-	uint8 StackNum = Stack.Num();
-	if (Ar.IsSaving())
-	{
-		StackNum = FMath::Min(MaxStack, StackNum);
-	}
-	Ar << StackNum;
-	
-	// Resize the array if needed
-	if (Ar.IsLoading())
-	{
-		if (!ensureMsgf(StackNum <= MaxStack,
-			TEXT("Deserializing client auth stack array with %d elements when max is %d -- Check packet serialization logic"), StackNum, MaxStack))
-		{
-			StackNum = MaxStack;
-		}
-		Stack.SetNum(StackNum);
-	}
-
-	// Serialize the elements
-	for (uint8 i = 0; i < StackNum; ++i)
-	{
-		Stack[i].NetSerialize(Ar, Map, bOutSuccess);
 	}
 
 	return !Ar.IsError();

@@ -9,19 +9,19 @@
 
 namespace FModifierTags
 {
-	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_SlowFall);
-	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_SlowFall_25);
-	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_SlowFall_50);
-	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_SlowFall_75);
-	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_SlowFall_100);
-	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_Boost);
-	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_Boost_25);
-	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_Boost_50);
-	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Buff_Boost_75);
-	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Debuff_Snare);
-	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Debuff_Snare_25);
-	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Debuff_Snare_50);
-	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Debuff_Snare_75);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Local_SlowFall);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Local_SlowFall_25);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Local_SlowFall_50);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Local_SlowFall_75);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Local_SlowFall_100);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Local_Boost);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Local_Boost_25);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Local_Boost_50);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Local_Boost_75);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Server_Snare);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Server_Snare_25);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Server_Snare_50);
+	PREDICTEDMOVEMENT_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Modifier_Type_Server_Snare_75);
 }
 
 struct PREDICTEDMOVEMENT_API FModifierMoveResponseDataContainer : FCharacterMoveResponseDataContainer
@@ -29,7 +29,6 @@ struct PREDICTEDMOVEMENT_API FModifierMoveResponseDataContainer : FCharacterMove
 	using Super = FCharacterMoveResponseDataContainer;
 
 	FMovementModifier Snare;
-	FClientAuthStack ClientAuthStack;
 	
 	virtual void ServerFillResponseData(const UCharacterMovementComponent& CharacterMovement, const FClientAdjustment& PendingAdjustment) override;
 	virtual bool Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap) override;
@@ -70,7 +69,7 @@ private:
 /**
  * Supports stackable modifiers that can affect movement
  * 
- * Snare is used as an example of a debuff modifier, you can duplicate
+ * Snare is used as an example of a Server modifier, you can duplicate
  * the Snare implementation for your own modifiers
  */
 UCLASS()
@@ -132,12 +131,8 @@ public:
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ForceUnits="x"))
 	bool bSnareAffectsRootMotion = true;
 
-	/** Client auth parameters mapped to a source gameplay tag */
-	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadOnly)
-	TMap<FGameplayTag, FClientAuthParams> ClientAuthParams;
-
 public:
-	/** Example implementation of a local predicted buff modifier that can stack */
+	/** Example implementation of a local predicted Local modifier that can stack */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
 	FMovementModifier Boost;
 	
@@ -163,14 +158,14 @@ public:
 	 * @param ModifierLevel The level to check for - optional, leave empty if check is generic
 	 * @return True if we can boost
 	 */
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(Categories="Modifier.Type.Buff.Boost"))
+	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(Categories="Modifier.Type.Local.Boost"))
 	virtual bool CanBoostInCurrentState(FGameplayTag ModifierLevel) const;
 
 	virtual void OnStartBoost() {}
 	virtual void OnEndBoost() {}
 
 public:
-	/** Example implementation of a local predicted buff modifier that can stack */
+	/** Example implementation of a local predicted Local modifier that can stack */
 	UPROPERTY(Category="Character Movement: Jumping / Falling", EditAnywhere, BlueprintReadWrite)
 	FMovementModifier SlowFall;
 	
@@ -196,14 +191,22 @@ public:
 	 * @param ModifierLevel The level to check for - optional, leave empty if check is generic
 	 * @return True if we can slow fall
 	 */
-	UFUNCTION(BlueprintPure, Category="Character Movement: Jumping / Falling", meta=(Categories="Modifier.Type.Buff.SlowFall"))
+	UFUNCTION(BlueprintPure, Category="Character Movement: Jumping / Falling", meta=(Categories="Modifier.Type.Local.SlowFall"))
 	virtual bool CanSlowFallInCurrentState(FGameplayTag ModifierLevel) const;
 
 	virtual void OnStartSlowFall();
 	virtual void OnEndSlowFall() {}
 
 public:
-	/** Example implementation of an externally applied non-predicted debuff modifier that can stack */
+	/** Client auth parameters mapped to a source gameplay tag */
+	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadOnly)
+	TMap<FGameplayTag, FClientAuthParams> ClientAuthParams;
+
+	UPROPERTY()
+	FClientAuthStack ClientAuthStack;
+	
+public:
+	/** Example implementation of an externally applied non-predicted Server modifier that can stack */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
 	FMovementModifier Snare;
 
@@ -229,7 +232,7 @@ public:
 	 * @param ModifierLevel The level to check for - optional, leave empty if check is generic
 	 * @return True if we can be snared
 	 */
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(Categories="Modifier.Type.Debuff.Snare"))
+	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(Categories="Modifier.Type.Server.Snare"))
 	virtual bool CanBeSnaredInCurrentState(FGameplayTag ModifierLevel) const;
 
 	virtual void OnStartSnare() {}
@@ -275,11 +278,9 @@ public:
 	virtual void UpdateCharacterStateAfterMovement(float DeltaTime) override;
 
 public:
-	UPROPERTY()
-	FClientAuthStack ClientAuthStack;
-
-	FClientAuthData* GetClientAuthData() { return ClientAuthStack.GetLatest(); }
-	FClientAuthParams* GetClientAuthParams(const FGameplayTag& Source) { return ClientAuthParams.Find(Source); }
+	virtual FClientAuthData* GetClientAuthData();
+	FClientAuthParams* GetClientAuthParamsForSource(const FGameplayTag& Source) { return ClientAuthParams.Find(Source); }
+	virtual FClientAuthParams GetClientAuthParams(const FClientAuthData* ClientAuthData);
 
 protected:
 	/**
@@ -290,14 +291,16 @@ protected:
 	 */
 	virtual void OnClientAuthRejected(const FVector& ClientLoc, const FVector& ServerLoc, const FVector& LocDiff) {}
 
+public:
 	/** 
 	 * Grant the client position authority, based on the current state of the character.
 	 * @param ClientAuthSource What the client is requesting authority for, not used by default, requires override
 	 * @param OverrideDuration Override the default client authority time, -1.f to use default
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Character Movement (Networking)")
-	virtual void InitClientAuth(FGameplayTag ClientAuthSource, float OverrideDuration = -1.f);
+	virtual void InitClientAuthority(FGameplayTag ClientAuthSource, float OverrideDuration = -1.f);
 	
+protected:
 	virtual bool ServerShouldGrantClientPositionAuthority(FVector& ClientLoc);
 	
 private:

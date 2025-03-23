@@ -394,21 +394,28 @@ struct PREDICTEDMOVEMENT_API FClientAuthParams
 
 	FClientAuthParams()
 		: bEnableClientAuth(true)
-		, ClientAuthTime(1.25f)
+		, ClientAuthTime(1.2f)
 		, MaxClientAuthDistance(150.f)
-		, RejectClientAuthDistance(800.f)
+		, RejectClientAuthDistance(900.f)
 		, Priority(99)
 	{}
+	
+	FClientAuthParams(int32 InPriority)
+		: bEnableClientAuth(true)
+		, ClientAuthTime(1.2f)
+		, MaxClientAuthDistance(150.f)
+		, RejectClientAuthDistance(900.f)
+		, Priority(InPriority)
+	{}
 
-	FClientAuthParams(bool bInEnableClientAuth, float InClientAuthTime, float InMaxClientAuthDistance,
-		float InRejectClientAuthDistance, int32 InPriority)
+	FClientAuthParams(bool bInEnableClientAuth, float InClientAuthTime, float InMaxClientAuthDistance, float InRejectClientAuthDistance, int32 InPriority)
 		: bEnableClientAuth(bInEnableClientAuth)
 		, ClientAuthTime(InClientAuthTime)
 		, MaxClientAuthDistance(InMaxClientAuthDistance)
 		, RejectClientAuthDistance(InRejectClientAuthDistance)
 		, Priority(InPriority)
 	{}
-
+	
 	/**
 	 * If True, the client will be allowed to send position updates to the server
 	 * Useful for short bursts of movement that are difficult to sync over the network
@@ -435,7 +442,7 @@ struct PREDICTEDMOVEMENT_API FClientAuthParams
 	 */
 	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadOnly, meta=(ClampMin="0", UIMin="0", ForceUnits="cm", EditCondition="bEnableClientAuth", EditConditionHides))
 	float RejectClientAuthDistance;
-	
+
 	/**
 	 * Optional property that can be used for GetClientAuthData() to determine priority
 	 */
@@ -467,6 +474,14 @@ struct PREDICTEDMOVEMENT_API FClientAuthData
 		, Priority(InPriority)
 	{}
 
+	FClientAuthData(const FGameplayTag& InSource, float InTimeRemaining, float InAlpha, int32 InPriority)
+		: Alpha(InAlpha)
+		, TimeRemaining(InTimeRemaining)
+		, Id(FGuid::NewGuid())
+		, Source(InSource)
+		, Priority(InPriority)
+	{}
+
 	UPROPERTY()
 	float Alpha;
 	
@@ -478,7 +493,7 @@ struct PREDICTEDMOVEMENT_API FClientAuthData
 	
 	UPROPERTY()
 	FGameplayTag Source;
-
+	
 	UPROPERTY()
 	int32 Priority;
 
@@ -566,6 +581,14 @@ struct PREDICTEDMOVEMENT_API FClientAuthStack
 	FClientAuthData* GetLatest()
 	{
 		return Stack.Num() > 0 ? &Stack.Last() : nullptr;
+	}
+
+	void RemoveFirst()
+	{
+		if (Stack.Num() > 0)
+		{
+			Stack.RemoveAt(0);
+		}
 	}
 	
 	const FClientAuthData* GetLatest() const

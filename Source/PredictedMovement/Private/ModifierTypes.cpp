@@ -3,9 +3,9 @@
 
 #include "ModifierTypes.h"
 
-#include "PredCharacter.h"
 #include "Algo/Accumulate.h"
 #include "Algo/MaxElement.h"
+#include "PredCharacter.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ModifierTypes)
 

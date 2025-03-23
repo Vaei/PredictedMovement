@@ -146,32 +146,32 @@ UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
 	Snare.LevelType		= EModifierLevelType::FGameplayTag;
 
 	// Init Boost Levels
-	Boost.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Buff_Boost_Test); 		// 1.50x Speed Boost
-	BoostLevels.Add(FPredTags::Modifier_Type_Buff_Boost_Test, { 1.50f });
+	Boost.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Local_Boost_Test); 		// 1.50x Speed Boost
+	BoostLevels.Add(FPredTags::Modifier_Type_Local_Boost_Test, { 1.50f });
 
 	// Init Haste Levels
-	Haste.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Buff_Haste_Test); 		// 1.50x Sprint Haste
-	HasteLevels.Add(FPredTags::Modifier_Type_Buff_Haste_Test, { 1.50f });
+	Haste.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Local_Haste_Test); 		// 1.50x Sprint Haste
+	HasteLevels.Add(FPredTags::Modifier_Type_Local_Haste_Test, { 1.50f });
 
 	// Init Slow Levels
-	Slow.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Debuff_Slow_Test); 		// 0.50x Speed Slow
-	SlowLevels.Add(FPredTags::Modifier_Type_Debuff_Slow_Test, { 0.50f });
+	Slow.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Server_Slow_Test); 		// 0.50x Speed Slow
+	SlowLevels.Add(FPredTags::Modifier_Type_Server_Slow_Test, { 0.50f });
 	
 	// Init SlowFall Levels
-	SlowFall.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Buff_SlowFall_Test); // 1.00x Reduction for 0.00x Gravity
+	SlowFall.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Local_SlowFall_Test); // 1.00x Reduction for 0.00x Gravity
 
 	FFallingModifierParams SlowFallParam = { 0.00f };
 	SlowFallParam.bRemoveVelocityZOnStart = true;
 	SlowFallParam.bOverrideAirControl = true;
 	SlowFallParam.AirControlOverride = 1.f;  // Full air control
-	SlowFallLevels.Add(FPredTags::Modifier_Type_Buff_SlowFall_Test, SlowFallParam);
+	SlowFallLevels.Add(FPredTags::Modifier_Type_Local_SlowFall_Test, SlowFallParam);
 	
 	// Init Snare Levels
-	Snare.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Debuff_Snare_Test); 	// 0.75x Speed Snare
-	SnareLevels.Add(FPredTags::Modifier_Type_Debuff_Snare_Test, { 0.25f });
+	Snare.ModifierLevelTags.AddTagFast(FPredTags::Modifier_Type_Server_Snare_Test); 	// 0.75x Speed Snare
+	SnareLevels.Add(FPredTags::Modifier_Type_Server_Snare_Test, { 0.25f });
 
 	// Auth params for Snare
-	FClientAuthParams& SnareParams = ClientAuthParams.Add(FPredTags::Modifier_Type_Debuff_Snare);
+	FClientAuthParams& SnareParams = ClientAuthParams.Add(FPredTags::Modifier_Type_Server_Snare);
 	SnareParams.bEnableClientAuth = true;
 	SnareParams.MaxClientAuthDistance = 150.f;  // For something like a knockback, a greater distance would be sensible
 	SnareParams.RejectClientAuthDistance = 800.f;
@@ -306,11 +306,11 @@ void UPredMovement::SetUpdatedCharacter()
 {
 	PredCharacterOwner = Cast<APredCharacter>(PawnOwner);
 
-	Boost.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Buff_Boost);
-	Haste.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Buff_Haste);
-	Slow.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Debuff_Slow);
-	SlowFall.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Buff_SlowFall);
-	Snare.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Debuff_Snare);
+	Boost.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Local_Boost);
+	Haste.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Local_Haste);
+	Slow.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Server_Slow);
+	SlowFall.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Local_SlowFall);
+	Snare.Initialize(PredCharacterOwner, FPredTags::Modifier_Type_Server_Snare);
 }
 
 void UPredMovement::BeginPlay()
@@ -1695,7 +1695,7 @@ bool UPredMovement::ClientUpdatePositionAfterServerUpdate()
 	
 	const bool bResult = Super::ClientUpdatePositionAfterServerUpdate();
 
-	// operator<< Will not copy the current level. We only take the requested level!
+	// operator<< will not copy the current level. We only take the requested level!
 	Boost << SavedBoost;
 	Haste << SavedHaste;
 	Slow << SavedSlow;
@@ -1743,49 +1743,6 @@ bool UPredMovement::CanDelaySendingMove(const FSavedMovePtr& NewMove)
 	}
 	
 	return Super::CanDelaySendingMove(NewMove);
-}
-
-FClientAuthData* UPredMovement::GetClientAuthData()
-{
-	ClientAuthStack.SortByPriority();
-	return ClientAuthStack.GetFirst();
-}
-
-FClientAuthParams UPredMovement::GetClientAuthParams(const FClientAuthData* ClientAuthData)
-{
-	if (!ClientAuthData)
-	{
-		return {};
-	}
-	
-	FClientAuthParams Params = { false, 0.f, 0.f, 0.f, ClientAuthData->Priority };
-
-	// Get all active client auth data that matches the priority
-	TArray<FClientAuthData> Priority = ClientAuthStack.FilterPriority(ClientAuthData->Priority);
-
-	// Combine the parameters
-	int32 Num = 0;
-	for (const FClientAuthData& Data : Priority)
-	{
-		if (const FClientAuthParams* DataParams = GetClientAuthParamsForSource(Data.Source))
-		{
-			Params.ClientAuthTime += DataParams->ClientAuthTime;
-			Params.MaxClientAuthDistance += DataParams->MaxClientAuthDistance;
-			Params.RejectClientAuthDistance += DataParams->RejectClientAuthDistance;
-			Num++;
-		}
-	}
-
-	// Average the parameters
-	Params.bEnableClientAuth = Num > 0;
-	if (Num > 1)
-	{
-		Params.ClientAuthTime /= Num;
-		Params.MaxClientAuthDistance /= Num;
-		Params.RejectClientAuthDistance /= Num;
-	}
-
-	return Params;
 }
 
 void UPredMovement::OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData,
@@ -1867,7 +1824,7 @@ void UPredMovement::ServerMoveHandleClientError(float ClientTimeStamp, float Del
 		if (CurrentMoveData->Snare != Snare)
 		{
 			// Snare inits client authority here, however other states may want to do it elsewhere, this is not a requirement
-			InitClientAuthority(FPredTags::Modifier_Type_Debuff_Snare);
+			InitClientAuthority(FPredTags::Modifier_Type_Server_Snare);
 		}
 
 		// Apply these thresholds to control client authority
@@ -2164,6 +2121,49 @@ bool FSavedMove_Character_Pred::IsImportantMove(const FSavedMovePtr& LastAckedMo
 FSavedMovePtr FNetworkPredictionData_Client_Character_Pred::AllocateNewMove()
 {
 	return MakeShared<FSavedMove_Character_Pred>();
+}
+
+FClientAuthData* UPredMovement::GetClientAuthData()
+{
+	ClientAuthStack.SortByPriority();
+	return ClientAuthStack.GetFirst();
+}
+
+FClientAuthParams UPredMovement::GetClientAuthParams(const FClientAuthData* ClientAuthData)
+{
+	if (!ClientAuthData)
+	{
+		return {};
+	}
+	
+	FClientAuthParams Params = { false, 0.f, 0.f, 0.f, ClientAuthData->Priority };
+
+	// Get all active client auth data that matches the priority
+	TArray<FClientAuthData> Priority = ClientAuthStack.FilterPriority(ClientAuthData->Priority);
+
+	// Combine the parameters
+	int32 Num = 0;
+	for (const FClientAuthData& Data : Priority)
+	{
+		if (const FClientAuthParams* DataParams = GetClientAuthParamsForSource(Data.Source))
+		{
+			Params.ClientAuthTime += DataParams->ClientAuthTime;
+			Params.MaxClientAuthDistance += DataParams->MaxClientAuthDistance;
+			Params.RejectClientAuthDistance += DataParams->RejectClientAuthDistance;
+			Num++;
+		}
+	}
+
+	// Average the parameters
+	Params.bEnableClientAuth = Num > 0;
+	if (Num > 1)
+	{
+		Params.ClientAuthTime /= Num;
+		Params.MaxClientAuthDistance /= Num;
+		Params.RejectClientAuthDistance /= Num;
+	}
+
+	return Params;
 }
 
 void UPredMovement::InitClientAuthority(FGameplayTag ClientAuthSource, float OverrideDuration)

@@ -610,17 +610,17 @@ void APredCharacter::OnModifierChanged(const FGameplayTag& ModifierType, uint8 M
 	// Replicate to simulated proxies
 	if (HasAuthority())
 	{
-		if (ModifierType == FPredTags::Modifier_Type_Buff_Boost)
+		if (ModifierType == FPredTags::Modifier_Type_Local_Boost)
 		{
 			SimulatedBoost = ModifierLevel;
 			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedBoost, this);			// Push-model
 		}
-		else if (ModifierType == FPredTags::Modifier_Type_Buff_SlowFall)
+		else if (ModifierType == FPredTags::Modifier_Type_Local_SlowFall)
 		{
 			SimulatedSlowFall = ModifierLevel;
 			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedSlowFall, this);		// Push-model
 		}
-		else if (ModifierType == FPredTags::Modifier_Type_Debuff_Snare)
+		else if (ModifierType == FPredTags::Modifier_Type_Server_Snare)
 		{
 			SimulatedSnare = ModifierLevel;
 			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedSnare, this);			// Push-model
@@ -635,15 +635,15 @@ void APredCharacter::OnModifierAdded(const FGameplayTag& ModifierType, uint8 Mod
 		return;
 	}
 
-	if (ModifierType == FPredTags::Modifier_Type_Buff_Boost)
+	if (ModifierType == FPredTags::Modifier_Type_Local_Boost)
 	{
 		PredMovement->OnStartBoost();
 	}
-	else if (ModifierType == FPredTags::Modifier_Type_Buff_SlowFall)
+	else if (ModifierType == FPredTags::Modifier_Type_Local_SlowFall)
 	{
 		PredMovement->OnStartSlowFall();
 	}
-	else if (ModifierType == FPredTags::Modifier_Type_Debuff_Snare)
+	else if (ModifierType == FPredTags::Modifier_Type_Server_Snare)
 	{
 		PredMovement->OnStartSnare();
 	}
@@ -656,15 +656,15 @@ void APredCharacter::OnModifierRemoved(const FGameplayTag& ModifierType, uint8 M
 	// @TIP: Set Loose Gameplay Tag Here (Not Replicated)
 	// DO NOT ADD or REMOVE HERE! Net corrections can violate this!
 
-	if (ModifierType == FPredTags::Modifier_Type_Buff_Boost)
+	if (ModifierType == FPredTags::Modifier_Type_Local_Boost)
 	{
 		PredMovement->OnEndBoost();
 	}
-	else if (ModifierType == FPredTags::Modifier_Type_Buff_SlowFall)
+	else if (ModifierType == FPredTags::Modifier_Type_Local_SlowFall)
 	{
 		PredMovement->OnEndSlowFall();
 	}
-	else if (ModifierType == FPredTags::Modifier_Type_Debuff_Snare)
+	else if (ModifierType == FPredTags::Modifier_Type_Server_Snare)
 	{
 		PredMovement->OnEndSnare();
 	}

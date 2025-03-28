@@ -72,12 +72,12 @@ EPredGaitMode APredCharacter::GetGaitMode() const
 	return PredMovement ? PredMovement->GetGaitMode() : EPredGaitMode::Run;
 }
 
-EPredGaitMode APredCharacter::GetGaitAtSpeed() const
+EPredGaitMode APredCharacter::GetGaitSpeed() const
 {
-	return PredMovement ? PredMovement->GetGaitModeAtSpeed() : EPredGaitMode::Run;
+	return PredMovement ? PredMovement->GetGaitSpeed() : EPredGaitMode::Run;
 }
 
-FString APredCharacter::GetGaitModeAsString(EPredGaitMode GaitMode)
+FString APredCharacter::GetGaitModeString(EPredGaitMode GaitMode)
 {
 	switch (GaitMode)
 	{
@@ -87,6 +87,19 @@ FString APredCharacter::GetGaitModeAsString(EPredGaitMode GaitMode)
 	case EPredGaitMode::Sprint: return TEXT("Sprint");
 	default: return TEXT("None");
 	}
+}
+
+EPredStance APredCharacter::GetStance() const
+{
+	if (bIsProned)
+	{
+		return EPredStance::Prone;
+	}
+	else if (bIsCrouched)
+	{
+		return EPredStance::Crouch;
+	}
+	return EPredStance::Stand;
 }
 
 /* STROLLING */

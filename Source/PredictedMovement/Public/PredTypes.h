@@ -13,3 +13,11 @@ enum class EPredGaitMode : uint8
 	Run,
 	Sprint,
 };
+
+UENUM(BlueprintType)
+enum class EPredStance : uint8
+{
+	Stand,
+	Crouch,
+	Prone,
+};

@@ -535,7 +535,7 @@ void APredCharacter::Crouch(bool bClientSimulation)
 			}
 		}
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		else
+		else if (!PredMovement->CanEverCrouch())
 		{
 			UE_LOG(LogPredCharacter, Log, TEXT("%s is trying to crouch, but crouching is disabled on this character! (check CharacterMovement NavAgentSettings)"), *GetName());
 		}

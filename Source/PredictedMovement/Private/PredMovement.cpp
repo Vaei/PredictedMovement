@@ -339,7 +339,7 @@ EPredGaitMode UPredMovement::GetGaitMode() const
 	return EPredGaitMode::Run;
 }
 
-EPredGaitMode UPredMovement::GetGaitModeAtSpeed() const
+EPredGaitMode UPredMovement::GetGaitSpeed() const
 {
 	if (IsSprintingInEffect())
 	{

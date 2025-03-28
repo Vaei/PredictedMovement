@@ -482,7 +482,7 @@ public:
 	
 public:
 	virtual EPredGaitMode GetGaitMode() const;
-	virtual EPredGaitMode GetGaitModeAtSpeed() const;
+	virtual EPredGaitMode GetGaitSpeed() const;
 	
 	virtual bool IsStrolling() const;
 	virtual bool IsWalk() const;  // Do not mistake this for UCharacterMovementComponent::IsWalking

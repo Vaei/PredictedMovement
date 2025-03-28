@@ -56,10 +56,13 @@ public:
 
 	/** @return GaitMode based on current speed */
 	UFUNCTION(BlueprintPure, Category=Character)
-	EPredGaitMode GetGaitAtSpeed() const;
+	EPredGaitMode GetGaitSpeed() const;
 
 	UFUNCTION(BlueprintPure, Category=Character)
-	static FString GetGaitModeAsString(EPredGaitMode GaitMode);
+	static FString GetGaitModeString(EPredGaitMode GaitMode);
+
+	UFUNCTION(BlueprintPure, Category=Character)
+	EPredStance GetStance() const;
 	
 public:
 	void SetIsStrolling(bool bNewStrolling);
@@ -314,7 +317,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)
 	float PronedEyeHeight;
 	
-protected:
 	/** Set by character movement to specify that this Character is currently Proned. */
 	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsProned, Category=Character)
 	uint32 bIsProned:1;

@@ -39,6 +39,8 @@ void APredCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsSprinting, SharedParams);
 
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedBoost, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedHaste, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedSlow, SharedParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedSlowFall, SharedParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedSnare, SharedParams);
 }

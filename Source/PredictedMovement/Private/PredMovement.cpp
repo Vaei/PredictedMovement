@@ -6,6 +6,12 @@
 #include "PredCharacter.h"
 #include "PredTags.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/World.h"
+
+#if !UE_BUILD_SHIPPING
+#include "Engine/Engine.h"
+#endif
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(PredMovement)
 

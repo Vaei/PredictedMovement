@@ -9,6 +9,7 @@
 #include "PredTags.h"
 #include "ModifierTypes.h"
 #include "Net/Core/PushModel/PushModel.h"
+#include "Components/SkeletalMeshComponent.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(PredCharacter)
 

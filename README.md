@@ -46,6 +46,11 @@ https://youtu.be/SHVm57AMruc
 
 # Changelog
 
+### 2.1.0
+* Movement Modifiers recreated from scratch
+  * Supports `LocalPredicted`, `ServerInitiated`, but also `LocalPredicted_WithCorrection`
+* Client Authority overhauled, now handles client corrections fully
+
 ### 2.0.1
 * Change from `uint32:1` to `uint8:1`
 

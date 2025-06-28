@@ -1,38 +1,21 @@
-﻿// Copyright (c) Jared Taylor
+// Copyright (c) Jared Taylor
 
 
 #include "Modifier/ModifierMovement.h"
 
 #include "Modifier/ModifierCharacter.h"
+#include "Modifier/ModifierTags.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Net/NetPing.h"
+
+#if WITH_EDITOR
+#include "Misc/DataValidation.h"
+#endif
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ModifierMovement)
 
-// DEFINE_LOG_CATEGORY_STATIC(LogModifierMovement, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogModifierMovement, Log, All);
 
-namespace FModifierTags
-{
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_SlowFall,				"Modifier.Type.SlowFall");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Boost,					"Modifier.Type.Boost");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Snare,					"Modifier.Type.Snare");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_SlowFall,		"Modifier.Type.Local.SlowFall");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_SlowFall_25,		"Modifier.Type.Local.SlowFall.25");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_SlowFall_50,		"Modifier.Type.Local.SlowFall.50");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_SlowFall_75,		"Modifier.Type.Local.SlowFall.75");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_SlowFall_100,	"Modifier.Type.Local.SlowFall.100");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_Boost,			"Modifier.Type.Local.Boost");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_Boost_25,		"Modifier.Type.Local.Boost.25");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_Boost_50,		"Modifier.Type.Local.Boost.50");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Local_Boost_75,		"Modifier.Type.Local.Boost.75");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Server_Snare,			"Modifier.Type.Server.Snare");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Server_Snare_25,		"Modifier.Type.Server.Snare.25");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Server_Snare_50,		"Modifier.Type.Server.Snare.50");
-	UE_DEFINE_GAMEPLAY_TAG(Modifier_Type_Server_Snare_75,		"Modifier.Type.Server.Snare.75");
-	UE_DEFINE_GAMEPLAY_TAG(ClientAuth_Snare,					"ClientAuth.Snare");
-}
-
-namespace FModifierCVars
+namespace ModifierMovementCVars
 {
 #if !UE_BUILD_SHIPPING
 	static bool bClientAuthDisabled = false;
@@ -48,64 +31,40 @@ namespace FModifierCVars
 UModifierMovement::UModifierMovement(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	SetNetworkMoveDataContainer(ModifierMoveDataContainer);
 	SetMoveResponseDataContainer(ModifierMoveResponseDataContainer);
-    SetNetworkMoveDataContainer(ModifierMoveDataContainer);
 
-	// Init activation sources
-	Boost.ActivationSource		= EModifierActivationSource::LocalPredicted;		// We apply this to ourselves
-	SlowFall.ActivationSource	= EModifierActivationSource::LocalPredicted;		// We apply this to ourselves
-	Snare.ActivationSource		= EModifierActivationSource::ServerInitiated;		// Others apply this to us
+	// Init Modifier Levels
+	Boost.Add(FModifierTags::Modifier_Boost, { 1.50f });  // 50% Speed Boost
+	Snare.Add(FModifierTags::Modifier_Snare, { 0.50f });  // 50% Speed Snare
 
-	// Init data types used for levels as gameplay tags instead of enums
-	Boost.LevelType		= EModifierLevelType::FGameplayTag;
-	SlowFall.LevelType	= EModifierLevelType::FGameplayTag;
-	Snare.LevelType		= EModifierLevelType::FGameplayTag;
-
-	// Init boost levels
-	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Local_Boost_25);			// 1.25x Speed Boost
-	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Local_Boost_50); 		// 1.50x Speed Boost
-	Boost.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Local_Boost_75); 		// 1.75x Speed Boost
-
-	BoostLevels.Add(FModifierTags::Modifier_Type_Local_Boost_25, { 1.25f });
-	BoostLevels.Add(FModifierTags::Modifier_Type_Local_Boost_50, { 1.50f });
-	BoostLevels.Add(FModifierTags::Modifier_Type_Local_Boost_75, { 1.75f });
-
-	// Init slow fall levels
-	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Local_SlowFall_25);	// 0.25x Reduction from 0.75x Gravity
-	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Local_SlowFall_50); 	// 0.50x Reduction from 0.50x Gravity
-	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Local_SlowFall_75); 	// 0.75x Reduction from 0.25x Gravity
-	SlowFall.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Local_SlowFall_100); 	// 1.00x Reduction from 0.00x Gravity
-
-	SlowFallLevels.Add(FModifierTags::Modifier_Type_Local_SlowFall_25, { 0.75f });
-	SlowFallLevels.Add(FModifierTags::Modifier_Type_Local_SlowFall_50, { 0.50f });
-	SlowFallLevels.Add(FModifierTags::Modifier_Type_Local_SlowFall_75, { 0.25f });
-	SlowFallLevels.Add(FModifierTags::Modifier_Type_Local_SlowFall_100, { 0.00f });
-	
-	// Init snare levels
-	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Server_Snare_25); 	// 0.25x Speed Snare
-	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Server_Snare_50); 	// 0.50x Speed Snare
-	Snare.ModifierLevelTags.AddTagFast(FModifierTags::Modifier_Type_Server_Snare_75); 	// 0.75x Speed Snare
-	
-	SnareLevels.Add(FModifierTags::Modifier_Type_Server_Snare_25, { 0.75f });
-	SnareLevels.Add(FModifierTags::Modifier_Type_Server_Snare_50, { 0.50f });
-	SnareLevels.Add(FModifierTags::Modifier_Type_Server_Snare_75, { 0.25f });
+	SlowFall.Add(FModifierTags::Modifier_SlowFall, { 0.1f });  // 90% Gravity Reduction
 
 	// Auth params for Snare
 	static constexpr int32 DefaultPriority = 5;
 	ClientAuthParams.FindOrAdd(FModifierTags::ClientAuth_Snare, { DefaultPriority });
 }
 
-void FModifierMoveResponseDataContainer::ServerFillResponseData(
-	const UCharacterMovementComponent& CharacterMovement, const FClientAdjustment& PendingAdjustment)
+void FModifierMoveResponseDataContainer::ServerFillResponseData(const UCharacterMovementComponent& CharacterMovement,
+	const FClientAdjustment& PendingAdjustment)
 {
 	Super::ServerFillResponseData(CharacterMovement, PendingAdjustment);
 
 	// Server ➜ Client
+
+	// Server >> APlayerController::SendClientAdjustment() ➜ SendClientAdjustment ➜ ServerSendMoveResponse ➜
+	// ServerFillResponseData ➜ MoveResponsePacked_ServerSend >> Client 
+	
 	const UModifierMovement* MoveComp = Cast<UModifierMovement>(&CharacterMovement);
-	if (Snare != MoveComp->Snare)
-	{
-		Snare = MoveComp->Snare;
-	}
+
+	// Fill the response data with the current modifier state
+	BoostCorrection.ServerFillResponseData(MoveComp->BoostCorrection.Data.Modifiers);
+	BoostServer.ServerFillResponseData(MoveComp->BoostServer.Data.Modifiers);
+	SnareServer.ServerFillResponseData(MoveComp->SnareServer.Data.Modifiers);
+
+	// Fill ClientAuthAlpha
+	ClientAuthAlpha = MoveComp->ClientAuthAlpha;
+	bHasClientAuthAlpha = ClientAuthAlpha > 0.f;
 }
 
 bool FModifierMoveResponseDataContainer::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,
@@ -119,283 +78,137 @@ bool FModifierMoveResponseDataContainer::Serialize(UCharacterMovementComponent& 
 	// Server ➜ Client
 	if (IsCorrection())
 	{
-		bool bOutSuccess;
-		Snare.NetSerialize(Ar, PackageMap, bOutSuccess);
+		// Serialize Modifiers
+		Ar << BoostCorrection.Modifiers;
+		Ar << BoostServer.Modifiers;
+		Ar << SnareServer.Modifiers;
+
+		// Serialize ClientAuthAlpha
+		Ar.SerializeBits(&bHasClientAuthAlpha, 1);
+		if (bHasClientAuthAlpha)
+		{
+			Ar << ClientAuthAlpha;
+		}
+		else if (!Ar.IsSaving())
+		{
+			ClientAuthAlpha = 0.f;
+		}
 	}
 
 	return !Ar.IsError();
 }
 
-void FModifierNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove, ENetworkMoveType MoveType)
+void FModifierNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove,
+	ENetworkMoveType MoveType)
 {
-    Super::ClientFillNetworkMoveData(ClientMove, MoveType);
+	// Client packs move data to send to the server
+	// Use this instead of GetCompressedFlags()
+	Super::ClientFillNetworkMoveData(ClientMove, MoveType);
 
 	// Client ➜ Server
 	
-	// CallServerMovePacked ➜ ClientFillNetworkMoveData ➜ ServerMovePacked_ClientSend >> Server
+	// Client >> CallServerMovePacked ➜ ClientFillNetworkMoveData ➜ ServerMovePacked_ClientSend >> Server
 	// >> ServerMovePacked_ServerReceive ➜ ServerMove_HandleMoveData ➜ ServerMove_PerformMovement
 	// ➜ MoveAutonomous (UpdateFromCompressedFlags)
 	
 	const FSavedMove_Character_Modifier& SavedMove = static_cast<const FSavedMove_Character_Modifier&>(ClientMove);
-	Boost = SavedMove.EndBoost;
-	SlowFall = SavedMove.EndSlowFall;
-	Snare = SavedMove.EndSnare;
+
+	// Fill the Modifier data from the saved move
+	BoostLocal.ClientFillNetworkMoveData(SavedMove.BoostLocal.WantsModifiers);
+	BoostCorrection.ClientFillNetworkMoveData(SavedMove.BoostCorrection.WantsModifiers, SavedMove.BoostCorrection.Modifiers);
+	BoostServer.ClientFillNetworkMoveData(SavedMove.BoostServer.Modifiers);
+	SnareServer.ClientFillNetworkMoveData(SavedMove.SnareServer.Modifiers);
+	SlowFallLocal.ClientFillNetworkMoveData(SavedMove.SlowFallLocal.WantsModifiers);
 }
 
-bool FModifierNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap, ENetworkMoveType MoveType)
+bool FModifierNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,
+	UPackageMap* PackageMap, ENetworkMoveType MoveType)
+{  // Client ➜ Server
+	Super::Serialize(CharacterMovement, Ar, PackageMap, MoveType);
+
+	// Serialize Modifier data
+	BoostLocal.Serialize(Ar, TEXT("BoostLocal"));
+	BoostCorrection.Serialize(Ar, TEXT("BoostCorrection"));
+	BoostServer.Serialize(Ar, TEXT("BoostServer"));
+	SnareServer.Serialize(Ar, TEXT("SnareServer"));
+	SlowFallLocal.Serialize(Ar, TEXT("SlowFallLocal"));
+
+	return !Ar.IsError();
+}
+
+bool UModifierMovement::HasValidData() const
 {
-    Super::Serialize(CharacterMovement, Ar, PackageMap, MoveType);
-
-	// Client ➜ Server
-	bool bOutSuccess;
-	Boost.NetSerialize(Ar, PackageMap, bOutSuccess);
-	SlowFall.NetSerialize(Ar, PackageMap, bOutSuccess);
-	Snare.NetSerialize(Ar, PackageMap, bOutSuccess);
-
-    return !Ar.IsError();
+	return Super::HasValidData() && IsValid(ModifierCharacterOwner);
 }
 
 void UModifierMovement::PostLoad()
 {
 	Super::PostLoad();
-	SetUpdatedCharacter();
+
+	ModifierCharacterOwner = Cast<AModifierCharacter>(PawnOwner);
 }
 
 void UModifierMovement::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
 {
 	Super::SetUpdatedComponent(NewUpdatedComponent);
-	SetUpdatedCharacter();
-}
 
-void UModifierMovement::SetUpdatedCharacter()
-{
 	ModifierCharacterOwner = Cast<AModifierCharacter>(PawnOwner);
-	Boost.Initialize(ModifierCharacterOwner, FModifierTags::Modifier_Type_Boost);
-	SlowFall.Initialize(ModifierCharacterOwner, FModifierTags::Modifier_Type_SlowFall);
-	Snare.Initialize(ModifierCharacterOwner, FModifierTags::Modifier_Type_Snare);
-}
-
-bool UModifierMovement::CanBoostInCurrentState(FGameplayTag ModifierLevel) const
-{
-	return UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics();
-}
-
-bool UModifierMovement::CanSlowFallInCurrentState(FGameplayTag ModifierLevel) const
-{
-	if (!UpdatedComponent || UpdatedComponent->IsSimulatingPhysics())
-	{
-		return false;
-	}
-
-	// This is simplistic for demonstration purposes, but if a mage casts a 'slow fall' spell,
-	// they should be able to slow fall regardless of their current state, consider returning true here
-	return IsFalling();
-}
-
-void UModifierMovement::OnStartSlowFall()
-{
-	if (const FFallingModifierParams* Params = GetSlowFallLevelParams())
-	{
-		if (Params->bRemoveVelocityZOnStart)
-		{
-			Velocity.Z = 0.f;
-		}
-	}
-}
-
-bool UModifierMovement::CanBeSnaredInCurrentState(FGameplayTag ModifierLevel) const
-{
-	return UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics();
-}
-
-void FSavedMove_Character_Modifier::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel,
-	class FNetworkPredictionData_Client_Character& ClientData)
-{
-	FSavedMove_Character::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
-
-	if (const UModifierMovement* Movement = CastChecked<AModifierCharacter>(C)->GetModifierCharacterMovement())
-	{
-		// Local Predicted Modifiers
-		Boost = Movement->Boost;
-		SlowFall = Movement->SlowFall;
-	}
-}
-
-void FSavedMove_Character_Modifier::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
-{
-	// When considering whether to delay or combine moves, we need to compare the move at the start and the end
-	if (const UModifierMovement* Movement = CastChecked<AModifierCharacter>(C)->GetModifierCharacterMovement())
-	{
-		EndBoost = Movement->Boost;
-		EndSlowFall = Movement->SlowFall;
-		EndSnare = Movement->Snare;
-	}
-
-	if (PostUpdateMode == PostUpdate_Record)
-	{
-		// Don't combine moves if the modifiers changed over the course of the move
-		// ^= is the same as != but it also evaluates the current level rather than only the requested level
-
-		if (Boost ^= EndBoost)
-		{
-			bForceNoCombine = true;
-		}
-
-		if (SlowFall ^= EndSlowFall)
-		{
-			bForceNoCombine = true;
-		}
-
-		if (Snare ^= EndSnare)
-		{
-			bForceNoCombine = true;
-		}
-	}
-	
-	Super::PostUpdate(C, PostUpdateMode);
-}
-
-bool FSavedMove_Character_Modifier::IsImportantMove(const FSavedMovePtr& LastAckedMove) const
-{
-	const TSharedPtr<FSavedMove_Character_Modifier>& SavedMove = StaticCastSharedPtr<FSavedMove_Character_Modifier>(LastAckedMove);
-	if (Boost != SavedMove->Boost || Boost != SavedMove->EndBoost)
-	{
-		return true;
-	}
-
-	if (SlowFall != SavedMove->SlowFall || SlowFall != SavedMove->EndSlowFall)
-	{
-		return true;
-	}
-
-	if (Snare != SavedMove->Snare || Snare != SavedMove->EndSnare)
-	{
-		return true;
-	}
-
-	return Super::IsImportantMove(LastAckedMove);
-}
-
-bool FSavedMove_Character_Modifier::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter,
-	float MaxDelta) const
-{
-	// We combine moves for the purpose of reducing the number of moves sent to the server, especially when exceeding
-	// 60 fps (by default, see ClientNetSendMoveDeltaTime).
-	// By combining moves, we can send fewer moves, but still have the same outcome.
-	
-	// If we didn't handle move combining, and then we used OnStartSprint() to modify our Velocity directly, it would
-	// de-sync if we exceed 60fps. This is where move combining kicks in and starts using Pending Moves instead.
-	
-	// When combining moves, the PendingMove is passed into the NewMove. Locally, before sending a Move to the Server,
-	// the AutonomousProxy Client will already have processed the current PendingMove (it's only pending for being sent,
-	// not processed).
-
-	// Since combining will happen before processing a move, PendingMove might end up being processed twice; once last
-	// frame, and once as part of the new combined move.
-
-	const TSharedPtr<FSavedMove_Character_Modifier>& SavedMove = StaticCastSharedPtr<FSavedMove_Character_Modifier>(NewMove);
-
-	// We can only combine moves if they will result in the same state as if both moves were processed individually,
-	// because the AutonomousProxy Client processes them individually prior to sending them to the server.
-	
-	if (Boost != SavedMove->Boost)
-	{
-		return false;
-	}
-
-	if (SlowFall != SavedMove->SlowFall)
-	{
-		return false;
-	}
-	
-	if (Snare != SavedMove->Snare)
-	{
-		return false;
-	}
-
-	return Super::CanCombineWith(NewMove, InCharacter, MaxDelta);
-}
-
-void FSavedMove_Character_Modifier::CombineWith(const FSavedMove_Character* OldMove, ACharacter* C,
-	APlayerController* PC, const FVector& OldStartLocation)
-{
-	// Client only
-	// ControlledCharacterMove ➜ ReplicateMoveToServer ➜ CombineWith()
-
-	Super::CombineWith(OldMove, C, PC, OldStartLocation);
-
-	const FSavedMove_Character_Modifier* SavedOldMove = static_cast<const FSavedMove_Character_Modifier*>(OldMove);
-
-	if (UModifierMovement* MoveComp = C ? Cast<UModifierMovement>(C->GetCharacterMovement()) : nullptr)
-	{
-		// Server Initiated Modifiers
-		MoveComp->Snare << SavedOldMove->Snare;
-	}
-}
-
-void FSavedMove_Character_Modifier::Clear()
-{
-	Super::Clear();
-
-	Boost = {};
-	SlowFall = {};
-	Snare = {};
-}
-
-void FSavedMove_Character_Modifier::SetInitialPosition(ACharacter* C)
-{
-	// To counter the PendingMove potentially being processed twice, we need to make sure to reset the state of the CMC
-	// back to the "InitialPosition" (state) it had before the PendingMove got processed.
-	
-	Super::SetInitialPosition(C);
-
-	if (const UModifierMovement* MoveComp = C ? Cast<UModifierMovement>(C->GetCharacterMovement()) : nullptr)
-	{
-		// Retrieve the value from our CMC to revert the saved move value back to this.
-
-		Boost = MoveComp->Boost;
-		SlowFall = MoveComp->SlowFall;
-		Snare = MoveComp->Snare;
-	}
-}
-
-float UModifierMovement::GetRootMotionTranslationScalar() const
-{
-	// Allowing boost to affect root motion will increase attack range, dodge range, etc., it is disabled by default
-	return (ShouldSnareAffectRootMotion() ? GetSnareSpeedScalar() : 1.f) * (bBoostAffectsRootMotion ? GetBoostSpeedScalar() : 1.f);
-}
-
-float UModifierMovement::GetMaxSpeed() const
-{
-	return Super::GetMaxSpeed() * GetMaxSpeedScalar();
 }
 
 float UModifierMovement::GetMaxAcceleration() const
 {
-	return Super::GetMaxAcceleration() * GetMaxAccelScalar();
+	return Super::GetMaxAcceleration() * GetBoostAccelScalar() * GetSnareAccelScalar();
+}
+
+float UModifierMovement::GetMaxSpeed() const
+{
+	return Super::GetMaxSpeed() * GetBoostSpeedScalar() * GetSnareSpeedScalar();
 }
 
 float UModifierMovement::GetMaxBrakingDeceleration() const
 {
-	return Super::GetMaxBrakingDeceleration() * GetMaxBrakingScalar();
+	return Super::GetMaxBrakingDeceleration() * GetBoostBrakingScalar() * GetSnareBrakingScalar();
 }
 
-float UModifierMovement::GetGroundFriction() const
+float UModifierMovement::GetGroundFriction(float DefaultGroundFriction) const
 {
-	return GroundFriction * GetMaxGroundFrictionScalar();
+	return GroundFriction * GetBoostGroundFrictionScalar() * GetSnareGroundFrictionScalar();
 }
 
 float UModifierMovement::GetBrakingFriction() const
 {
-	return BrakingFriction * GetBrakingFrictionScalar();
+	return BrakingFriction * GetBoostBrakingFrictionScalar() * GetSnareBrakingFrictionScalar();
+}
+
+float UModifierMovement::GetRootMotionTranslationScalar() const
+{
+	const float BoostScalar = BoostAffectsRootMotion() ? GetBoostSpeedScalar() : 1.f;
+	const float SnareScalar = SnareAffectsRootMotion() ? GetSnareSpeedScalar() : 1.f;
+	return BoostScalar * SnareScalar;
+}
+
+float UModifierMovement::GetGravityZ() const
+{
+	return Super::GetGravityZ() * GetSlowFallGravityZScalar();
+}
+
+FVector UModifierMovement::GetAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration)
+{
+	if (const FFallingModifierParams* SlowFallParams = GetSlowFallParams())
+	{
+		TickAirControl = SlowFallParams->GetAirControl(TickAirControl);
+	}
+	
+	return Super::GetAirControl(DeltaTime, TickAirControl, FallAcceleration);
 }
 
 void UModifierMovement::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
 {
 	if (IsMovingOnGround())
 	{
-		Friction = GetGroundFriction();
+		Friction = GetGroundFriction(Friction);
 	}
+	
 	Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
 }
 
@@ -403,59 +216,135 @@ void UModifierMovement::ApplyVelocityBraking(float DeltaTime, float Friction, fl
 {
 	if (IsMovingOnGround())
 	{
-		Friction = bUseSeparateBrakingFriction ? GetBrakingFriction() : GetGroundFriction();
+		Friction = bUseSeparateBrakingFriction ? GetBrakingFriction() : GetGroundFriction(Friction);
 	}
 	Super::ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
 }
 
-float UModifierMovement::GetGravityZ() const
+bool UModifierMovement::CanBoostInCurrentState() const
 {
-	// Slow fall gravity
-	float GravityScalar = 1.f;
-	if (const FFallingModifierParams* Params = GetSlowFallLevelParams())
-	{
-		GravityScalar = Params->GetGravityScalar(Velocity);
-	}
-	
-	return Super::GetGravityZ() * GravityScalar;
+	return UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics() && (IsFalling() || IsMovingOnGround());
 }
 
-FVector UModifierMovement::GetAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration)
+bool UModifierMovement::CanSnareInCurrentState() const
 {
-	// Slow fall air control
-	if (const FFallingModifierParams* Params = GetSlowFallLevelParams())
-	{
-		TickAirControl = Params->GetAirControl(TickAirControl);
-	}
-	
-	return Super::GetAirControl(DeltaTime, TickAirControl, FallAcceleration);
+	return UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics() && (IsFalling() || IsMovingOnGround());
 }
 
-void UModifierMovement::UpdateCharacterStateBeforeMovement(float DeltaTime)
+bool UModifierMovement::CanSlowFallInCurrentState() const
 {
+	return UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics() && (IsFalling() || IsMovingOnGround());
+}
+
+void UModifierMovement::OnStartSlowFall()
+{
+	if (!HasValidData() || CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		return;
+	}
+	
+
+}
+
+void UModifierMovement::ProcessModifierMovementState()
+{
+	// Proxies get replicated Modifier state.
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
-		Boost.UpdateCharacterStateBeforeMovement(CanBoostInCurrentState(GetBoostLevel()));
-		SlowFall.UpdateCharacterStateBeforeMovement(CanSlowFallInCurrentState(GetSlowFallLevel()));
-		Snare.UpdateCharacterStateBeforeMovement(CanBeSnaredInCurrentState(GetSnareLevel()));
+		// Check for a change in Modifier state. Players toggle Modifier by changing WantsModifierLevel.
+
+		{	// Boost
+			const FGameplayTag PrevBoostLevel = GetBoostLevel();
+			const uint8 PrevBoostLevelValue = BoostLevel;
+			if (FModifierStatics::ProcessModifiers<TMod_Local, TMod_LocalCorrection, TMod_Server>(
+				BoostLevel, BoostLevelMethod, BoostLevels, bLimitMaxBoosts, MaxBoosts, UINT8_MAX,
+				&BoostLocal, &BoostCorrection, &BoostServer,
+				[this] { return CanBoostInCurrentState(); }))
+			{
+				ModifierCharacterOwner->NotifyModifierChanged(FModifierTags::Modifier_Boost,
+					GetBoostLevel(), PrevBoostLevel, BoostLevel,
+					PrevBoostLevelValue, UINT8_MAX);
+			}
+		}
+
+		{	// Snare
+			const FGameplayTag PrevSnareLevel = GetSnareLevel();
+			const uint8 PrevSnareLevelValue = SnareLevel;
+			if (FModifierStatics::ProcessModifiers<TMod_Local, TMod_LocalCorrection, TMod_Server>(
+				SnareLevel, SnareLevelMethod, SnareLevels, bLimitMaxSnares, MaxSnares, UINT8_MAX,
+				nullptr, nullptr, &SnareServer,
+				[this] { return CanSnareInCurrentState(); }))
+			{
+				ModifierCharacterOwner->NotifyModifierChanged(FModifierTags::Modifier_Snare,
+					GetSnareLevel(), PrevSnareLevel, SnareLevel,
+					PrevSnareLevelValue, UINT8_MAX);
+			}
+		}
+
+		{	// SlowFall
+			const FGameplayTag PrevSlowFallLevel = GetSlowFallLevel();
+			const uint8 PrevSlowFallLevelValue = SlowFallLevel;
+			if (FModifierStatics::ProcessModifiers<TMod_Local, TMod_LocalCorrection, TMod_Server>(
+				SlowFallLevel, SlowFallLevelMethod, SlowFallLevels, bLimitMaxSlowFalls, MaxSlowFalls, UINT8_MAX,
+				&SlowFallLocal, nullptr, nullptr,
+				[this] { return CanSlowFallInCurrentState(); }))
+			{
+				ModifierCharacterOwner->NotifyModifierChanged(FModifierTags::Modifier_SlowFall,
+					GetSlowFallLevel(), PrevSlowFallLevel, SlowFallLevel,
+					PrevSlowFallLevelValue, UINT8_MAX);
+			}
+		}
 	}
-	
-	Super::UpdateCharacterStateBeforeMovement(DeltaTime);
 }
 
-void UModifierMovement::UpdateCharacterStateAfterMovement(float DeltaTime)
+void UModifierMovement::UpdateModifierMovementState()
 {
-	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
+	if (!HasValidData())
 	{
-		Boost.UpdateCharacterStateAfterMovement(CanBoostInCurrentState(GetBoostLevel()));
-		SlowFall.UpdateCharacterStateAfterMovement(CanSlowFallInCurrentState(GetSlowFallLevel()));
-		Snare.UpdateCharacterStateAfterMovement(CanBeSnaredInCurrentState(GetSnareLevel()));
+		return;
 	}
-	
-	Super::UpdateCharacterStateAfterMovement(DeltaTime);
+
+	// Initialize Modifier levels if empty
+	if (BoostLevels.Num() == 0)	{ for (const auto& Level : Boost) { BoostLevels.Add(Level.Key); } }
+	if (SnareLevels.Num() == 0)	{ for (const auto& Level : Snare) { SnareLevels.Add(Level.Key); } }
+	if (SlowFallLevels.Num() == 0) { for (const auto& Level : SlowFall) { SlowFallLevels.Add(Level.Key); } }
+
+	// Update the modifiers
+	ProcessModifierMovementState();
 }
 
-FClientAuthData* UModifierMovement::GetClientAuthData()
+void UModifierMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
+{
+	if (!HasValidData())
+	{
+		return;
+	}
+	
+	const bool bWasSlowFalling = IsSlowFallActive();
+	UpdateModifierMovementState();
+
+	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy && !bWasSlowFalling && IsSlowFallActive())
+	{
+		if (const FFallingModifierParams* SlowFallParams = GetSlowFallParams())
+		{
+			if (SlowFallParams->bRemoveVelocityZOnStart)
+			{
+				Velocity.Z = 0.f;
+			}
+		}
+	}
+
+	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
+}
+
+void UModifierMovement::UpdateCharacterStateAfterMovement(float DeltaSeconds)
+{
+	UpdateModifierMovementState();
+
+	Super::UpdateCharacterStateAfterMovement(DeltaSeconds);
+}
+
+FClientAuthData* UModifierMovement::ProcessClientAuthData()
 {
 	ClientAuthStack.SortByPriority();
 	return ClientAuthStack.GetFirst();
@@ -498,7 +387,7 @@ FClientAuthParams UModifierMovement::GetClientAuthParams(const FClientAuthData* 
 	return Params;
 }
 
-void UModifierMovement::InitClientAuthority(FGameplayTag ClientAuthSource, float OverrideDuration)
+void UModifierMovement::GrantClientAuthority(FGameplayTag ClientAuthSource, float OverrideDuration)
 {
 	if (!CharacterOwner || !CharacterOwner->HasAuthority())
 	{
@@ -510,7 +399,7 @@ void UModifierMovement::InitClientAuthority(FGameplayTag ClientAuthSource, float
 		if (Params->bEnableClientAuth)
 		{
 			const float Duration = OverrideDuration > 0.f ? OverrideDuration : Params->ClientAuthTime;
-			ClientAuthStack.Stack.Add(FClientAuthData(ClientAuthSource, Duration, Params->Priority));
+			ClientAuthStack.Stack.Add(FClientAuthData(ClientAuthSource, Duration, Params->Priority, ++ClientAuthIdCounter));
 
 			// Limit the number of auth data entries
 			// IMPORTANT: We do not allow serializing more than 8, if this changes, update the serialization code too
@@ -522,7 +411,7 @@ void UModifierMovement::InitClientAuthority(FGameplayTag ClientAuthSource, float
 	}
 	else
 	{
-#if !UE_BUILD_SHIPPING
+#if WITH_EDITOR
 		FMessageLog("PIE").Error(FText::FromString(FString::Printf(TEXT("ClientAuthSource '%s' not found in ClientAuthParams"), *ClientAuthSource.ToString())));
 #else
 		UE_LOG(LogModifierMovement, Error, TEXT("ClientAuthSource '%s' not found"), *ClientAuthSource.ToString());
@@ -530,8 +419,10 @@ void UModifierMovement::InitClientAuthority(FGameplayTag ClientAuthSource, float
 	}
 }
 
-bool UModifierMovement::ServerShouldGrantClientPositionAuthority(FVector& ClientLoc)
+bool UModifierMovement::ServerShouldGrantClientPositionAuthority(FVector& ClientLoc, FClientAuthData*& AuthData)
 {
+	AuthData = nullptr;
+	
 	// Already ignoring client movement error checks and correction
 	if (bIgnoreClientMovementErrorChecksAndCorrection)
 	{
@@ -540,22 +431,22 @@ bool UModifierMovement::ServerShouldGrantClientPositionAuthority(FVector& Client
 
 	// Abort if client authority is not enabled
 #if !UE_BUILD_SHIPPING
-	if (FModifierCVars::bClientAuthDisabled)
+	if (ModifierMovementCVars::bClientAuthDisabled)
 	{
 		return false;
 	}
 #endif
 
 	// Get auth data
-	FClientAuthData* ClientAuthData = GetClientAuthData();
-	if (!ClientAuthData || !ClientAuthData->IsValid())
+	AuthData = ProcessClientAuthData();
+	if (!AuthData || !AuthData->IsValid())
 	{
 		// No auth data, can't do anything
 		return false;
 	}
 
 	// Get auth params
-	const FClientAuthParams Params = GetClientAuthParams(ClientAuthData);
+	const FClientAuthParams Params = GetClientAuthParams(AuthData);
 
 	// Disabled
 	if (!Params.bEnableClientAuth)
@@ -565,7 +456,7 @@ bool UModifierMovement::ServerShouldGrantClientPositionAuthority(FVector& Client
 
 	// Validate auth data
 #if !UE_BUILD_SHIPPING
-	if (UNLIKELY(ClientAuthData->TimeRemaining <= 0.f))
+	if (UNLIKELY(AuthData->TimeRemaining <= 0.f))
 	{
 		// ServerMoveHandleClientError() should have removed the auth data already
 		return ensure(false);
@@ -573,7 +464,7 @@ bool UModifierMovement::ServerShouldGrantClientPositionAuthority(FVector& Client
 #endif
 	
 	// Reset alpha, we're going to calculate it now
-	ClientAuthData->Alpha = 0.f;
+	AuthData->Alpha = 0.f;
 
 	// How far the client is from the server
 	const FVector ServerLoc = UpdatedComponent->GetComponentLocation();
@@ -583,7 +474,7 @@ bool UModifierMovement::ServerShouldGrantClientPositionAuthority(FVector& Client
 	if (LocDiff.IsNearlyZero())
 	{
 		// Grant full authority
-		ClientAuthData->Alpha = 1.f;
+		AuthData->Alpha = 1.f;
 		return true;
 	}
 
@@ -598,112 +489,68 @@ bool UModifierMovement::ServerShouldGrantClientPositionAuthority(FVector& Client
 	if (LocDiff.Size() >= Params.MaxClientAuthDistance)
 	{
 		// Accept only a portion of the client's location
-		ClientAuthData->Alpha = Params.MaxClientAuthDistance / LocDiff.Size();
-		ClientLoc = FMath::Lerp<FVector>(ServerLoc, ClientLoc, ClientAuthData->Alpha);
+		AuthData->Alpha = Params.MaxClientAuthDistance / LocDiff.Size();
+		ClientLoc = FMath::Lerp<FVector>(ServerLoc, ClientLoc, AuthData->Alpha);
 		LocDiff = ServerLoc - ClientLoc;
 	}
 	else
 	{
 		// Accept full client location
-		ClientAuthData->Alpha = 1.f;
+		AuthData->Alpha = 1.f;
 	}
 
 	return true;
 }
 
-bool UModifierMovement::ClientUpdatePositionAfterServerUpdate()
-{
-	const FMovementModifier SavedBoost = Boost;
-	const FMovementModifier SavedSlowFall = SlowFall;
-	const FMovementModifier SavedSnare = Snare;
-	bool bResult = Super::ClientUpdatePositionAfterServerUpdate();
-	
-	// operator<< will not copy the current level. We only take the requested level!
-	Boost << SavedBoost;
-	SlowFall << SavedSlowFall;
-	Snare << SavedSnare;
-	
-	return bResult;
-}
-
-bool UModifierMovement::CanDelaySendingMove(const FSavedMovePtr& NewMove)
-{
-	// Don't delay sending moves if the modifiers changed over the course of the move
-	// ^= is the same as != but it also evaluates the current level rather than only the requested level
-	
-	const TSharedPtr<FSavedMove_Character_Modifier>& SavedMove = StaticCastSharedPtr<FSavedMove_Character_Modifier>(NewMove);
-
-	if (SavedMove->Boost ^= SavedMove->EndBoost)
-	{
-		return false;
-	}
-
-	if (SavedMove->SlowFall ^= SavedMove->EndSlowFall)
-	{
-		return false;
-	}
-
-	if (SavedMove->Snare ^= SavedMove->EndSnare)
-	{
-		return false;
-	}
-	
-	return Super::CanDelaySendingMove(NewMove);
-}
-
 void UModifierMovement::ServerMove_PerformMovement(const FCharacterNetworkMoveData& MoveData)
 {
 	// Server updates from the client's move data
-	// Equivalent to UpdateFromCompressedFlags() when using Move Containers instead
+	// Use this instead of UpdateFromCompressedFlags()
 
 	// Client >> CallServerMovePacked ➜ ClientFillNetworkMoveData ➜ ServerMovePacked_ClientSend >> Server
 	// >> ServerMovePacked_ServerReceive ➜ ServerMove_HandleMoveData ➜ ServerMove_PerformMovement
 	
 	const FModifierNetworkMoveData& ModifierMoveData = static_cast<const FModifierNetworkMoveData&>(MoveData);
 
-	// << operator copies only the RequestedModifierLevel and Modifiers stack, i.e. requested state not current state
-	Boost << ModifierMoveData.Boost;
-	SlowFall << ModifierMoveData.SlowFall;
+	BoostLocal.ServerMove_PerformMovement(ModifierMoveData.BoostLocal.WantsModifiers);
+	BoostCorrection.ServerMove_PerformMovement(ModifierMoveData.BoostCorrection.WantsModifiers);
+
+	SlowFallLocal.ServerMove_PerformMovement(ModifierMoveData.SlowFallLocal.WantsModifiers);
 
 	Super::ServerMove_PerformMovement(MoveData);
 }
 
-void UModifierMovement::ClientHandleMoveResponse(const FCharacterMoveResponseDataContainer& MoveResponse)
+bool UModifierMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
+	const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase,
+	FName ClientBaseBoneName, uint8 ClientMovementMode)
 {
-	// This occurs on AutonomousProxy, when the server sends the move response
-
-	// Server >> SendClientAdjustment() ➜ ServerSendMoveResponse()
-	// ➜ ServerFillResponseData() + MoveResponsePacked_ServerSend() >> Client
-	// >> ClientMoveResponsePacked() ➜ ClientHandleMoveResponse()
-
-	const FModifierMoveResponseDataContainer& ModifierMoveResponse = static_cast<const FModifierMoveResponseDataContainer&>(MoveResponse);
-
-	// Apply Snare correction
-	Snare << ModifierMoveResponse.Snare;
-
-	Super::ClientHandleMoveResponse(MoveResponse);
-}
-
-bool UModifierMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel, const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
-{
-	// Client >> TickComponent ➜ ControlledCharacterMove ➜ CallServerMove ➜ ReplicateMoveToServer >> Server
-	// >> ServerMove ➜ ServerMoveHandleClientError ➜ ServerCheckClientError
+	// ServerMovePacked_ServerReceive ➜ ServerMove_HandleMoveData ➜ ServerMove_PerformMovement
+	// ➜ ServerMoveHandleClientError ➜ ServerCheckClientError
 	
-    if (Super::ServerCheckClientError(ClientTimeStamp, DeltaTime, Accel, ClientWorldLocation, RelativeClientLocation, ClientMovementBase, ClientBaseBoneName, ClientMovementMode))
-    {
-        return true;
-    }
-
-	// Trigger client correction if modifiers have different ModifierLevel or Modifiers Array
-	// De-syncs can happen when we set the Modifier directly in Gameplay code (i.e. GAS)
-	const FModifierNetworkMoveData* CurrentMoveData = static_cast<const FModifierNetworkMoveData*>(GetCurrentNetworkMoveData());
-
-	if (CurrentMoveData->Snare != Snare)
+	if (Super::ServerCheckClientError(ClientTimeStamp, DeltaTime, Accel, ClientWorldLocation, RelativeClientLocation, ClientMovementBase, ClientBaseBoneName, ClientMovementMode))
 	{
 		return true;
 	}
-	
-    return false;
+    
+	// Trigger a client correction if the value in the Client differs
+	const FModifierNetworkMoveData* CurrentMoveData = static_cast<const FModifierNetworkMoveData*>(GetCurrentNetworkMoveData());
+
+	if (BoostCorrection.ServerCheckClientError(CurrentMoveData->BoostCorrection.Modifiers))
+	{
+		return true;
+	}
+
+	if (BoostServer.ServerCheckClientError(CurrentMoveData->BoostServer.Modifiers))
+	{
+		return true;
+	}
+
+	if (SnareServer.ServerCheckClientError(CurrentMoveData->SnareServer.Modifiers))
+	{
+		return true;
+	}
+
+	return false;
 }
 
 void UModifierMovement::ServerMoveHandleClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
@@ -713,54 +560,101 @@ void UModifierMovement::ServerMoveHandleClientError(float ClientTimeStamp, float
 	// This is the entry-point for determining how to handle client corrections; we can determine they are out of sync
 	// and make any changes that suit our needs
 	
-	// Client >> TickComponent ➜ ControlledCharacterMove ➜ CallServerMove ➜ ReplicateMoveToServer >> Server
-	// >> ServerMove ➜ ServerMoveHandleClientError
+	// Client >> TickComponent ➜ ControlledCharacterMove ➜ CallServerMovePacked ➜ ReplicateMoveToServer >> Server
+	// >> ServerMove_PerformMovement ➜ ServerMoveHandleClientError
 
-	const FModifierNetworkMoveData* CurrentMoveData = static_cast<const FModifierNetworkMoveData*>(GetCurrentNetworkMoveData());
-
-	// Initialize client authority when the client is about to receive a correction that applies Snare
+	// Process and grant client authority
 #if !UE_BUILD_SHIPPING
-	if (!FModifierCVars::bClientAuthDisabled)
+	if (!ModifierMovementCVars::bClientAuthDisabled)
 #endif
 	{
 		// Update client authority time remaining
 		ClientAuthStack.Update(DeltaTime);
 
-		if (CurrentMoveData->Snare != Snare)
-		{
-			// Snare inits client authority here, however other states may want to do it elsewhere, this is not a requirement
-			InitClientAuthority(FModifierTags::ClientAuth_Snare);
-		}
-
-		// Apply these thresholds to control client authority
+		// Test for client authority
 		FVector ClientLoc = FRepMovement::RebaseOntoZeroOrigin(RelativeClientLocation, this);
-		if (ServerShouldGrantClientPositionAuthority(ClientLoc))
+		FClientAuthData* AuthData = nullptr;
+		if (ServerShouldGrantClientPositionAuthority(ClientLoc, AuthData))
 		{
 			// Apply client authoritative position directly -- Subsequent moves will resolve overlapping conditions
 			UpdatedComponent->SetWorldLocation(ClientLoc, false);
 		}
+
+		// Cached to be sent to the client later with FMoveResponseDataContainer
+		ClientAuthAlpha = AuthData ? AuthData->Alpha : 0.f;
 	}
 
 	// The move prepared here will finally be sent in the next ReplicateMoveToServer()
-	
+
 	Super::ServerMoveHandleClientError(ClientTimeStamp, DeltaTime, Accel, RelativeClientLocation, ClientMovementBase,
 		ClientBaseBoneName, ClientMovementMode);
 }
 
-FNetworkPredictionData_Client* UModifierMovement::GetPredictionData_Client() const
+void UModifierMovement::ClientAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, FVector NewVel,
+	UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition,
+	uint8 ServerMovementMode, TOptional<FRotator> OptionalRotation)
 {
-	if (ClientPredictionData == nullptr)
+	if (!HasValidData() || !IsActive())
 	{
-		UModifierMovement* MutableThis = const_cast<UModifierMovement*>(this);
-		MutableThis->ClientPredictionData = new FNetworkPredictionData_Client_Character_Modifier(*this);
+		return;
 	}
 
-	return ClientPredictionData;
+	const FVector ClientLoc = UpdatedComponent->GetComponentLocation();
+	
+	Super::ClientAdjustPosition_Implementation(TimeStamp, NewLoc, NewVel, NewBase, NewBaseBoneName, bHasBase,
+		bBaseRelativePosition, ServerMovementMode,OptionalRotation);
+
+	const FModifierMoveResponseDataContainer& MoveResponse = static_cast<const FModifierMoveResponseDataContainer&>(GetMoveResponseDataContainer());
+	ClientAuthAlpha = MoveResponse.bHasClientAuthAlpha ? MoveResponse.ClientAuthAlpha : 0.f;
+
+	// Preserve client location relative to the partial client authority we have
+	const FVector AuthLocation = FMath::Lerp<FVector>(UpdatedComponent->GetComponentLocation(), ClientLoc, ClientAuthAlpha);
+	UpdatedComponent->SetWorldLocation(AuthLocation, false);
 }
 
-FSavedMovePtr FNetworkPredictionData_Client_Character_Modifier::AllocateNewMove()
+void UModifierMovement::OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData,
+	float TimeStamp, FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName,
+	bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode
+#if UE_5_03_OR_LATER
+	, FVector ServerGravityDirection
+#endif
+	)
 {
-	return MakeShared<FSavedMove_Character_Modifier>();
+	// Occurs on AutonomousProxy, when the server sends the move response
+	// This is where we receive the snare, and can override the server's location, assuming it has given us authority
+
+	// Server >> SendClientAdjustment() ➜ ServerSendMoveResponse() ➜ ServerFillResponseData() + MoveResponsePacked_ServerSend() >> Client
+	// >> ClientMoveResponsePacked() ➜ ClientHandleMoveResponse() ➜ ClientAdjustPosition_Implementation() ➜ OnClientCorrectionReceived()
+	
+	const FModifierMoveResponseDataContainer& MoveResponse = static_cast<const FModifierMoveResponseDataContainer&>(GetMoveResponseDataContainer());
+
+	BoostCorrection.OnClientCorrectionReceived(MoveResponse.BoostCorrection.Modifiers);
+	BoostServer.OnClientCorrectionReceived(MoveResponse.BoostServer.Modifiers);
+	SnareServer.OnClientCorrectionReceived(MoveResponse.SnareServer.Modifiers);
+
+	Super::OnClientCorrectionReceived(ClientData, TimeStamp, UpdatedComponent->GetComponentLocation(), NewVelocity, NewBase, NewBaseBoneName,
+		bHasBase, bBaseRelativePosition, ServerMovementMode, ServerGravityDirection);
+}
+
+bool UModifierMovement::ClientUpdatePositionAfterServerUpdate()
+{
+	const TModifierStack RealBoostLocal = BoostLocal.Data.WantsModifiers;
+	const TModifierStack RealBoostCorrection = BoostCorrection.Data.WantsModifiers;
+	const TModifierStack RealSlowFallLocal = SlowFallLocal.Data.WantsModifiers;
+
+	const FVector ClientLoc = UpdatedComponent->GetComponentLocation();
+	
+	const bool bResult = Super::ClientUpdatePositionAfterServerUpdate();
+	
+	BoostLocal.Data.WantsModifiers = RealBoostLocal;
+	BoostCorrection.Data.WantsModifiers = RealBoostCorrection;
+	SlowFallLocal.Data.WantsModifiers = RealSlowFallLocal;
+
+	// Preserve client location relative to the partial client authority we have
+	const FVector AuthLocation = FMath::Lerp<FVector>(UpdatedComponent->GetComponentLocation(), ClientLoc, ClientAuthAlpha);
+	UpdatedComponent->SetWorldLocation(AuthLocation, false);
+
+	return bResult;
 }
 
 void UModifierMovement::TickCharacterPose(float DeltaTime)
@@ -819,4 +713,151 @@ void UModifierMovement::TickCharacterPose(float DeltaTime)
 	}
 
 	CharacterMesh->bIsAutonomousTickPose = false;
+}
+
+void FSavedMove_Character_Modifier::Clear()
+{
+	Super::Clear();
+
+	BoostLocal.Clear();
+	BoostCorrection.Clear();
+	BoostServer.Clear();
+	SnareServer.Clear();
+	SlowFallLocal.Clear();
+}
+
+void FSavedMove_Character_Modifier::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel,
+	FNetworkPredictionData_Client_Character& ClientData)
+{
+	// Client ➜ Server (ReplicateMoveToServer)
+	
+	Super::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
+
+	if (const UModifierMovement* MoveComp = Cast<AModifierCharacter>(C)->GetModifierCharacterMovement())
+	{
+		BoostLocal.SetMoveFor(MoveComp->BoostLocal.Data.WantsModifiers);
+		BoostCorrection.SetMoveFor(MoveComp->BoostCorrection.Data.WantsModifiers);
+
+		SlowFallLocal.SetMoveFor(MoveComp->SlowFallLocal.Data.WantsModifiers);
+	}
+}
+
+bool FSavedMove_Character_Modifier::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter,
+	float MaxDelta) const
+{
+	// We combine moves for the purpose of reducing the number of moves sent to the server, especially when exceeding
+	// 60 fps (by default, see ClientNetSendMoveDeltaTime).
+	// By combining moves, we can send fewer moves, but still have the same outcome.
+	
+	// If we didn't handle move combining, and then we used OnStartModifier() to modify our Velocity directly, it would
+	// de-sync if we exceed 60fps. This is where move combining kicks in and starts using Pending Moves instead.
+	
+	// When combining moves, the PendingMove is passed into the NewMove. Locally, before sending a Move to the Server,
+	// the AutonomousProxy Client will already have processed the current PendingMove (it's only pending for being sent,
+	// not processed).
+
+	// Since combining will happen before processing a move, PendingMove might end up being processed twice; once last
+	// frame, and once as part of the new combined move.
+	
+	const TSharedPtr<FSavedMove_Character_Modifier> SavedMove = StaticCastSharedPtr<FSavedMove_Character_Modifier>(NewMove);
+
+	// We can only combine moves if they will result in the same state as if both moves were processed individually,
+	// because the AutonomousProxy Client processes them individually prior to sending them to the server.
+
+	if (!BoostLocal.CanCombineWith(SavedMove->BoostLocal.WantsModifiers)) { return false; }
+	if (!BoostCorrection.CanCombineWith(SavedMove->BoostCorrection.WantsModifiers)) { return false; }
+
+	if (!SlowFallLocal.CanCombineWith(SavedMove->SlowFallLocal.WantsModifiers)) { return false; }
+
+	// Without these, the change/start/stop events will trigger twice causing de-sync, so we don't combine moves if the level changes
+	if (BoostLevel != SavedMove->BoostLevel) { return false; }
+	if (SnareLevel != SavedMove->SnareLevel) { return false; }
+	if (SlowFallLevel != SavedMove->SlowFallLevel) { return false; }
+	
+	return FSavedMove_Character::CanCombineWith(NewMove, InCharacter, MaxDelta);
+}
+
+void FSavedMove_Character_Modifier::SetInitialPosition(ACharacter* C)
+{
+	// To counter the PendingMove potentially being processed twice, we need to make sure to reset the state of the CMC
+	// back to the "InitialPosition" (state) it had before the PendingMove got processed.
+	
+	Super::SetInitialPosition(C);
+
+	// Retrieve the value from our CMC to revert the saved move value back to this.
+	if (const UModifierMovement* MoveComp = Cast<AModifierCharacter>(C)->GetModifierCharacterMovement())
+	{
+		BoostLocal.SetInitialPosition(MoveComp->BoostLocal.Data.WantsModifiers);
+		BoostCorrection.SetInitialPosition(MoveComp->BoostCorrection.Data.WantsModifiers);
+
+		SlowFallLocal.SetInitialPosition(MoveComp->SlowFallLocal.Data.WantsModifiers);
+
+		BoostLevel = MoveComp->BoostLevel;
+		SnareLevel = MoveComp->SnareLevel;
+		SlowFallLevel = MoveComp->SlowFallLevel;
+	}
+}
+
+void FSavedMove_Character_Modifier::CombineWith(const FSavedMove_Character* OldMove, ACharacter* C,
+	APlayerController* PC, const FVector& OldStartLocation)
+{
+	Super::CombineWith(OldMove, C, PC, OldStartLocation);
+
+	const FSavedMove_Character_Modifier* SavedOldMove = static_cast<const FSavedMove_Character_Modifier*>(OldMove);
+
+	if (UModifierMovement* MoveComp = C ? Cast<UModifierMovement>(C->GetCharacterMovement()) : nullptr)
+	{
+		MoveComp->BoostLocal.CombineWith(SavedOldMove->BoostLocal.WantsModifiers);
+		MoveComp->BoostCorrection.CombineWith(SavedOldMove->BoostCorrection.WantsModifiers);
+
+		MoveComp->SlowFallLocal.CombineWith(SavedOldMove->SlowFallLocal.WantsModifiers);
+
+		MoveComp->BoostLevel = SavedOldMove->BoostLevel;
+		MoveComp->SnareLevel = SavedOldMove->SnareLevel;
+		MoveComp->SlowFallLevel = SavedOldMove->SlowFallLevel;
+	}
+}
+
+void FSavedMove_Character_Modifier::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
+{
+	// When considering whether to delay or combine moves, we need to compare the move at the start and the end
+	if (const UModifierMovement* MoveComp = C ? Cast<UModifierMovement>(C->GetCharacterMovement()) : nullptr)
+	{
+		BoostCorrection.PostUpdate(MoveComp->BoostCorrection.Data.Modifiers);
+		BoostServer.PostUpdate(MoveComp->BoostServer.Data.Modifiers);
+		SnareServer.PostUpdate(MoveComp->SnareServer.Data.Modifiers);
+
+		// if (PostUpdateMode == PostUpdate_Record)
+	}
+
+	Super::PostUpdate(C, PostUpdateMode);
+}
+
+bool FSavedMove_Character_Modifier::IsImportantMove(const FSavedMovePtr& LastAckedMove) const
+{
+	// Important moves get sent again if not acked by the server
+	
+	const TSharedPtr<FSavedMove_Character_Modifier>& SavedMove = StaticCastSharedPtr<FSavedMove_Character_Modifier>(LastAckedMove);
+
+	if (BoostLocal.IsImportantMove(SavedMove->BoostLocal.WantsModifiers)) { return true; }
+	if (BoostCorrection.IsImportantMove(SavedMove->BoostCorrection.WantsModifiers))	{ return true; }
+	if (SlowFallLocal.IsImportantMove(SavedMove->SlowFallLocal.WantsModifiers)) { return true; }
+	
+	return Super::IsImportantMove(LastAckedMove);
+}
+
+FSavedMovePtr FNetworkPredictionData_Client_Character_Modifier::AllocateNewMove()
+{
+	return MakeShared<FSavedMove_Character_Modifier>();
+}
+
+FNetworkPredictionData_Client* UModifierMovement::GetPredictionData_Client() const
+{
+	if (ClientPredictionData == nullptr)
+	{
+		UModifierMovement* MutableThis = const_cast<UModifierMovement*>(this);
+		MutableThis->ClientPredictionData = new FNetworkPredictionData_Client_Character_Modifier(*this);
+	}
+
+	return ClientPredictionData;
 }

@@ -30,13 +30,6 @@ void AModifierCharacter::OnModifierChanged(const FGameplayTag& ModifierType, con
 void AModifierCharacter::OnModifierAdded(const FGameplayTag& ModifierType, const FGameplayTag& ModifierLevel,
 	const FGameplayTag& PrevModifierLevel)
 {
-	if (ModifierMovement)
-	{
-		if (ModifierType == FModifierTags::Modifier_SlowFall)
-		{
-			ModifierMovement->OnStartSlowFall();
-		}
-	}
 	K2_OnModifierAdded(ModifierType, ModifierLevel, PrevModifierLevel);
 }
 

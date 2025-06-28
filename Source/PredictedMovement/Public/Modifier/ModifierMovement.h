@@ -291,8 +291,6 @@ public:
 	uint8 GetSlowFallLevelIndex(const FGameplayTag& Level) const { return SlowFallLevels.IndexOfByKey(Level) > INDEX_NONE ? SlowFallLevels.IndexOfByKey(Level) : UINT8_MAX; }
 	virtual bool CanSlowFallInCurrentState() const;
 
-	virtual void OnStartSlowFall();
-
 	virtual float GetSlowFallGravityZScalar() const { return GetSlowFallParams() ? GetSlowFallParams()->GetGravityScalar(Velocity) : 1.f; }
 
 	/* ~SlowFall Implementation */

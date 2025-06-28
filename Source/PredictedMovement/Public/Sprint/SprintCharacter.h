@@ -24,7 +24,7 @@ protected:
 protected:
 	/** Set by character movement to specify that this Character is currently Sprinting. */
 	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsSprinting, Category=Character)
-	uint32 bIsSprinting:1;
+	uint8 bIsSprinting:1;
 	
 public:
 	ASprintCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());

@@ -46,6 +46,9 @@ https://youtu.be/SHVm57AMruc
 
 # Changelog
 
+### 2.0.1
+* Change from `uint32:1` to `uint8:1`
+
 ### 2.0.0
 * Movement Modifiers added
   * Supports Local Predicted & Server Initiated modifiers

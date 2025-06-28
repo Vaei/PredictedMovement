@@ -137,7 +137,7 @@ UPredictedCharacterMovement::UPredictedCharacterMovement(const FObjectInitialize
 	bProneLocked = false;
 }
 
-void FPredMoveResponseDataContainer::ServerFillResponseData(const UCharacterMovementComponent& CharacterMovement,
+void FPredictedMoveResponseDataContainer::ServerFillResponseData(const UCharacterMovementComponent& CharacterMovement,
 	const FClientAdjustment& PendingAdjustment)
 {
 	Super::ServerFillResponseData(CharacterMovement, PendingAdjustment);
@@ -148,7 +148,7 @@ void FPredMoveResponseDataContainer::ServerFillResponseData(const UCharacterMove
 	Stamina = MoveComp->GetStamina();
 }
 
-bool FPredMoveResponseDataContainer::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,
+bool FPredictedMoveResponseDataContainer::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,
 	UPackageMap* PackageMap)
 {
 	if (!Super::Serialize(CharacterMovement, Ar, PackageMap))
@@ -166,7 +166,7 @@ bool FPredMoveResponseDataContainer::Serialize(UCharacterMovementComponent& Char
 	return !Ar.IsError();
 }
 
-void FPredNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove,
+void FPredictedNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove,
 	ENetworkMoveType MoveType)
 {
 	// Client packs move data to send to the server
@@ -179,11 +179,11 @@ void FPredNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Character&
 	// >> ServerMovePacked_ServerReceive ➜ ServerMove_HandleMoveData ➜ ServerMove_PerformMovement
 	// ➜ MoveAutonomous (UpdateFromCompressedFlags)
 	
-	const FSavedMove_Character_Pred& SavedMove = static_cast<const FSavedMove_Character_Pred&>(ClientMove);
+	const FPredictedSavedMove& SavedMove = static_cast<const FPredictedSavedMove&>(ClientMove);
 	Stamina = SavedMove.EndStamina;
 }
 
-bool FPredNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,
+bool FPredictedNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar,
 	UPackageMap* PackageMap, ENetworkMoveType MoveType)
 {
 	Super::Serialize(CharacterMovement, Ar, PackageMap, MoveType);
@@ -1559,7 +1559,7 @@ void UPredictedCharacterMovement::OnClientCorrectionReceived(class FNetworkPredi
 	// Server >> SendClientAdjustment() ➜ ServerSendMoveResponse() ➜ ServerFillResponseData() + MoveResponsePacked_ServerSend() >> Client
 	// >> ClientMoveResponsePacked() ➜ ClientHandleMoveResponse() ➜ ClientAdjustPosition_Implementation() ➜ OnClientCorrectionReceived()
 	
-	const FPredMoveResponseDataContainer& PredMoveResponse = static_cast<const FPredMoveResponseDataContainer&>(GetMoveResponseDataContainer());
+	const FPredictedMoveResponseDataContainer& PredMoveResponse = static_cast<const FPredictedMoveResponseDataContainer&>(GetMoveResponseDataContainer());
 
 	SetStamina(PredMoveResponse.Stamina);
 	SetStaminaDrained(PredMoveResponse.bStaminaDrained);
@@ -1585,7 +1585,7 @@ bool UPredictedCharacterMovement::ServerCheckClientError(float ClientTimeStamp, 
 	 * NetworkStaminaCorrectionThreshold (2.f default) units from the one in the server
 	 * De-syncs can happen if we set the Stamina directly in Gameplay code (ie: GAS)
 	 */
-	const FPredNetworkMoveData* CurrentMoveData = static_cast<const FPredNetworkMoveData*>(GetCurrentNetworkMoveData());
+	const FPredictedNetworkMoveData* CurrentMoveData = static_cast<const FPredictedNetworkMoveData*>(GetCurrentNetworkMoveData());
 	if (!FMath::IsNearlyEqual(CurrentMoveData->Stamina, Stamina, NetworkStaminaCorrectionThreshold))
 	{
 		return true;
@@ -1605,7 +1605,7 @@ void UPredictedCharacterMovement::UpdateFromCompressedFlags(uint8 Flags)
 	bWantsToAimDownSights = (Flags & FSavedMove_Character::FLAG_Reserved_2) != 0;
 }
 
-uint8 FSavedMove_Character_Pred::GetCompressedFlags() const
+uint8 FPredictedSavedMove::GetCompressedFlags() const
 {
 	uint8 Result = Super::GetCompressedFlags();
 
@@ -1637,7 +1637,7 @@ uint8 FSavedMove_Character_Pred::GetCompressedFlags() const
 	return Result;
 }
 
-void FSavedMove_Character_Pred::Clear()
+void FPredictedSavedMove::Clear()
 {
 	Super::Clear();
 
@@ -1655,7 +1655,7 @@ void FSavedMove_Character_Pred::Clear()
 	EndStamina = 0.f;
 }
 
-void FSavedMove_Character_Pred::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel,
+void FPredictedSavedMove::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel,
 	FNetworkPredictionData_Client_Character& ClientData)
 {
 	Super::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
@@ -1671,7 +1671,7 @@ void FSavedMove_Character_Pred::SetMoveFor(ACharacter* C, float InDeltaTime, FVe
 	}
 }
 
-void FSavedMove_Character_Pred::PrepMoveFor(ACharacter* C)
+void FPredictedSavedMove::PrepMoveFor(ACharacter* C)
 {
 	Super::PrepMoveFor(C);
 	
@@ -1681,7 +1681,7 @@ void FSavedMove_Character_Pred::PrepMoveFor(ACharacter* C)
 	}
 }
 
-bool FSavedMove_Character_Pred::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter,
+bool FPredictedSavedMove::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter,
 	float MaxDelta) const
 {
 	// We combine moves for the purpose of reducing the number of moves sent to the server, especially when exceeding
@@ -1698,7 +1698,7 @@ bool FSavedMove_Character_Pred::CanCombineWith(const FSavedMovePtr& NewMove, ACh
 	// Since combining will happen before processing a move, PendingMove might end up being processed twice; once last
 	// frame, and once as part of the new combined move.
 	
-	const TSharedPtr<FSavedMove_Character_Pred>& SavedMove = StaticCastSharedPtr<FSavedMove_Character_Pred>(NewMove);
+	const TSharedPtr<FPredictedSavedMove>& SavedMove = StaticCastSharedPtr<FPredictedSavedMove>(NewMove);
 
 	if (bStaminaDrained != SavedMove->bStaminaDrained)
 	{
@@ -1711,12 +1711,12 @@ bool FSavedMove_Character_Pred::CanCombineWith(const FSavedMovePtr& NewMove, ACh
 	return Super::CanCombineWith(NewMove, InCharacter, MaxDelta);
 }
 
-void FSavedMove_Character_Pred::CombineWith(const FSavedMove_Character* OldMove, ACharacter* C,
+void FPredictedSavedMove::CombineWith(const FSavedMove_Character* OldMove, ACharacter* C,
 	APlayerController* PC, const FVector& OldStartLocation)
 {
 	Super::CombineWith(OldMove, C, PC, OldStartLocation);
 
-	const FSavedMove_Character_Pred* SavedOldMove = static_cast<const FSavedMove_Character_Pred*>(OldMove);
+	const FPredictedSavedMove* SavedOldMove = static_cast<const FPredictedSavedMove*>(OldMove);
 
 	if (UPredictedCharacterMovement* MoveComp = C ? Cast<UPredictedCharacterMovement>(C->GetCharacterMovement()) : nullptr)
 	{
@@ -1725,7 +1725,7 @@ void FSavedMove_Character_Pred::CombineWith(const FSavedMove_Character* OldMove,
 	}
 }
 
-void FSavedMove_Character_Pred::SetInitialPosition(ACharacter* C)
+void FPredictedSavedMove::SetInitialPosition(ACharacter* C)
 {
 	// To counter the PendingMove potentially being processed twice, we need to make sure to reset the state of the CMC
 	// back to the "InitialPosition" (state) it had before the PendingMove got processed.
@@ -1740,7 +1740,7 @@ void FSavedMove_Character_Pred::SetInitialPosition(ACharacter* C)
 	}
 }
 
-void FSavedMove_Character_Pred::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
+void FPredictedSavedMove::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
 {
 	// When considering whether to delay or combine moves, we need to compare the move at the start and the end
 	if (const UPredictedCharacterMovement* MoveComp = C ? Cast<UPredictedCharacterMovement>(C->GetCharacterMovement()) : nullptr)
@@ -1760,9 +1760,9 @@ void FSavedMove_Character_Pred::PostUpdate(ACharacter* C, EPostUpdateMode PostUp
 	Super::PostUpdate(C, PostUpdateMode);
 }
 
-FSavedMovePtr FNetworkPredictionData_Client_Character_Pred::AllocateNewMove()
+FSavedMovePtr FPredictedNetworkPredictionData_Client::AllocateNewMove()
 {
-	return MakeShared<FSavedMove_Character_Pred>();
+	return MakeShared<FPredictedSavedMove>();
 }
 
 void UPredictedCharacterMovement::TickCharacterPose(float DeltaTime)
@@ -1828,7 +1828,7 @@ FNetworkPredictionData_Client* UPredictedCharacterMovement::GetPredictionData_Cl
 	if (ClientPredictionData == nullptr)
 	{
 		UPredictedCharacterMovement* MutableThis = const_cast<UPredictedCharacterMovement*>(this);
-		MutableThis->ClientPredictionData = new FNetworkPredictionData_Client_Character_Pred(*this);
+		MutableThis->ClientPredictionData = new FPredictedNetworkPredictionData_Client(*this);
 	}
 
 	return ClientPredictionData;

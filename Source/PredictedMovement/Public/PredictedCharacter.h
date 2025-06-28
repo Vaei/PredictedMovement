@@ -25,7 +25,7 @@ private:
 	UPROPERTY(BlueprintReadOnly, Category=Character, meta=(AllowPrivateAccess = "true"))
 	TObjectPtr<UPredictedCharacterMovement> PredMovement;
 
-	friend class FSavedMove_Character_Pred;
+	friend class FPredictedSavedMove;
 protected:
 	FORCEINLINE UPredictedCharacterMovement* GetPredCharacterMovement() const { return PredMovement; }
 

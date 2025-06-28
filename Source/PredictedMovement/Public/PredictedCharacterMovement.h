@@ -10,7 +10,7 @@
 
 class APredictedCharacter;
 
-struct PREDICTEDMOVEMENT_API FPredMoveResponseDataContainer : FCharacterMoveResponseDataContainer
+struct PREDICTEDMOVEMENT_API FPredictedMoveResponseDataContainer : FCharacterMoveResponseDataContainer
 {  // Server ➜ Client
 	using Super = FCharacterMoveResponseDataContainer;
 
@@ -21,12 +21,12 @@ struct PREDICTEDMOVEMENT_API FPredMoveResponseDataContainer : FCharacterMoveResp
 	virtual bool Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap) override;
 };
 
-struct PREDICTEDMOVEMENT_API FPredNetworkMoveData : FCharacterNetworkMoveData
+struct PREDICTEDMOVEMENT_API FPredictedNetworkMoveData : FCharacterNetworkMoveData
 {  // Client ➜ Server
 public:
 	using Super = FCharacterNetworkMoveData;
  
-	FPredNetworkMoveData()
+	FPredictedNetworkMoveData()
 		: Stamina(0)
 	{}
 
@@ -36,12 +36,12 @@ public:
 	virtual bool Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap, ENetworkMoveType MoveType) override;
 };
  
-struct PREDICTEDMOVEMENT_API FPredNetworkMoveDataContainer : FCharacterNetworkMoveDataContainer
+struct PREDICTEDMOVEMENT_API FPredictedNetworkMoveDataContainer : FCharacterNetworkMoveDataContainer
 {  // Client ➜ Server
 public:
 	using Super = FCharacterNetworkMoveDataContainer;
  
-	FPredNetworkMoveDataContainer()
+	FPredictedNetworkMoveDataContainer()
 	{
 		NewMoveData = &MoveData[0];
 		PendingMoveData = &MoveData[1];
@@ -49,7 +49,7 @@ public:
 	}
  
 private:
-	FPredNetworkMoveData MoveData[3];
+	FPredictedNetworkMoveData MoveData[3];
 };
 
 /**
@@ -678,8 +678,8 @@ protected:
 	virtual void TickCharacterPose(float DeltaTime) override;  // ACharacter::GetAnimRootMotionTranslationScale() is non-virtual so we have to duplicate this entire function
 	
 private:
-	FPredNetworkMoveDataContainer PredMoveDataContainer;
-	FPredMoveResponseDataContainer PredMoveResponseDataContainer;
+	FPredictedNetworkMoveDataContainer PredMoveDataContainer;
+	FPredictedMoveResponseDataContainer PredMoveResponseDataContainer;
 	
 public:
 	/** Get prediction data for a client game. Should not be used if not running as a client. Allocates the data on demand and can be overridden to allocate a custom override if desired. Result must be a FNetworkPredictionData_Client_Character. */
@@ -689,12 +689,12 @@ protected:
 	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
 };
 
-class PREDICTEDMOVEMENT_API FSavedMove_Character_Pred : public FSavedMove_Character
+class PREDICTEDMOVEMENT_API FPredictedSavedMove : public FSavedMove_Character
 {
 	using Super = FSavedMove_Character;
 
 public:
-	FSavedMove_Character_Pred()
+	FPredictedSavedMove()
 		: bWantsToAimDownSights(0)
 		, bWantsToProne(0)
 		, bProneLocked(0)
@@ -706,7 +706,7 @@ public:
 		, EndStamina(0)
 	{}
 
-	virtual ~FSavedMove_Character_Pred() override
+	virtual ~FPredictedSavedMove() override
 	{}
 
 	uint8 bWantsToAimDownSights:1;
@@ -747,12 +747,12 @@ public:
 	virtual void PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode) override;
 };
 
-class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Pred : public FNetworkPredictionData_Client_Character
+class PREDICTEDMOVEMENT_API FPredictedNetworkPredictionData_Client : public FNetworkPredictionData_Client_Character
 {
 	using Super = FNetworkPredictionData_Client_Character;
 
 public:
-	FNetworkPredictionData_Client_Character_Pred(const UCharacterMovementComponent& ClientMovement)
+	FPredictedNetworkPredictionData_Client(const UCharacterMovementComponent& ClientMovement)
 		: Super(ClientMovement)
 	{}
 

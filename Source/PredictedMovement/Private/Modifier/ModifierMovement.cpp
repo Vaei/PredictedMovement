@@ -241,7 +241,7 @@ void UModifierMovement::ProcessModifierMovementState()
 	// Proxies get replicated Modifier state.
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
-		// Check for a change in Modifier state. Players toggle Modifier by changing WantsModifierLevel.
+		// Check for a change in Modifier state. Players toggle Modifier by changing WantsModifier.
 
 		{	// Boost
 			const FGameplayTag PrevBoostLevel = GetBoostLevel();
@@ -313,17 +313,15 @@ void UModifierMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 	const bool bWasSlowFalling = IsSlowFallActive();
 	UpdateModifierMovementState();
 
-	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy && !bWasSlowFalling && IsSlowFallActive())
+	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
-		if (const FFallingModifierParams* SlowFallParams = GetSlowFallParams())
+		// Clear Z velocity if slow fall is active
+		if (!bWasSlowFalling && IsSlowFallActive() && GetSlowFallParams() && GetSlowFallParams()->bRemoveVelocityZOnStart)
 		{
-			if (SlowFallParams->bRemoveVelocityZOnStart)
-			{
-				Velocity.Z = 0.f;
-			}
+			Velocity.Z = 0.f;
 		}
 	}
-
+	
 	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
 }
 

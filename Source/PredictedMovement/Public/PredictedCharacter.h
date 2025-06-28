@@ -5,27 +5,29 @@
 #include "CoreMinimal.h"
 #include "PredTypes.h"
 #include "GameFramework/Character.h"
-#include "PredCharacter.generated.h"
+#include "PredictedCharacter.generated.h"
 
-struct FGameplayTag;
-class UPredMovement;
+class UPredictedCharacterMovement;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FStaminaChangeEvent, float, Stamina, float, PrevStamina);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FStaminaEvent);
 
+/**
+ * @TODO description
+ */
 UCLASS()
-class PREDICTEDMOVEMENT_API APredCharacter : public ACharacter
+class PREDICTEDMOVEMENT_API APredictedCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
 private:
 	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
 	UPROPERTY(BlueprintReadOnly, Category=Character, meta=(AllowPrivateAccess = "true"))
-	TObjectPtr<UPredMovement> PredMovement;
+	TObjectPtr<UPredictedCharacterMovement> PredMovement;
 
 	friend class FSavedMove_Character_Pred;
 protected:
-	FORCEINLINE UPredMovement* GetPredCharacterMovement() const { return PredMovement; }
+	FORCEINLINE UPredictedCharacterMovement* GetPredCharacterMovement() const { return PredMovement; }
 
 protected:
 	/** Set by character movement to specify that this Character is currently Strolling. */
@@ -41,7 +43,7 @@ protected:
 	uint8 bIsSprinting:1;
 	
 public:
-	APredCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	APredictedCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 

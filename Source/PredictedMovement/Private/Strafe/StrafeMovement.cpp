@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2023 Jared Taylor
+﻿// Copyright (c) Jared Taylor
 
 
 #include "Strafe/StrafeMovement.h"

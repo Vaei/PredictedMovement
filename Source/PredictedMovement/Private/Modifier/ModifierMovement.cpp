@@ -236,16 +236,6 @@ bool UModifierMovement::CanSlowFallInCurrentState() const
 	return UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics() && (IsFalling() || IsMovingOnGround());
 }
 
-void UModifierMovement::OnStartSlowFall()
-{
-	if (!HasValidData() || CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
-	{
-		return;
-	}
-	
-
-}
-
 void UModifierMovement::ProcessModifierMovementState()
 {
 	// Proxies get replicated Modifier state.

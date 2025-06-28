@@ -1,12 +1,10 @@
 ﻿// Copyright (c) Jared Taylor
 
 
-#include "PredCharacter.h"
+#include "PredictedCharacter.h"
 
-#include "GameplayTagContainer.h"
 #include "Net/UnrealNetwork.h"
-#include "PredMovement.h"
-#include "PredTags.h"
+#include "PredictedCharacterMovement.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Components/SkeletalMeshComponent.h"
 
@@ -14,15 +12,15 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogPredCharacter, Log, All);
 
-APredCharacter::APredCharacter(const FObjectInitializer& FObjectInitializer)
-	: Super(FObjectInitializer.SetDefaultSubobjectClass<UPredMovement>(CharacterMovementComponentName))
+APredictedCharacter::APredictedCharacter(const FObjectInitializer& FObjectInitializer)
+	: Super(FObjectInitializer.SetDefaultSubobjectClass<UPredictedCharacterMovement>(CharacterMovementComponentName))
 {
-	PredMovement = Cast<UPredMovement>(GetCharacterMovement());
+	PredMovement = Cast<UPredictedCharacterMovement>(GetCharacterMovement());
 
 	PronedEyeHeight = 16.f;
 }
 
-void APredCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void APredictedCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
@@ -39,7 +37,7 @@ void APredCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsSprinting, SharedParams);
 }
 
-void APredCharacter::SetGaitMode(EPredGaitMode NewGaitMode)
+void APredictedCharacter::SetGaitMode(EPredGaitMode NewGaitMode)
 { 
 	if (PredMovement)
 	{
@@ -63,17 +61,17 @@ void APredCharacter::SetGaitMode(EPredGaitMode NewGaitMode)
 	}
 }
 
-EPredGaitMode APredCharacter::GetGaitMode() const
+EPredGaitMode APredictedCharacter::GetGaitMode() const
 {
 	return PredMovement ? PredMovement->GetGaitMode() : EPredGaitMode::Run;
 }
 
-EPredGaitMode APredCharacter::GetGaitSpeed() const
+EPredGaitMode APredictedCharacter::GetGaitSpeed() const
 {
 	return PredMovement ? PredMovement->GetGaitSpeed() : EPredGaitMode::Run;
 }
 
-FString APredCharacter::GetGaitModeString(EPredGaitMode GaitMode)
+FString APredictedCharacter::GetGaitModeString(EPredGaitMode GaitMode)
 {
 	switch (GaitMode)
 	{
@@ -85,7 +83,7 @@ FString APredCharacter::GetGaitModeString(EPredGaitMode GaitMode)
 	}
 }
 
-EPredStance APredCharacter::GetStance() const
+EPredStance APredictedCharacter::GetStance() const
 {
 	if (bIsProned)
 	{
@@ -100,7 +98,7 @@ EPredStance APredCharacter::GetStance() const
 
 /* STROLLING */
 
-void APredCharacter::SetIsStrolling(bool bNewStrolling)
+void APredictedCharacter::SetIsStrolling(bool bNewStrolling)
 {
 	if (bIsStrolling != bNewStrolling)
 	{
@@ -113,7 +111,7 @@ void APredCharacter::SetIsStrolling(bool bNewStrolling)
 	}
 }
 
-void APredCharacter::OnRep_IsStrolling()
+void APredictedCharacter::OnRep_IsStrolling()
 {
 	if (PredMovement)
 	{
@@ -131,12 +129,12 @@ void APredCharacter::OnRep_IsStrolling()
 	}
 }
 
-bool APredCharacter::CanStroll() const
+bool APredictedCharacter::CanStroll() const
 {
 	return !bIsStrolling && GetRootComponent() && !GetRootComponent()->IsSimulatingPhysics();
 }
 
-void APredCharacter::Stroll(bool bClientSimulation)
+void APredictedCharacter::Stroll(bool bClientSimulation)
 {
 	if (PredMovement && CanStroll())
 	{
@@ -156,7 +154,7 @@ void APredCharacter::Stroll(bool bClientSimulation)
 	}
 }
 
-void APredCharacter::UnStroll(bool bClientSimulation)
+void APredictedCharacter::UnStroll(bool bClientSimulation)
 {
 	if (PredMovement)
 	{
@@ -164,19 +162,19 @@ void APredCharacter::UnStroll(bool bClientSimulation)
 	}
 }
 
-void APredCharacter::OnStartStroll()
+void APredictedCharacter::OnStartStroll()
 {
 	K2_OnStartStroll();
 }
 
-void APredCharacter::OnEndStroll()
+void APredictedCharacter::OnEndStroll()
 {
 	K2_OnEndStroll();
 }
 
 /* WALKING */
 
-void APredCharacter::SetIsWalking(bool bNewWalking)
+void APredictedCharacter::SetIsWalking(bool bNewWalking)
 {
 	if (bIsWalking != bNewWalking)
 	{
@@ -189,7 +187,7 @@ void APredCharacter::SetIsWalking(bool bNewWalking)
 	}
 }
 
-void APredCharacter::OnRep_IsWalking()
+void APredictedCharacter::OnRep_IsWalking()
 {
 	if (PredMovement)
 	{
@@ -207,12 +205,12 @@ void APredCharacter::OnRep_IsWalking()
 	}
 }
 
-bool APredCharacter::CanWalk() const
+bool APredictedCharacter::CanWalk() const
 {
 	return !bIsWalking && GetRootComponent() && !GetRootComponent()->IsSimulatingPhysics();
 }
 
-void APredCharacter::Walk(bool bClientSimulation)
+void APredictedCharacter::Walk(bool bClientSimulation)
 {
 	if (PredMovement && CanWalk())
 	{
@@ -232,7 +230,7 @@ void APredCharacter::Walk(bool bClientSimulation)
 	}
 }
 
-void APredCharacter::UnWalk(bool bClientSimulation)
+void APredictedCharacter::UnWalk(bool bClientSimulation)
 {
 	if (PredMovement)
 	{
@@ -240,19 +238,19 @@ void APredCharacter::UnWalk(bool bClientSimulation)
 	}
 }
 
-void APredCharacter::OnStartWalk()
+void APredictedCharacter::OnStartWalk()
 {
 	K2_OnStartWalk();
 }
 
-void APredCharacter::OnEndWalk()
+void APredictedCharacter::OnEndWalk()
 {
 	K2_OnEndWalk();
 }
 
 /* SPRINTING */
 
-void APredCharacter::SetIsSprinting(bool bNewSprinting)
+void APredictedCharacter::SetIsSprinting(bool bNewSprinting)
 {
 	if (bIsSprinting != bNewSprinting)
 	{
@@ -265,22 +263,22 @@ void APredCharacter::SetIsSprinting(bool bNewSprinting)
 	}
 }
 
-bool APredCharacter::IsSprintingAtSpeed() const
+bool APredictedCharacter::IsSprintingAtSpeed() const
 {
 	return PredMovement ? PredMovement->IsSprintingAtSpeed() : false;
 }
 
-bool APredCharacter::IsSprintWithinAllowableInputAngle() const
+bool APredictedCharacter::IsSprintWithinAllowableInputAngle() const
 {
 	return PredMovement && PredMovement->IsSprintWithinAllowableInputAngle();
 }
 
-bool APredCharacter::IsSprintingInEffect() const
+bool APredictedCharacter::IsSprintingInEffect() const
 {
 	return IsSprintingAtSpeed() && IsSprintWithinAllowableInputAngle();
 }
 
-void APredCharacter::OnRep_IsSprinting()
+void APredictedCharacter::OnRep_IsSprinting()
 {
 	if (PredMovement)
 	{
@@ -298,12 +296,12 @@ void APredCharacter::OnRep_IsSprinting()
 	}
 }
 
-bool APredCharacter::CanSprint() const
+bool APredictedCharacter::CanSprint() const
 {
 	return !bIsSprinting && GetRootComponent() && !GetRootComponent()->IsSimulatingPhysics();
 }
 
-void APredCharacter::Sprint(bool bClientSimulation)
+void APredictedCharacter::Sprint(bool bClientSimulation)
 {
 	if (PredMovement && CanSprint())
 	{
@@ -336,7 +334,7 @@ void APredCharacter::Sprint(bool bClientSimulation)
 	}
 }
 
-void APredCharacter::UnSprint(bool bClientSimulation)
+void APredictedCharacter::UnSprint(bool bClientSimulation)
 {
 	if (PredMovement)
 	{
@@ -344,63 +342,63 @@ void APredCharacter::UnSprint(bool bClientSimulation)
 	}
 }
 
-void APredCharacter::OnStartSprint()
+void APredictedCharacter::OnStartSprint()
 {
 	K2_OnStartSprint();
 }
 
-void APredCharacter::OnEndSprint()
+void APredictedCharacter::OnEndSprint()
 {
 	K2_OnEndSprint();
 }
 
 /* STAMINA */
 
-void APredCharacter::OnStaminaChanged(float Stamina, float PrevStamina)
+void APredictedCharacter::OnStaminaChanged(float Stamina, float PrevStamina)
 {
 	K2_OnStaminaChanged(Stamina, PrevStamina);
 	NotifyOnStaminaChanged.Broadcast(Stamina, PrevStamina);
 }
 
-void APredCharacter::OnMaxStaminaChanged(float MaxStamina, float PrevMaxStamina)
+void APredictedCharacter::OnMaxStaminaChanged(float MaxStamina, float PrevMaxStamina)
 {
 	K2_OnMaxStaminaChanged(MaxStamina, PrevMaxStamina);
 	NotifyOnMaxStaminaChanged.Broadcast(MaxStamina, PrevMaxStamina);
 }
 
-void APredCharacter::OnStaminaDrained()
+void APredictedCharacter::OnStaminaDrained()
 {
 	K2_OnStaminaDrained();
 	NotifyOnStaminaDrained.Broadcast();
 }
 
-void APredCharacter::OnStaminaDrainRecovered()
+void APredictedCharacter::OnStaminaDrainRecovered()
 {
 	K2_OnStaminaDrainRecovered();
 	NotifyOnStaminaDrainRecovered.Broadcast();
 }
 
-float APredCharacter::GetStamina() const
+float APredictedCharacter::GetStamina() const
 {
 	return PredMovement ? PredMovement->GetStamina() : 0.f;
 }
 
-float APredCharacter::GetMaxStamina() const
+float APredictedCharacter::GetMaxStamina() const
 {
 	return PredMovement ? PredMovement->GetMaxStamina() : 0.f;
 }
 
-float APredCharacter::GetStaminaPct() const
+float APredictedCharacter::GetStaminaPct() const
 {
 	return PredMovement ? PredMovement->GetStaminaPct() : 0.f;
 }
 
-bool APredCharacter::IsStaminaDrained() const
+bool APredictedCharacter::IsStaminaDrained() const
 {
 	return PredMovement ? PredMovement->IsStaminaDrained() : false;
 }
 
-void APredCharacter::SetIsAimingDownSights(bool bNewAimingDownSights)
+void APredictedCharacter::SetIsAimingDownSights(bool bNewAimingDownSights)
 {
 	if (bIsAimingDownSights != bNewAimingDownSights)
 	{
@@ -413,7 +411,7 @@ void APredCharacter::SetIsAimingDownSights(bool bNewAimingDownSights)
 	}
 }
 
-void APredCharacter::OnRep_IsAimingDownSights()
+void APredictedCharacter::OnRep_IsAimingDownSights()
 {
 	if (PredMovement)
 	{
@@ -431,12 +429,12 @@ void APredCharacter::OnRep_IsAimingDownSights()
 	}
 }
 
-bool APredCharacter::CanAimDownSights() const
+bool APredictedCharacter::CanAimDownSights() const
 {
 	return !bIsAimingDownSights && GetRootComponent() && !GetRootComponent()->IsSimulatingPhysics();
 }
 
-void APredCharacter::AimDownSights(bool bClientSimulation)
+void APredictedCharacter::AimDownSights(bool bClientSimulation)
 {
 	if (PredMovement && CanAimDownSights())
 	{
@@ -450,7 +448,7 @@ void APredCharacter::AimDownSights(bool bClientSimulation)
 	}
 }
 
-void APredCharacter::UnAimDownSights(bool bClientSimulation)
+void APredictedCharacter::UnAimDownSights(bool bClientSimulation)
 {
 	if (PredMovement)
 	{
@@ -458,17 +456,17 @@ void APredCharacter::UnAimDownSights(bool bClientSimulation)
 	}
 }
 
-void APredCharacter::OnStartAimDownSights()
+void APredictedCharacter::OnStartAimDownSights()
 {
 	K2_OnStartAimDownSights();
 }
 
-void APredCharacter::OnEndAimDownSights()
+void APredictedCharacter::OnEndAimDownSights()
 {
 	K2_OnEndAimDownSights();
 }
 
-void APredCharacter::RecalculateBaseEyeHeight()
+void APredictedCharacter::RecalculateBaseEyeHeight()
 {
 	if (bIsProned)
 	{
@@ -480,7 +478,7 @@ void APredCharacter::RecalculateBaseEyeHeight()
 	}
 }
 
-void APredCharacter::SetIsProned(bool bNewProned)
+void APredictedCharacter::SetIsProned(bool bNewProned)
 {
 	if (bIsProned != bNewProned)
 	{
@@ -493,7 +491,7 @@ void APredCharacter::SetIsProned(bool bNewProned)
 	}
 }
 
-void APredCharacter::OnRep_IsProned()
+void APredictedCharacter::OnRep_IsProned()
 {
 	if (PredMovement)
 	{
@@ -511,12 +509,12 @@ void APredCharacter::OnRep_IsProned()
 	}
 }
 
-bool APredCharacter::CanProne() const
+bool APredictedCharacter::CanProne() const
 {
 	return !bIsProned && GetRootComponent() && !GetRootComponent()->IsSimulatingPhysics();
 }
 
-void APredCharacter::Crouch(bool bClientSimulation)
+void APredictedCharacter::Crouch(bool bClientSimulation)
 {
 	if (PredMovement)
 	{
@@ -539,7 +537,7 @@ void APredCharacter::Crouch(bool bClientSimulation)
 	}
 }
 
-void APredCharacter::Prone(bool bClientSimulation)
+void APredictedCharacter::Prone(bool bClientSimulation)
 {
 	if (PredMovement && CanProne())
 	{
@@ -553,7 +551,7 @@ void APredCharacter::Prone(bool bClientSimulation)
 	}
 }
 
-void APredCharacter::UnProne(bool bClientSimulation)
+void APredictedCharacter::UnProne(bool bClientSimulation)
 {
 	if (PredMovement)
 	{
@@ -561,7 +559,7 @@ void APredCharacter::UnProne(bool bClientSimulation)
 	}
 }
 
-void APredCharacter::OnStartProne(float HeightAdjust, float ScaledHeightAdjust)
+void APredictedCharacter::OnStartProne(float HeightAdjust, float ScaledHeightAdjust)
 {
 	RecalculateBaseEyeHeight();
 
@@ -580,7 +578,7 @@ void APredCharacter::OnStartProne(float HeightAdjust, float ScaledHeightAdjust)
 	K2_OnStartProne(HeightAdjust, ScaledHeightAdjust);
 }
 
-void APredCharacter::OnEndProne(float HeightAdjust, float ScaledHeightAdjust)
+void APredictedCharacter::OnEndProne(float HeightAdjust, float ScaledHeightAdjust)
 {
 	RecalculateBaseEyeHeight();
 
@@ -601,7 +599,7 @@ void APredCharacter::OnEndProne(float HeightAdjust, float ScaledHeightAdjust)
 	K2_OnEndProne(HeightAdjust, ScaledHeightAdjust);
 }
 
-void APredCharacter::FlushServerMoves()
+void APredictedCharacter::FlushServerMoves()
 {
 	if (PredMovement)
 	{

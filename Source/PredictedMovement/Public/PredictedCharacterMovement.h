@@ -6,9 +6,9 @@
 #include "PredTypes.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "System/PredictedMovementVersioning.h"
-#include "PredMovement.generated.h"
+#include "PredictedCharacterMovement.generated.h"
 
-class APredCharacter;
+class APredictedCharacter;
 
 struct PREDICTEDMOVEMENT_API FPredMoveResponseDataContainer : FCharacterMoveResponseDataContainer
 {  // Server ➜ Client
@@ -53,20 +53,17 @@ private:
 };
 
 /**
- * Identical to the main branch implementation, except using move containers instead of compressed flags
- * This exists for teaching purposes, to show how to use move containers that are 1:1 with the compressed flags
- * Typically compressed flags are only used for a boolean, and move containers are used for more complex data
- * However, compressed flags are a lot cheaper so we wouldn't typically use move containers for a boolean
+ * @TODO description
  */
 UCLASS()
-class PREDICTEDMOVEMENT_API UPredMovement : public UCharacterMovementComponent
+class PREDICTEDMOVEMENT_API UPredictedCharacterMovement : public UCharacterMovementComponent
 {
 	GENERATED_BODY()
 	
 private:
 	/** Character movement component belongs to */
 	UPROPERTY(Transient, DuplicateTransient)
-	TObjectPtr<APredCharacter> PredCharacterOwner;
+	TObjectPtr<APredictedCharacter> PredCharacterOwner;
 
 public:
 	/** Max Acceleration (rate of change of velocity) */
@@ -457,7 +454,7 @@ protected:
 	float ProneLockTimestamp = -1.f;
 	
 public:
-	UPredMovement(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	UPredictedCharacterMovement(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;

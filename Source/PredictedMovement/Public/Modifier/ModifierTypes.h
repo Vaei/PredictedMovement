@@ -4,34 +4,19 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
-#include "NativeGameplayTags.h"
 #include "Curves/CurveFloat.h"
 #include "ModifierTypes.generated.h"
 
-class AModifierCharacter;
-class UModifierMovement;
-
-#define LEVEL_NONE UINT8_MAX
 
 /**
- * The source of the modifier, such as whether it was applied externally or predicted internally
+ * The network type of the modifier, which determines how it is applied and synchronized across clients and servers
  */
 UENUM(BlueprintType)
-enum class EModifierActivationSource : uint8
+enum class EModifierNetType : uint8
 {
-	LocalPredicted		UMETA(ToolTip="The modifier was applied to self predictively, from a self-activated event such as input"),
-	ServerInitiated		UMETA(ToolTip="The modifier was applied externally, such as from a server event or a different character"),
-};
-
-/**
- * The source of the modifier, such as whether it was applied externally or predicted internally
- */
-UENUM(BlueprintType)
-enum class EModifierActivationSources : uint8
-{
-	LocalPredicted		UMETA(ToolTip="The modifier was applied to self predictively, from a self-activated event such as input"),
-	ServerInitiated		UMETA(ToolTip="The modifier was applied externally, such as from a server event"),
-	Both				UMETA(DisplayName = "Both", ToolTip = "Apply to both Self and External activations"),
+	LocalPredicted UMETA(DisplayName="Local Predicted", ToolTip="Locally predicted modifier that respects player input, e.g. Sprinting"),
+	WithCorrection UMETA(DisplayName="Local Predicted + Correction", ToolTip="Locally predicted modifier, but corrected by server when a mismatch occurs, e.g. Equipping a knife that results in higher speed"),
+	ServerInitiated UMETA(DisplayName="Server Initiated", ToolTip="Modifier is applied by the server and sent to the client, e.g. Snared from a damage event on the server"),
 };
 
 /**
@@ -41,18 +26,9 @@ UENUM(BlueprintType)
 enum class EModifierLevelMethod : uint8
 {
 	Max					UMETA(ToolTip="The highest active modifier level will be applied"),
+	Min					UMETA(ToolTip="The lowest active modifier level will be applied"),
 	Stack				UMETA(ToolTip="Level stacks by each modifier that is added. e.g. add a level 1 modifier and a level 4 modifier, and it applies level 5"),
 	Average 			UMETA(ToolTip="The average modifier level will be applied"),
-};
-
-/**
- * The data type used to represent levels
- */
-UENUM()
-enum class EModifierLevelType : uint8
-{
-	FGameplayTag,
-	UEnum,
 };
 
 /**
@@ -64,12 +40,13 @@ struct PREDICTEDMOVEMENT_API FMovementModifierParams
 	GENERATED_BODY()
 
 	FMovementModifierParams(float InMaxWalkSpeed = 1.f, float InMaxAcceleration = 1.f, float InBrakingDeceleration = 1.f,
-		float InGroundFriction = 1.f, float InBrakingFriction = 1.f)
+		float InGroundFriction = 1.f, float InBrakingFriction = 1.f, bool bInAffectsRootMotion = false)
 		: MaxWalkSpeed(InMaxWalkSpeed)
 		, MaxAcceleration(InMaxAcceleration)
 		, BrakingDeceleration(InBrakingDeceleration)
 		, GroundFriction(InGroundFriction)
 		, BrakingFriction(InBrakingFriction)
+		, bAffectsRootMotion(bInAffectsRootMotion)
 	{}
 	
 	/** The maximum ground speed when walking. Also determines maximum lateral speed when falling. */
@@ -105,8 +82,12 @@ struct PREDICTEDMOVEMENT_API FMovementModifierParams
 	 * @note Only used if bUseSeparateBrakingFriction setting is true, otherwise current friction such as GroundFriction is used.
 	 * @see bUseSeparateBrakingFriction, BrakingFrictionFactor, GroundFriction, BrakingDecelerationWalking
 	 */
-	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
 	float BrakingFriction;
+
+	/** If true, this modifier's MaxWalkSpeed scalar affects root motion translation */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
+	bool bAffectsRootMotion;
 };
 
 /**
@@ -161,6 +142,11 @@ struct PREDICTEDMOVEMENT_API FFallingModifierParams
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(EditCondition="bOverrideAirControl", EditConditionHides))
 	float AirControlOverride;
 
+	/**
+	 * Get the gravity scalar based on the current velocity.
+	 * If bGravityScalarFromVelocityZ is true, uses GravityScalarFallVelocityCurve to determine the scalar based on Velocity.Z.
+	 * Otherwise, returns GravityScalar.
+	 */
 	float GetGravityScalar(const FVector& Velocity) const
 	{
 		if (!ensureMsgf(!bGravityScalarFromVelocityZ || GravityScalarFallVelocityCurve != nullptr, TEXT("GravityScalarFallVelocityCurve must be set")))
@@ -170,6 +156,12 @@ struct PREDICTEDMOVEMENT_API FFallingModifierParams
 		return bGravityScalarFromVelocityZ ? GravityScalarFallVelocityCurve->GetFloatValue(Velocity.Z) : GravityScalar;
 	}
 
+	/**
+	 * Get the air control value based on the current air control scalar.
+	 * If bOverrideAirControl is true, returns AirControlOverride.
+	 * Otherwise, returns AirControlScalar multiplied by CurrentAirControl.
+	 * @param CurrentAirControl The current air control value to scale.
+	 */
 	float GetAirControl(float CurrentAirControl) const
 	{
 		return bOverrideAirControl ? AirControlOverride : AirControlScalar * CurrentAirControl;
@@ -177,234 +169,20 @@ struct PREDICTEDMOVEMENT_API FFallingModifierParams
 };
 
 /**
- * Represents a single modifier that can be applied to a character
+ * Client auth parameters for providing client with partial positional authority
+ * These parameters can be used to configure how the client can send position updates to the server
+ * Useful for short bursts of movement that are difficult to sync over the network
  */
-USTRUCT(BlueprintType)
-struct PREDICTEDMOVEMENT_API FMovementModifier
-{
-	GENERATED_BODY()
-
-	FMovementModifier(const EModifierLevelType InLevelType = EModifierLevelType::FGameplayTag, uint8 InMaxModifiers = 3,
-		EModifierLevelMethod InLevelMethod = EModifierLevelMethod::Max)
-		: ModifierType(FGameplayTag::EmptyTag)
-		, LevelMethod(InLevelMethod)
-		, MaxModifiers(InMaxModifiers)
-		, ActivationSource(EModifierActivationSource::LocalPredicted)
-		, LevelType(InLevelType)
-		, RequestedModifierLevel(0)
-		, ModifierLevel(0)
-		, CharacterOwner(nullptr)
-	{}
-
-	FMovementModifier(const FMovementModifier& Clone)
-	{
-		*this = Clone;
-	}
-
-	/** Only copies replicated data */
-	FMovementModifier& operator<<(const FMovementModifier& Clone);
-
-	/**
-	 * We don't check type here, we only want to ensure we're sufficiently matched for prediction purposes.
-	 * We also don't serialize the actual ModifierLevel, which is updated from RequestedModifierLevel.
-	 */
-	bool operator==(const FMovementModifier& Other) const
-	{
-		return RequestedModifierLevel == Other.RequestedModifierLevel && Modifiers == Other.Modifiers;
-	}
-
-	bool operator!=(const FMovementModifier& Other) const
-	{
-		return !(*this == Other);
-	}
-
-	/** ^= is the same as != but it also evaluates the current level rather than only the requested level */
-	bool operator^=(const FMovementModifier& Other) const
-	{
-		return ModifierLevel != Other.ModifierLevel || RequestedModifierLevel != Other.RequestedModifierLevel || Modifiers != Other.Modifiers;
-	}
-
-protected:
-	/** The type of modifier */
-	UPROPERTY(BlueprintReadOnly, Category=Modifier)
-	FGameplayTag ModifierType;
-
-public:
-	const FGameplayTag& GetModifierType() const { return ModifierType; }
-
-	/** The method used to calculate modifier levels */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(EditCondition="MaxModifiers > 1", EditConditionHides))
-	EModifierLevelMethod LevelMethod;
-
-	/**
-	 * The maximum number of modifiers that can be applied at a single time
-	 * Set to 1 to disable stacking
-	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Modifier, meta=(UIMin="1", ClampMin="1"))
-	uint8 MaxModifiers;
-
-	/**
-	 * Whether the modifier was activated by the character itself or externally
-	 * This can be checked against for wrapper functions that apply modifiers if needed, otherwise it isn't used
-	 */
-	UPROPERTY()
-	EModifierActivationSource ActivationSource;
-
-	/** Whether to use UEnum or FGameplayTag to represent levels */
-	UPROPERTY()
-	EModifierLevelType LevelType;
-	
-	/**
-	 * When using FGameplayTag instead of Enum for Levels, the levels here will be available for use in CMC
-	 * Any levels not defined here will be considered invalid, all levels utilized by the modifier must be defined here
-	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Modifier, meta=(EditCondition="LevelType == EModifierLevelType::FGameplayTag", EditConditionHides))
-	FGameplayTagContainer ModifierLevelTags;
-
-protected:
-	UPROPERTY(Transient)
-	TArray<FGameplayTag> ModifierLevels;
-
-public:
-	/** The requested modifier level, similar to the concept of bWantsSprint */
-	UPROPERTY()
-	uint8 RequestedModifierLevel;
-
-	/** The current modifier level, similar to the concept of bIsSprinting */
-	UPROPERTY()
-	uint8 ModifierLevel;
-
-	/** The modifier stack that is currently applied */
-	UPROPERTY()
-	TArray<uint8> Modifiers;
-
-	UPROPERTY(Transient)
-	TWeakObjectPtr<AModifierCharacter> CharacterOwner;
-
-protected:
-	bool HasValidData() const { return CharacterOwner.IsValid(); }
-
-public:
-	// Use either UEnum or FGameplayTag to represent levels, not both
-	
-	/** Used for casting when level is UEnum based */
-	template<typename T>
-	T GetModifierLevel() const
-	{
-		if (!ensureAlwaysMsgf(LevelType == EModifierLevelType::UEnum, TEXT("Should not be called when using FGameplayTag levels")))
-		{
-			return static_cast<T>(LEVEL_NONE);
-		}
-		return static_cast<T>(ModifierLevel);
-	}
-
-	/** Convert UEnum Level Type to byte level */
-	template <typename T>
-	uint8 GetModifierLevelByte(T EnumLevel) const
-	{
-		if (!ensureAlwaysMsgf(LevelType == EModifierLevelType::UEnum, TEXT("Should not be called when using FGameplayTag levels")))
-		{
-			return LEVEL_NONE;
-		}
-		return static_cast<uint8>(EnumLevel);
-	}
-
-	/** Used for gameplay tag conversion when level is gameplay tag based */
-	const FGameplayTag& GetModifierLevel() const
-	{
-		if (!ensureAlwaysMsgf(LevelType == EModifierLevelType::FGameplayTag, TEXT("Should not be called when using UEnum levels")))
-		{
-			return FGameplayTag::EmptyTag;
-		}
-		return ModifierLevels.IsValidIndex(ModifierLevel) ? ModifierLevels[ModifierLevel] : FGameplayTag::EmptyTag;
-	}
-
-	/** Convert Gameplay Tag Level Type to byte level */
-	uint8 GetModifierLevelByte(const FGameplayTag& Level) const
-	{
-		if (!ensureAlwaysMsgf(LevelType == EModifierLevelType::FGameplayTag, TEXT("Should not be called when using UEnum levels")))
-		{
-			return LEVEL_NONE;
-		}
-	
-		// Did you pass the levels as tags in Initialize()?
-		if (ensureAlwaysMsgf(ModifierLevels.Contains(Level), TEXT("Modifier level %s is not valid"), *Level.ToString()))
-		{
-			return ModifierLevels.IndexOfByKey(Level);
-		}
-		return LEVEL_NONE;
-	}
-
-public:
-	bool HasModifier() const
-	{
-		return ModifierLevel > 0;
-	}
-
-	bool WantsModifier() const
-	{
-		return RequestedModifierLevel > 0;
-	}
-
-	uint8 GetNumModifiers() const { return Modifiers.Num();	}
-	uint8 GetNumModifiersByLevel(uint8 Level) const;
-
-	/**
-	 * Initialization is mandatory
-	 * @param InCharacterOwner The character that owns this modifier
-	 * @param InModifierType The type of modifier
-	 */
-	void Initialize(AModifierCharacter* InCharacterOwner, const FGameplayTag& InModifierType);
-	bool HasInitialized() const { return ModifierType.IsValid(); }
-
-	void AddModifier(uint8 Level);
-	void RemoveModifier(uint8 Level);
-	void RemoveAllModifiers();
-	void RemoveAllModifiersByLevel(uint8 Level);
-	void RemoveAllModifiersExceptLevel(uint8 Level);
-	
-	void SetModifiers(const TArray<uint8>& NewModifiers);
-	void SetModifierLevel(uint8 Level);
-
-	void OnModifiersChanged();
-
-	void StartModifier(uint8 Level, bool bCanApplyModifier, bool bClientSimulation = false, uint8 PrevSimulatedLevel = 0);
-	void EndModifier(bool bClientSimulation = false, uint8 PrevSimulatedLevel = 0);
-
-	void UpdateCharacterStateBeforeMovement(bool bCanApplyModifier);
-	void UpdateCharacterStateAfterMovement(bool bCanApplyModifier);
-
-public:
-	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
-};
-
-template<>
-struct TStructOpsTypeTraits<FMovementModifier> : TStructOpsTypeTraitsBase2<FMovementModifier>
-{
-	enum
-	{
-		WithNetSerializer = true
-	};
-};
-
 USTRUCT(BlueprintType)
 struct PREDICTEDMOVEMENT_API FClientAuthParams
 {
 	GENERATED_BODY()
 
-	FClientAuthParams()
+	FClientAuthParams(int32 InPriority = 99)
 		: bEnableClientAuth(true)
 		, ClientAuthTime(1.2f)
-		, MaxClientAuthDistance(150.f)
-		, RejectClientAuthDistance(900.f)
-		, Priority(99)
-	{}
-	
-	FClientAuthParams(int32 InPriority)
-		: bEnableClientAuth(true)
-		, ClientAuthTime(1.2f)
-		, MaxClientAuthDistance(150.f)
-		, RejectClientAuthDistance(900.f)
+		, MaxClientAuthDistance(35.f)
+		, RejectClientAuthDistance(500.f)
 		, Priority(InPriority)
 	{}
 
@@ -461,45 +239,52 @@ struct PREDICTEDMOVEMENT_API FClientAuthData
 	FClientAuthData()
 		: Alpha(0.f)
 		, TimeRemaining(0.f)
-		, Id(FGuid())
+		, Id(0)
 		, Source(FGameplayTag::EmptyTag)
 		, Priority(99)
 	{}
 
-	FClientAuthData(const FGameplayTag& InSource, float InTimeRemaining, int32 InPriority)
+	FClientAuthData(const FGameplayTag& InSource, float InTimeRemaining, int32 InPriority, uint64 InId)
 		: Alpha(0.f)
 		, TimeRemaining(InTimeRemaining)
-		, Id(FGuid::NewGuid())
+		, Id(InId)
 		, Source(InSource)
 		, Priority(InPriority)
 	{}
 
-	FClientAuthData(const FGameplayTag& InSource, float InTimeRemaining, float InAlpha, int32 InPriority)
+	FClientAuthData(const FGameplayTag& InSource, float InTimeRemaining, float InAlpha, int32 InPriority, uint64 InId)
 		: Alpha(InAlpha)
 		, TimeRemaining(InTimeRemaining)
-		, Id(FGuid::NewGuid())
+		, Id(InId)
 		, Source(InSource)
 		, Priority(InPriority)
 	{}
 
+	/** The alpha value of the client auth data, used to determine how much authority the client has */
 	UPROPERTY()
 	float Alpha;
-	
+
+	/** The time remaining for the client to have positional authority */
 	UPROPERTY()
 	float TimeRemaining;
 
 	UPROPERTY()
-	FGuid Id;
-	
+	uint64 Id;
+
+	/** The source of the client auth data, used to determine which gameplay tag this data is associated with */
 	UPROPERTY()
 	FGameplayTag Source;
-	
+
+	/**
+	 * The priority of the client auth data, used to determine which data to use when multiple sources are present
+	 * Lower values are more important
+	 */
 	UPROPERTY()
 	int32 Priority;
 
 	bool IsValid() const
 	{
-		return Id.IsValid() && Source.IsValid();
+		return Id != 0 && Source.IsValid();
 	}
 
 	bool operator==(const FClientAuthData& Other) const
@@ -524,6 +309,7 @@ struct PREDICTEDMOVEMENT_API FClientAuthStack
 	FClientAuthStack()
 	{}
 
+	/** Stack of client auth data */
 	UPROPERTY()
 	TArray<FClientAuthData> Stack;
 
@@ -537,6 +323,10 @@ struct PREDICTEDMOVEMENT_API FClientAuthStack
 		return !(*this == Other);
 	}
 
+	/**
+	 * Sorts the stack by priority, in ascending order
+	 * Lower priority values are more important
+	 */
 	void SortByPriority()
 	{
 		Stack.Sort([](const FClientAuthData& A, const FClientAuthData& B)
@@ -545,6 +335,11 @@ struct PREDICTEDMOVEMENT_API FClientAuthStack
 		});
 	}
 
+	/**
+	 * Filters the stack by priority, returning only the data with the specified priority
+	 * @param Priority The priority to filter by
+	 * @return An array of FClientAuthData with the specified priority
+	 */
 	TArray<FClientAuthData> FilterPriority(int32 Priority) const
 	{
 		return Stack.FilterByPredicate([Priority](const FClientAuthData& AuthData)
@@ -553,6 +348,9 @@ struct PREDICTEDMOVEMENT_API FClientAuthStack
 		});
 	}
 
+	/**
+	 * Determines the lowest priority in the stack
+	 */
 	int32 DetermineLowestPriority()
 	{
 		if (Stack.Num() == 0)
@@ -620,6 +418,10 @@ struct PREDICTEDMOVEMENT_API FClientAuthStack
 		});
 	}
 
+	/**
+	 * Updates the time remaining for each client auth data in the stack
+	 * And removes any data that has expired (TimeRemaining <= 0)
+	 */
 	void Update(float DeltaTime)
 	{
 		Stack.RemoveAll([DeltaTime](FClientAuthData& Data)

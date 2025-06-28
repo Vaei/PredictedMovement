@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ModifierTypes.h"
 #include "PredTypes.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "System/PredictedMovementVersioning.h"
@@ -17,8 +16,6 @@ struct PREDICTEDMOVEMENT_API FPredMoveResponseDataContainer : FCharacterMoveResp
 
 	float Stamina;
 	bool bStaminaDrained;
-	
-	FMovementModifier Snare;
 	
 	virtual void ServerFillResponseData(const UCharacterMovementComponent& CharacterMovement, const FClientAdjustment& PendingAdjustment) override;
 	virtual bool Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap) override;
@@ -34,12 +31,6 @@ public:
 	{}
 
 	float Stamina;
-
-	FMovementModifier Boost;
-	FMovementModifier Haste;
-	FMovementModifier Slow;
-	FMovementModifier SlowFall;
-	FMovementModifier Snare;
 
 	virtual void ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove, ENetworkMoveType MoveType) override;
 	virtual bool Serialize(UCharacterMovementComponent& CharacterMovement, FArchive& Ar, UPackageMap* PackageMap, ENetworkMoveType MoveType) override;
@@ -660,298 +651,9 @@ public:
 	virtual bool CanCrouchInCurrentState() const override;
 
 public:
-	/* Boost (Non-Generic) Implementation */
-	
-	/**
-	 * Boost increases movement speed and acceleration
-	 * Scaling applied on a per-boost-level basis
-	 * Every tag defined here must also be defined in the FModifierData Boost property
-	 */
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
-	TMap<FGameplayTag, FMovementModifierParams> BoostLevels;
-
-	/**
-	 * If True, Boost will affect root motion
-	 * This allows boosts to scale up root motion translation
-	 * This is disabled by default because it can increase attack range, dodge range, etc.
-	 */
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
-	bool bBoostAffectsRootMotion = false;
-
-	/** Example implementation of a local predicted buff modifier that can stack */
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
-	FMovementModifier Boost;
-	
-	UFUNCTION(BlueprintCallable, Category="Character Movement: Walking")
-	const FGameplayTag& GetBoostLevel() const
-	{
-		return Boost.GetModifierLevel();
-	}
-
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking")
-	bool IsBoosted() const
-	{
-		return Boost.HasModifier();
-	}
-
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking")
-	bool WantsBoost() const
-	{
-		return Boost.WantsModifier();
-	}
-
-	/**
-	 * @param ModifierLevel The level to check for - optional, leave empty if check is generic
-	 * @return True if we can boost
-	 */
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(FilterGameplayTag="Modifier.Type.Local.Boost"))
-	virtual bool CanBoostInCurrentState(FGameplayTag ModifierLevel) const;
-
-	virtual void OnStartBoost() {}
-	virtual void OnEndBoost() {}
-
-	/* ~Boost (Non-Generic) Implementation */
-
-public:
-	/* Haste (Non-Generic) Implementation */
-	
-	/**
-	 * Haste increases movement speed and acceleration but only while Sprinting is in effect
-	 * Scaling applied on a per-haste-level basis
-	 * Every tag defined here must also be defined in the FModifierData Haste property
-	 */
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
-	TMap<FGameplayTag, FMovementModifierParams> HasteLevels;
-
-	/** Example implementation of a local predicted buff modifier that can stack */
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
-	FMovementModifier Haste;
-	
-	UFUNCTION(BlueprintCallable, Category="Character Movement: Walking")
-	const FGameplayTag& GetHasteLevel() const
-	{
-		return Haste.GetModifierLevel();
-	}
-
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking")
-	bool IsHaste() const
-	{
-		return Haste.HasModifier();
-	}
-
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking")
-	bool WantsHaste() const
-	{
-		return Haste.WantsModifier();
-	}
-
-	/**
-	 * @param ModifierLevel The level to check for - optional, leave empty if check is generic
-	 * @return True if we can Haste
-	 */
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(FilterGameplayTag="Modifier.Type.Local.Haste"))
-	virtual bool CanHasteInCurrentState(FGameplayTag ModifierLevel) const;
-
-	virtual void OnStartHaste() {}
-	virtual void OnEndHaste() {}
-
-	/* ~Haste (Non-Generic) Implementation */
-
-public:
-	/* Slow (Non-Generic) Implementation */
-	
-	/**
-	 * Slow decreases movement speed and acceleration
-	 * Scaling applied on a per-haste-level basis
-	 * Every tag defined here must also be defined in the FModifierData Slow property
-	 */
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
-	TMap<FGameplayTag, FMovementModifierParams> SlowLevels;
-
-	/**
-	 * If True, Slow will affect root motion
-	 * This allows Slows to scale up root motion translation
-	 * This is disabled by default because it can increase attack range, dodge range, etc.
-	 */
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
-	bool bSlowAffectsRootMotion = false;
-
-	/** Example implementation of a local predicted buff modifier that can stack */
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
-	FMovementModifier Slow;
-	
-	UFUNCTION(BlueprintCallable, Category="Character Movement: Walking")
-	const FGameplayTag& GetSlowLevel() const
-	{
-		return Slow.GetModifierLevel();
-	}
-
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking")
-	bool IsSlowed() const
-	{
-		return Slow.HasModifier();
-	}
-
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking")
-	bool WantsSlow() const
-	{
-		return Slow.WantsModifier();
-	}
-
-	/**
-	 * @param ModifierLevel The level to check for - optional, leave empty if check is generic
-	 * @return True if we can Slow
-	 */
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(FilterGameplayTag="Modifier.Type.Local.Slow"))
-	virtual bool CanSlowInCurrentState(FGameplayTag ModifierLevel) const;
-
-	virtual void OnStartSlow() {}
-	virtual void OnEndSlow() {}
-
-	/* ~Slow (Non-Generic) Implementation */
-	
-public:
-	/* SlowFall (Non-Generic) Implementation */
-	
-	/**
-	 * SlowFall reduces falling speed and acceleration
-	 * Scaling applied on a per-slow-fall-level basis
-	 * Every tag defined here must also be defined in the FModifierData SlowFall property
-	 */
-	UPROPERTY(Category="Character Movement: Jumping / Falling", EditAnywhere, BlueprintReadWrite)
-	TMap<FGameplayTag, FFallingModifierParams> SlowFallLevels;
-
-	/** Example implementation of a local predicted buff modifier that can stack */
-	UPROPERTY(Category="Character Movement: Jumping / Falling", EditAnywhere, BlueprintReadWrite)
-	FMovementModifier SlowFall;
-	
-	UFUNCTION(BlueprintCallable, Category="Character Movement: Jumping / Falling")
-	const FGameplayTag& GetSlowFallLevel() const
-	{
-		return SlowFall.GetModifierLevel();
-	}
-
-	UFUNCTION(BlueprintPure, Category="Character Movement: Jumping / Falling")
-	bool IsSlowFall() const
-	{
-		return SlowFall.HasModifier();
-	}
-	
-	UFUNCTION(BlueprintPure, Category="Character Movement: Jumping / Falling")
-	bool WantsSlowFall() const
-	{
-		return SlowFall.WantsModifier();
-	}
-
-	/**
-	 * @param ModifierLevel The level to check for - optional, leave empty if check is generic
-	 * @return True if we can slow fall
-	 */
-	UFUNCTION(BlueprintPure, Category="Character Movement: Jumping / Falling", meta=(FilterGameplayTag="Modifier.Type.Local.SlowFall"))
-	virtual bool CanSlowFallInCurrentState(FGameplayTag ModifierLevel) const;
-
-	virtual void OnStartSlowFall();
-	virtual void OnEndSlowFall() {}
-
-	/* ~SlowFall (Non-Generic) Implementation */
-
-public:
-	/* Snare (Non-Generic) Implementation */
-
-	/**
-	 * Snare reduces movement speed and acceleration
-	 * Scaling applied on a per-snare-level basis
-	 * Every tag defined here must also be defined in the FModifierData Snare property
-	 */
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
-	TMap<FGameplayTag, FMovementModifierParams> SnareLevels;
-
-	/**
-	 * If True, Snare will affect root motion
-	 * This allows snares to scale down root motion translation
-	 */
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ForceUnits="x"))
-	bool bSnareAffectsRootMotion = true;
-
-	/** Example implementation of an externally applied non-predicted debuff modifier that can stack */
-	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
-	FMovementModifier Snare;
-
-	UFUNCTION(BlueprintCallable, Category="Character Movement: Walking")
-	const FGameplayTag& GetSnareLevel() const
-	{
-		return Snare.GetModifierLevel();
-	}
-
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking")
-	bool IsSnared() const
-	{
-		return Snare.HasModifier();
-	}
-	
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking")
-	bool WantsSnare() const
-	{
-		return Snare.WantsModifier();
-	}
-
-	/**
-	 * @param ModifierLevel The level to check for - optional, leave empty if check is generic
-	 * @return True if we can be snared
-	 */
-	UFUNCTION(BlueprintPure, Category="Character Movement: Walking", meta=(FilterGameplayTag="Modifier.Type.Server.Snare"))
-	virtual bool CanBeSnaredInCurrentState(FGameplayTag ModifierLevel) const;
-
-	virtual void OnStartSnare() {}
-	virtual void OnEndSnare() {}
-
-	/* ~SlowFall (Non-Generic) Implementation */
-
-public:
-	const FMovementModifierParams* GetBoostLevelParams() const { return BoostLevels.Find(GetBoostLevel()); }
-	const FMovementModifierParams* GetHasteLevelParams() const { return HasteLevels.Find(GetHasteLevel()); }
-	const FMovementModifierParams* GetSlowLevelParams() const { return SlowLevels.Find(GetSlowLevel()); }
-	const FFallingModifierParams* GetSlowFallLevelParams() const { return SlowFallLevels.Find(GetSlowFallLevel()); }
-	const FMovementModifierParams* GetSnareLevelParams() const { return SnareLevels.Find(GetSnareLevel()); }
-		
-	virtual float GetBoostSpeedScalar() const { return GetBoostLevelParams() ? GetBoostLevelParams()->MaxWalkSpeed : 1.f; }
-	virtual float GetBoostAccelScalar() const { return GetBoostLevelParams() ? GetBoostLevelParams()->MaxAcceleration : 1.f; }
-	virtual float GetBoostBrakingScalar() const { return GetBoostLevelParams() ? GetBoostLevelParams()->BrakingDeceleration : 1.f; }
-	virtual float GetBoostGroundFrictionScalar() const { return GetBoostLevelParams() ? GetBoostLevelParams()->GroundFriction : 1.f; }
-	virtual float GetBoostBrakingFrictionScalar() const { return GetBoostLevelParams() ? GetBoostLevelParams()->BrakingFriction : 1.f; }
-
-	virtual float GetHasteSpeedScalar() const { return GetHasteLevelParams() ? GetHasteLevelParams()->MaxWalkSpeed : 1.f; }
-	virtual float GetHasteAccelScalar() const { return GetHasteLevelParams() ? GetHasteLevelParams()->MaxAcceleration : 1.f; }
-	virtual float GetHasteBrakingScalar() const { return GetHasteLevelParams() ? GetHasteLevelParams()->BrakingDeceleration : 1.f; }
-	virtual float GetHasteGroundFrictionScalar() const { return GetHasteLevelParams() ? GetHasteLevelParams()->GroundFriction : 1.f; }
-	virtual float GetHasteBrakingFrictionScalar() const { return GetHasteLevelParams() ? GetHasteLevelParams()->BrakingFriction : 1.f; }
-
-	virtual float GetSlowSpeedScalar() const { return GetSlowLevelParams() ? GetSlowLevelParams()->MaxWalkSpeed : 1.f; }
-	virtual float GetSlowAccelScalar() const { return GetSlowLevelParams() ? GetSlowLevelParams()->MaxAcceleration : 1.f; }
-	virtual float GetSlowBrakingScalar() const { return GetSlowLevelParams() ? GetSlowLevelParams()->BrakingDeceleration : 1.f; }
-	virtual float GetSlowGroundFrictionScalar() const { return GetSlowLevelParams() ? GetSlowLevelParams()->GroundFriction : 1.f; }
-	virtual float GetSlowBrakingFrictionScalar() const { return GetSlowLevelParams() ? GetSlowLevelParams()->BrakingFriction : 1.f; }
-
-	virtual float GetSlowFallGravityZScalar() const { return GetSlowFallLevelParams() ? GetSlowFallLevelParams()->GetGravityScalar(Velocity) : 1.f; }
-	
-	virtual float GetSnareSpeedScalar() const { return GetSnareLevelParams() ? GetSnareLevelParams()->MaxWalkSpeed : 1.f; }
-	virtual float GetSnareAccelScalar() const { return GetSnareLevelParams() ? GetSnareLevelParams()->MaxAcceleration : 1.f; }
-	virtual float GetSnareBrakingScalar() const { return GetSnareLevelParams() ? GetSnareLevelParams()->BrakingDeceleration : 1.f; }
-	virtual float GetSnareGroundFrictionScalar() const { return GetSnareLevelParams() ? GetSnareLevelParams()->GroundFriction : 1.f; }
-	virtual float GetSnareBrakingFrictionScalar() const { return GetSnareLevelParams() ? GetSnareLevelParams()->BrakingFriction : 1.f; }
-
-	/** Override this for runtime conditionals e.g. Mantle probably doesn't want root motion affected! */
-	virtual bool ShouldSnareAffectRootMotion() const { return bSnareAffectsRootMotion; }
-	virtual bool ShouldSlowAffectRootMotion() const { return bSlowAffectsRootMotion; }
-	virtual bool ShouldBoostAffectRootMotion() const { return bBoostAffectsRootMotion; }
-	
-public:
 	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
 	virtual void UpdateCharacterStateAfterMovement(float DeltaSeconds) override;
 
-	virtual void ServerMove_PerformMovement(const FCharacterNetworkMoveData& MoveData) override;
-	virtual void ClientHandleMoveResponse(const FCharacterMoveResponseDataContainer& MoveResponse) override;
-	
 	/*
 	 * ClientHandleMoveResponse appears more correct because it has a MoveResponse passed in, and
 	 * it doesn't require the ugly versioning pre-compiler macro, but it occurs at the wrong point
@@ -972,46 +674,8 @@ public:
 		const FVector& ClientWorldLocation, const FVector& RelativeClientLocation,
 		UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode) override;
 
-	virtual void ServerMoveHandleClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
-		const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName,
-		uint8 ClientMovementMode) override;
-	
 protected:
 	virtual bool ClientUpdatePositionAfterServerUpdate() override;
-	virtual bool CanDelaySendingMove(const FSavedMovePtr& NewMove) override;
-
-public:
-	/** Client auth parameters mapped to a source gameplay tag */
-	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadOnly)
-	TMap<FGameplayTag, FClientAuthParams> ClientAuthParams;
-
-	UPROPERTY()
-	FClientAuthStack ClientAuthStack;
-
-	virtual FClientAuthData* GetClientAuthData();
-	FClientAuthParams* GetClientAuthParamsForSource(const FGameplayTag& Source) { return ClientAuthParams.Find(Source); }
-	virtual FClientAuthParams GetClientAuthParams(const FClientAuthData* ClientAuthData);
-
-protected:
-	/**
-	 * Called when the client's position is rejected by the server entirely due to excessive difference
-	 * @param ClientLoc The client's location
-	 * @param ServerLoc The server's location
-	 * @param LocDiff The difference between the client and server locations
-	 */
-	virtual void OnClientAuthRejected(const FVector& ClientLoc, const FVector& ServerLoc, const FVector& LocDiff) {}
-
-public:
-	/** 
-	 * Grant the client position authority, based on the current state of the character.
-	 * @param ClientAuthSource What the client is requesting authority for, not used by default, requires override
-	 * @param OverrideDuration Override the default client authority time, -1.f to use default
-	 */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Character Movement (Networking)")
-	virtual void InitClientAuthority(FGameplayTag ClientAuthSource, float OverrideDuration = -1.f);
-
-protected:
-	virtual bool ServerShouldGrantClientPositionAuthority(FVector& ClientLoc);
 
 protected:
 	virtual void TickCharacterPose(float DeltaTime) override;  // ACharacter::GetAnimRootMotionTranslationScale() is non-virtual so we have to duplicate this entire function
@@ -1056,21 +720,10 @@ public:
 	uint8 bWantsToStroll:1;
 	uint8 bWantsToWalk:1;
 	uint8 bWantsToSprint:1;
-	uint8 bStaminaDrained : 1;
+	uint8 bStaminaDrained:1;
 	
 	float StartStamina;
 	float EndStamina;
-
-	FMovementModifier Boost;
-	FMovementModifier EndBoost;
-	FMovementModifier Haste;
-	FMovementModifier EndHaste;
-	FMovementModifier Slow;
-	FMovementModifier EndSlow;
-	FMovementModifier SlowFall;
-	FMovementModifier EndSlowFall;
-	FMovementModifier Snare;
-	FMovementModifier EndSnare;
 
 	/** Returns a byte containing encoded special movement information (jumping, crouching, etc.)	 */
 	virtual uint8 GetCompressedFlags() const override;
@@ -1095,9 +748,6 @@ public:
 
 	/** Set the properties describing the final position, etc. of the moved pawn. */
 	virtual void PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode) override;
-
-	/** Returns true if this move is an "important" move that should be sent again if not acked by the server */
-	virtual bool IsImportantMove(const FSavedMovePtr& LastAckedMove) const override;
 };
 
 class PREDICTEDMOVEMENT_API FNetworkPredictionData_Client_Character_Pred : public FNetworkPredictionData_Client_Character

@@ -30,15 +30,15 @@ protected:
 protected:
 	/** Set by character movement to specify that this Character is currently Strolling. */
 	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsStrolling, Category=Character)
-	uint32 bIsStrolling:1;
+	uint8 bIsStrolling:1;
 
 	/** Set by character movement to specify that this Character is currently Walking. */
 	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsWalking, Category=Character)
-	uint32 bIsWalking:1;
+	uint8 bIsWalking:1;
 	
 	/** Set by character movement to specify that this Character is currently Sprinting. */
 	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsSprinting, Category=Character)
-	uint32 bIsSprinting:1;
+	uint8 bIsSprinting:1;
 	
 public:
 	APredCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -263,7 +263,7 @@ public:
 protected:
 	/** Set by character movement to specify that this Character is currently AimingDownSights. */
 	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsAimingDownSights, Category=Character)
-	uint32 bIsAimingDownSights:1;
+	uint8 bIsAimingDownSights:1;
 
 public:
 	virtual void SetIsAimingDownSights(bool bNewAimingDownSights);
@@ -319,7 +319,7 @@ public:
 	
 	/** Set by character movement to specify that this Character is currently Proned. */
 	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsProned, Category=Character)
-	uint32 bIsProned:1;
+	uint8 bIsProned:1;
 	
 public:
 	virtual void RecalculateBaseEyeHeight() override;

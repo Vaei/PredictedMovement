@@ -29,7 +29,7 @@ public:
 protected:
 	/** Set by character movement to specify that this Character is currently Proned. */
 	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsProned, Category=Character)
-	uint32 bIsProned:1;
+	uint8 bIsProned:1;
 	
 public:
 	AProneCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());

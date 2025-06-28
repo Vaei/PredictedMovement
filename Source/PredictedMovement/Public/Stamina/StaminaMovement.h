@@ -171,7 +171,7 @@ public:
 	virtual ~FSavedMove_Character_Stamina() override
 	{}
 
-	uint32 bStaminaDrained : 1;
+	uint8 bStaminaDrained : 1;
 	float StartStamina;
 	float EndStamina;
 

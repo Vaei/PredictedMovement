@@ -160,7 +160,7 @@ public:
 	virtual ~FSavedMove_Character_Sprint() override
 	{}
 
-	uint32 bWantsToSprint:1;
+	uint8 bWantsToSprint:1;
 
 	/** Returns a byte containing encoded special movement information (jumping, crouching, etc.)	 */
 	virtual uint8 GetCompressedFlags() const override;

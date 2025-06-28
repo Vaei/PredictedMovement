@@ -160,8 +160,8 @@ public:
 	virtual ~FSavedMove_Character_Prone() override
 	{}
 
-	uint32 bWantsToProne:1;
-	uint32 bProneLocked:1;
+	uint8 bWantsToProne:1;
+	uint8 bProneLocked:1;
 		
 	/** Clear saved move properties, so it can be re-used. */
 	virtual void Clear() override;

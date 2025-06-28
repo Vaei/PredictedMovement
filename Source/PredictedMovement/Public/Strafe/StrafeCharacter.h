@@ -36,7 +36,7 @@ protected:
 protected:
 	/** Set by character movement to specify that this Character is currently Strafing. */
 	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsStrafing, Category=Character)
-	uint32 bIsStrafing:1;
+	uint8 bIsStrafing:1;
 	
 public:
 	AStrafeCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());

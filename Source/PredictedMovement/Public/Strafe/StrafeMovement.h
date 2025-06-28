@@ -130,7 +130,7 @@ public:
 	virtual ~FSavedMove_Character_Strafe() override
 	{}
 
-	uint32 bWantsToStrafe:1;
+	uint8 bWantsToStrafe:1;
 		
 	/** Clear saved move properties, so it can be re-used. */
 	virtual void Clear() override;

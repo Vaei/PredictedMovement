@@ -1048,15 +1048,15 @@ public:
 	virtual ~FSavedMove_Character_Pred() override
 	{}
 
-	uint32 bWantsToAimDownSights:1;
+	uint8 bWantsToAimDownSights:1;
 	
-	uint32 bWantsToProne:1;
-	uint32 bProneLocked:1;
+	uint8 bWantsToProne:1;
+	uint8 bProneLocked:1;
 	
-	uint32 bWantsToStroll:1;
-	uint32 bWantsToWalk:1;
-	uint32 bWantsToSprint:1;
-	uint32 bStaminaDrained : 1;
+	uint8 bWantsToStroll:1;
+	uint8 bWantsToWalk:1;
+	uint8 bWantsToSprint:1;
+	uint8 bStaminaDrained : 1;
 	
 	float StartStamina;
 	float EndStamina;

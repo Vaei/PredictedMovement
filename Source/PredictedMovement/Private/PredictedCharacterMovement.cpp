@@ -1,10 +1,9 @@
 // Copyright (c) Jared Taylor
 
 
-#include "PredMovement.h"
+#include "PredictedCharacterMovement.h"
 
-#include "PredCharacter.h"
-#include "PredTags.h"
+#include "PredictedCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
@@ -38,7 +37,7 @@ namespace PredMovementCVars
 #endif
 }
 
-UPredMovement::UPredMovement(const FObjectInitializer& ObjectInitializer)
+UPredictedCharacterMovement::UPredictedCharacterMovement(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	SetNetworkMoveDataContainer(PredMoveDataContainer);
@@ -144,7 +143,7 @@ void FPredMoveResponseDataContainer::ServerFillResponseData(const UCharacterMove
 	Super::ServerFillResponseData(CharacterMovement, PendingAdjustment);
 
 	// Server ➜ Client
-	const UPredMovement* MoveComp = Cast<UPredMovement>(&CharacterMovement);
+	const UPredictedCharacterMovement* MoveComp = Cast<UPredictedCharacterMovement>(&CharacterMovement);
 	bStaminaDrained = MoveComp->IsStaminaDrained();
 	Stamina = MoveComp->GetStamina();
 }
@@ -196,7 +195,7 @@ bool FPredNetworkMoveData::Serialize(UCharacterMovementComponent& CharacterMovem
 }
 
 #if WITH_EDITOR
-void UPredMovement::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+void UPredictedCharacterMovement::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
@@ -214,19 +213,19 @@ void UPredMovement::PostEditChangeProperty(struct FPropertyChangedEvent& Propert
 }
 #endif
 
-bool UPredMovement::HasValidData() const
+bool UPredictedCharacterMovement::HasValidData() const
 {
 	return Super::HasValidData() && IsValid(PredCharacterOwner);
 }
 
-void UPredMovement::PostLoad()
+void UPredictedCharacterMovement::PostLoad()
 {
 	Super::PostLoad();
 
 	SetUpdatedCharacter();
 }
 
-void UPredMovement::OnRegister()
+void UPredictedCharacterMovement::OnRegister()
 {
 	Super::OnRegister();
 
@@ -236,18 +235,18 @@ void UPredMovement::OnRegister()
 #endif
 }
 
-void UPredMovement::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
+void UPredictedCharacterMovement::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
 {
 	Super::SetUpdatedComponent(NewUpdatedComponent);
 	SetUpdatedCharacter();
 }
 
-void UPredMovement::SetUpdatedCharacter()
+void UPredictedCharacterMovement::SetUpdatedCharacter()
 {
-	PredCharacterOwner = Cast<APredCharacter>(PawnOwner);
+	PredCharacterOwner = Cast<APredictedCharacter>(PawnOwner);
 }
 
-void UPredMovement::BeginPlay()
+void UPredictedCharacterMovement::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -258,7 +257,7 @@ void UPredMovement::BeginPlay()
 	SetStamina(GetMaxStamina());
 }
 
-EPredGaitMode UPredMovement::GetGaitMode() const
+EPredGaitMode UPredictedCharacterMovement::GetGaitMode() const
 {
 	if (IsSprinting())
 	{
@@ -275,7 +274,7 @@ EPredGaitMode UPredMovement::GetGaitMode() const
 	return EPredGaitMode::Run;
 }
 
-EPredGaitMode UPredMovement::GetGaitSpeed() const
+EPredGaitMode UPredictedCharacterMovement::GetGaitSpeed() const
 {
 	if (IsSprintingInEffect())
 	{
@@ -292,17 +291,17 @@ EPredGaitMode UPredMovement::GetGaitSpeed() const
 	return EPredGaitMode::Stroll;
 }
 
-bool UPredMovement::IsStrolling() const
+bool UPredictedCharacterMovement::IsStrolling() const
 {
 	return PredCharacterOwner && PredCharacterOwner->IsStrolling() && !IsSprintingInEffect();
 }
 
-bool UPredMovement::IsWalk() const
+bool UPredictedCharacterMovement::IsWalk() const
 {
 	return PredCharacterOwner && PredCharacterOwner->IsWalking() && !IsStrolling() && !IsSprintingInEffect();
 }
 
-bool UPredMovement::IsWalkingAtSpeed() const
+bool UPredictedCharacterMovement::IsWalkingAtSpeed() const
 {
 	if (!IsWalk())
 	{
@@ -318,13 +317,13 @@ bool UPredMovement::IsWalkingAtSpeed() const
 	return Vel >= FMath::Square(GetBasicMaxSpeed() * GetGaitSpeedFactor()) * VelocityCheckMitigatorWalking;
 }
 
-bool UPredMovement::IsRunning() const
+bool UPredictedCharacterMovement::IsRunning() const
 {
 	// We're running if we're not walking, sprinting, etc.
 	return !PredCharacterOwner || (!IsStrolling() && !IsWalk() && !IsSprinting());
 }
 
-bool UPredMovement::IsRunningAtSpeed() const
+bool UPredictedCharacterMovement::IsRunningAtSpeed() const
 {
 	if (!IsRunning())
 	{
@@ -340,7 +339,7 @@ bool UPredMovement::IsRunningAtSpeed() const
 	return Vel >= FMath::Square(GetBasicMaxSpeed() * GetGaitSpeedFactor()) * VelocityCheckMitigatorRunning;
 }
 
-bool UPredMovement::IsSprintingAtSpeed() const
+bool UPredictedCharacterMovement::IsSprintingAtSpeed() const
 {
 	if (!IsSprinting())
 	{
@@ -356,60 +355,87 @@ bool UPredMovement::IsSprintingAtSpeed() const
 	return Vel >= FMath::Square(GetBasicMaxSpeed() * GetGaitSpeedFactor()) * VelocityCheckMitigatorSprinting;
 }
 
-float UPredMovement::GetGaitSpeedFactor() const
+float UPredictedCharacterMovement::GetGaitSpeedFactor() const
 {
 	// Infinite recursion protection to avoid stack overflow -- we must exclude Haste from speed checks
 	// e.g. IsSprintWithinAllowableInputAngle() ➜ IsSprintingAtSpeed() ➜ GetMaxSpeed() ➜ GetMaxSpeedScalar() ➜ IsSprintingInEffect() ➜ IsSprintWithinAllowableInputAngle()
 	const float StaminaDrained = IsStaminaDrained() ? MaxWalkSpeedScalarStaminaDrained : 1.f;
 	const float AimingDownSights = IsAimingDownSights() ? MaxWalkSpeedAimingDownSightsScalar : 1.f;
-	return StaminaDrained * AimingDownSights;
+	const float BoostScalar = GetBoostSpeedScalar();
+	const float SlowScalar = GetSlowSpeedScalar();
+	const float SnareScalar = GetSnareSpeedScalar();
+	return StaminaDrained * AimingDownSights * BoostScalar * SlowScalar * SnareScalar;
 }
 
-float UPredMovement::GetMaxAccelerationScalar() const
+float UPredictedCharacterMovement::GetMaxAccelerationScalar() const
 {
 	const float StaminaDrained = IsStaminaDrained() ? MaxAccelerationScalarStaminaDrained : 1.f;
 	const float AimingDownSights = IsAimingDownSights() ? MaxAccelerationAimingDownSightsScalar : 1.f;
-	return StaminaDrained * AimingDownSights;
+	const float BoostScalar = GetBoostAccelScalar();
+	const float SlowScalar = GetSlowAccelScalar();
+	const float SnareScalar = GetSnareAccelScalar();
+	const float HasteScalar = IsSprintingInEffect() ? GetHasteAccelScalar() : 1.f;
+	return StaminaDrained * AimingDownSights * BoostScalar * SlowScalar * SnareScalar * HasteScalar;
 }
 
-float UPredMovement::GetMaxSpeedScalar() const
+float UPredictedCharacterMovement::GetMaxSpeedScalar() const
 {
 	const float StaminaDrained = IsStaminaDrained() ? MaxWalkSpeedScalarStaminaDrained : 1.f;
 	const float AimingDownSights = IsAimingDownSights() ? MaxWalkSpeedAimingDownSightsScalar : 1.f;
-	return StaminaDrained * AimingDownSights;
+	const float BoostScalar = GetBoostSpeedScalar();
+	const float SlowScalar = GetSlowSpeedScalar();
+	const float SnareScalar = GetSnareSpeedScalar();
+	const float HasteScalar = IsSprintingInEffect() ? GetHasteSpeedScalar() : 1.f;
+	return StaminaDrained * AimingDownSights * BoostScalar * SlowScalar * SnareScalar * HasteScalar;
 }
 
-float UPredMovement::GetMaxBrakingDecelerationScalar() const
+float UPredictedCharacterMovement::GetMaxBrakingDecelerationScalar() const
 {
 	const float StaminaDrained = IsStaminaDrained() ? MaxBrakingDecelerationScalarStaminaDrained : 1.f;
 	const float AimingDownSights = IsAimingDownSights() ? BrakingDecelerationAimingDownSightsScalar : 1.f;
-	return StaminaDrained * AimingDownSights;
+	const float BoostScalar = GetBoostBrakingScalar();
+	const float SlowScalar = GetSlowBrakingScalar();
+	const float SnareScalar = GetSnareBrakingScalar();
+	const float HasteScalar = IsSprintingInEffect() ? GetHasteBrakingScalar() : 1.f;
+	return StaminaDrained * AimingDownSights * BoostScalar * SlowScalar * SnareScalar * HasteScalar;
 }
 
-float UPredMovement::GetGroundFrictionScalar() const
+float UPredictedCharacterMovement::GetGroundFrictionScalar() const
 {
 	const float AimingDownSights = IsAimingDownSights() ? GroundFrictionAimingDownSightsScalar : 1.f;
-	return AimingDownSights;
+	const float BoostScalar = GetBoostGroundFrictionScalar();
+	const float SlowScalar = GetSlowGroundFrictionScalar();
+	const float SnareScalar = GetSnareGroundFrictionScalar();
+	const float HasteScalar = IsSprintingInEffect() ? GetHasteGroundFrictionScalar() : 1.f;
+	return AimingDownSights * BoostScalar * SlowScalar * SnareScalar * HasteScalar;
 }
 
-float UPredMovement::GetBrakingFrictionScalar() const
+float UPredictedCharacterMovement::GetBrakingFrictionScalar() const
 {
 	const float AimingDownSights = IsAimingDownSights() ? BrakingFrictionAimingDownSightsScalar : 1.f;
-	return AimingDownSights;
+	const float BoostScalar = GetBoostBrakingFrictionScalar();
+	const float SlowScalar = GetSlowBrakingFrictionScalar();
+	const float SnareScalar = GetSnareBrakingFrictionScalar();
+	const float HasteScalar = IsSprintingInEffect() ? GetHasteBrakingFrictionScalar() : 1.f;
+	return AimingDownSights * BoostScalar * SlowScalar * SnareScalar * HasteScalar;
 }
 
-float UPredMovement::GetGravityZScalar() const
+float UPredictedCharacterMovement::GetGravityZScalar() const
 {
-	return 1.f;
+	const float SlowFallScalar = GetSlowFallGravityZScalar();
+	return SlowFallScalar;
 }
 
-float UPredMovement::GetRootMotionTranslationScalar() const
+float UPredictedCharacterMovement::GetRootMotionTranslationScalar() const
 {
 	// Allowing boost to affect root motion will increase attack range, dodge range, etc., it is disabled by default
-	return 1.f;
+	const float BoostScalar = ShouldBoostAffectRootMotion() ? GetBoostSpeedScalar() : 1.f;
+	const float SlowScalar = ShouldSlowAffectRootMotion() ? GetSlowSpeedScalar() : 1.f;
+	const float SnareScalar = ShouldSnareAffectRootMotion() ? GetSnareSpeedScalar() : 1.f;
+	return BoostScalar * SlowScalar * SnareScalar;
 }
 
-float UPredMovement::GetMaxAcceleration() const
+float UPredictedCharacterMovement::GetMaxAcceleration() const
 { 
 	const float Scalar = GetMaxAccelerationScalar();
 	
@@ -440,7 +466,7 @@ float UPredMovement::GetMaxAcceleration() const
 	return 0.f;
 }
 
-float UPredMovement::GetBasicMaxSpeed() const
+float UPredictedCharacterMovement::GetBasicMaxSpeed() const
 {
 	if (IsFlying())		{ return MaxFlySpeed; }
 	if (IsSwimming())	{ return MaxSwimSpeed; }
@@ -459,12 +485,12 @@ float UPredMovement::GetBasicMaxSpeed() const
 	return 0.f;
 }
 
-float UPredMovement::GetMaxSpeed() const
+float UPredictedCharacterMovement::GetMaxSpeed() const
 {
 	return GetBasicMaxSpeed() * GetMaxSpeedScalar();
 }
 
-float UPredMovement::GetMaxBrakingDeceleration() const
+float UPredictedCharacterMovement::GetMaxBrakingDeceleration() const
 {
 	const float Scalar = GetMaxBrakingDecelerationScalar();
 	
@@ -485,7 +511,7 @@ float UPredMovement::GetMaxBrakingDeceleration() const
 	return 0.f;
 }
 
-float UPredMovement::GetGroundFriction(float DefaultGroundFriction) const
+float UPredictedCharacterMovement::GetGroundFriction(float DefaultGroundFriction) const
 {
 	const float Scalar = GetGroundFrictionScalar();
 
@@ -504,7 +530,7 @@ float UPredMovement::GetGroundFriction(float DefaultGroundFriction) const
 	return DefaultGroundFriction;
 }
 
-float UPredMovement::GetBrakingFriction() const
+float UPredictedCharacterMovement::GetBrakingFriction() const
 {
 	const float Scalar = GetBrakingFrictionScalar();
 
@@ -523,17 +549,23 @@ float UPredMovement::GetBrakingFriction() const
 	return BrakingFriction;
 }
 
-float UPredMovement::GetGravityZ() const
+float UPredictedCharacterMovement::GetGravityZ() const
 {
 	return Super::GetGravityZ() * GetGravityZScalar();
 }
 
-FVector UPredMovement::GetAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration)
+FVector UPredictedCharacterMovement::GetAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration)
 {
+	// Slow fall air control
+	if (const FFallingModifierParams* Params = GetSlowFallLevelParams())
+	{
+		TickAirControl = Params->GetAirControl(TickAirControl);
+	}
+	
 	return Super::GetAirControl(DeltaTime, TickAirControl, FallAcceleration);
 }
 
-void UPredMovement::CalcStamina(float DeltaTime)
+void UPredictedCharacterMovement::CalcStamina(float DeltaTime)
 {
 	// Do not update velocity when using root motion or when SimulatedProxy and not simulating root motion - SimulatedProxy are repped their Velocity
 	if (!HasValidData() || HasAnimRootMotion() || DeltaTime < MIN_TICK_TIME || (CharacterOwner && CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy && !bWasSimulatingRootMotion))
@@ -552,7 +584,7 @@ void UPredMovement::CalcStamina(float DeltaTime)
 	}
 }
 
-void UPredMovement::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
+void UPredictedCharacterMovement::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
 {
 	if (IsMovingOnGround())
 	{
@@ -563,7 +595,7 @@ void UPredMovement::CalcVelocity(float DeltaTime, float Friction, bool bFluid, f
 	Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
 }
 
-void UPredMovement::ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration)
+void UPredictedCharacterMovement::ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration)
 {
 	if (IsMovingOnGround())
 	{
@@ -572,7 +604,7 @@ void UPredMovement::ApplyVelocityBraking(float DeltaTime, float Friction, float 
 	Super::ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
 }
 
-bool UPredMovement::CanWalkOffLedges() const
+bool UPredictedCharacterMovement::CanWalkOffLedges() const
 {
 	if (!bCanWalkOffLedgesWhenProned && IsProned())
 	{
@@ -582,7 +614,7 @@ bool UPredMovement::CanWalkOffLedges() const
 	return Super::CanWalkOffLedges();
 }
 
-bool UPredMovement::CanAttemptJump() const
+bool UPredictedCharacterMovement::CanAttemptJump() const
 {
 	// Cannot jump if not allowed
 	if (!IsJumpAllowed())
@@ -611,7 +643,7 @@ bool UPredMovement::CanAttemptJump() const
 	return true;
 }
 
-void UPredMovement::Stroll(bool bClientSimulation)
+void UPredictedCharacterMovement::Stroll(bool bClientSimulation)
 {
 	if (!HasValidData())
 	{
@@ -640,7 +672,7 @@ void UPredMovement::Stroll(bool bClientSimulation)
 	PredCharacterOwner->OnStartStroll();
 }
 
-void UPredMovement::UnStroll(bool bClientSimulation)
+void UPredictedCharacterMovement::UnStroll(bool bClientSimulation)
 {
 	if (!HasValidData())
 	{
@@ -654,7 +686,7 @@ void UPredMovement::UnStroll(bool bClientSimulation)
 	PredCharacterOwner->OnEndStroll();
 }
 
-bool UPredMovement::CanStrollInCurrentState() const
+bool UPredictedCharacterMovement::CanStrollInCurrentState() const
 {
 	if (!UpdatedComponent || UpdatedComponent->IsSimulatingPhysics())
 	{
@@ -670,7 +702,7 @@ bool UPredMovement::CanStrollInCurrentState() const
 	return true;
 }
 
-void UPredMovement::Walk(bool bClientSimulation)
+void UPredictedCharacterMovement::Walk(bool bClientSimulation)
 {
 	if (!HasValidData())
 	{
@@ -699,7 +731,7 @@ void UPredMovement::Walk(bool bClientSimulation)
 	PredCharacterOwner->OnStartWalk();
 }
 
-void UPredMovement::UnWalk(bool bClientSimulation)
+void UPredictedCharacterMovement::UnWalk(bool bClientSimulation)
 {
 	if (!HasValidData())
 	{
@@ -713,7 +745,7 @@ void UPredMovement::UnWalk(bool bClientSimulation)
 	PredCharacterOwner->OnEndWalk();
 }
 
-bool UPredMovement::CanWalkInCurrentState() const
+bool UPredictedCharacterMovement::CanWalkInCurrentState() const
 {
 	if (!UpdatedComponent || UpdatedComponent->IsSimulatingPhysics())
 	{
@@ -729,18 +761,18 @@ bool UPredMovement::CanWalkInCurrentState() const
 	return true;
 }
 
-void UPredMovement::SetMaxInputAngleSprint(float InMaxAngleSprint)
+void UPredictedCharacterMovement::SetMaxInputAngleSprint(float InMaxAngleSprint)
 {
 	MaxInputAngleSprint = FMath::Clamp(InMaxAngleSprint, 0.f, 180.0f);
 	MaxInputNormalSprint = FMath::Cos(FMath::DegreesToRadians(MaxInputAngleSprint));
 }
 
-bool UPredMovement::IsSprinting() const
+bool UPredictedCharacterMovement::IsSprinting() const
 {
 	return PredCharacterOwner && PredCharacterOwner->IsSprinting();
 }
 
-void UPredMovement::Sprint(bool bClientSimulation)
+void UPredictedCharacterMovement::Sprint(bool bClientSimulation)
 {
 	if (!HasValidData())
 	{
@@ -784,7 +816,7 @@ void UPredMovement::Sprint(bool bClientSimulation)
 	PredCharacterOwner->OnStartSprint();
 }
 
-void UPredMovement::UnSprint(bool bClientSimulation)
+void UPredictedCharacterMovement::UnSprint(bool bClientSimulation)
 {
 	if (!HasValidData())
 	{
@@ -798,7 +830,7 @@ void UPredMovement::UnSprint(bool bClientSimulation)
 	PredCharacterOwner->OnEndSprint();
 }
 
-bool UPredMovement::CanSprintInCurrentState() const
+bool UPredictedCharacterMovement::CanSprintInCurrentState() const
 {
 	if (!UpdatedComponent || UpdatedComponent->IsSimulatingPhysics())
 	{
@@ -842,7 +874,7 @@ bool UPredMovement::CanSprintInCurrentState() const
 	return true;
 }
 
-bool UPredMovement::IsSprintWithinAllowableInputAngle() const
+bool UPredictedCharacterMovement::IsSprintWithinAllowableInputAngle() const
 {
 	if (!UpdatedComponent)
 	{
@@ -861,7 +893,7 @@ bool UPredMovement::IsSprintWithinAllowableInputAngle() const
 	return Dot >= MaxInputNormalSprint;
 }
 
-void UPredMovement::SetStamina(float NewStamina)
+void UPredictedCharacterMovement::SetStamina(float NewStamina)
 {
 	const float PrevStamina = Stamina;
 	Stamina = FMath::Clamp(NewStamina, 0.f, MaxStamina);
@@ -874,7 +906,7 @@ void UPredMovement::SetStamina(float NewStamina)
 	}
 }
 
-void UPredMovement::SetMaxStamina(float NewMaxStamina)
+void UPredictedCharacterMovement::SetMaxStamina(float NewMaxStamina)
 {
 	const float PrevMaxStamina = MaxStamina;
 	MaxStamina = FMath::Max(0.f, NewMaxStamina);
@@ -887,7 +919,7 @@ void UPredMovement::SetMaxStamina(float NewMaxStamina)
 	}
 }
 
-void UPredMovement::SetStaminaDrained(bool bNewValue)
+void UPredictedCharacterMovement::SetStaminaDrained(bool bNewValue)
 {
 	const bool bWasStaminaDrained = bStaminaDrained;
 	bStaminaDrained = bNewValue;
@@ -907,7 +939,7 @@ void UPredMovement::SetStaminaDrained(bool bNewValue)
 	}
 }
 
-void UPredMovement::OnStaminaChanged(float PrevValue, float NewValue)
+void UPredictedCharacterMovement::OnStaminaChanged(float PrevValue, float NewValue)
 {
 	if (IsValid(PredCharacterOwner))
 	{
@@ -936,7 +968,7 @@ void UPredMovement::OnStaminaChanged(float PrevValue, float NewValue)
 	}
 }
 
-void UPredMovement::OnMaxStaminaChanged(float PrevValue, float NewValue)
+void UPredictedCharacterMovement::OnMaxStaminaChanged(float PrevValue, float NewValue)
 {
 	if (IsValid(PredCharacterOwner))
 	{
@@ -947,7 +979,7 @@ void UPredMovement::OnMaxStaminaChanged(float PrevValue, float NewValue)
 	SetStamina(GetStamina());
 }
 
-void UPredMovement::OnStaminaDrained()
+void UPredictedCharacterMovement::OnStaminaDrained()
 {
 	if (IsValid(PredCharacterOwner))
 	{
@@ -955,7 +987,7 @@ void UPredMovement::OnStaminaDrained()
 	}
 }
 
-void UPredMovement::OnStaminaDrainRecovered()
+void UPredictedCharacterMovement::OnStaminaDrainRecovered()
 {
 	if (IsValid(PredCharacterOwner))
 	{
@@ -963,12 +995,12 @@ void UPredMovement::OnStaminaDrainRecovered()
 	}
 }
 
-bool UPredMovement::IsAimingDownSights() const
+bool UPredictedCharacterMovement::IsAimingDownSights() const
 {
 	return PredCharacterOwner && PredCharacterOwner->IsAimingDownSights();
 }
 
-void UPredMovement::AimDownSights(bool bClientSimulation)
+void UPredictedCharacterMovement::AimDownSights(bool bClientSimulation)
 {
 	if (!HasValidData())
 	{
@@ -992,7 +1024,7 @@ void UPredMovement::AimDownSights(bool bClientSimulation)
 	PredCharacterOwner->OnStartAimDownSights();
 }
 
-void UPredMovement::UnAimDownSights(bool bClientSimulation)
+void UPredictedCharacterMovement::UnAimDownSights(bool bClientSimulation)
 {
 	if (!HasValidData())
 	{
@@ -1006,12 +1038,12 @@ void UPredMovement::UnAimDownSights(bool bClientSimulation)
 	PredCharacterOwner->OnEndAimDownSights();
 }
 
-bool UPredMovement::CanAimDownSightsInCurrentState() const
+bool UPredictedCharacterMovement::CanAimDownSightsInCurrentState() const
 {
 	return (IsFalling() || IsMovingOnGround()) && UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics();
 }
 
-bool UPredMovement::IsProneLocked() const
+bool UPredictedCharacterMovement::IsProneLocked() const
 {
 	if (CharacterOwner && CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
 	{
@@ -1021,19 +1053,19 @@ bool UPredMovement::IsProneLocked() const
 	return bProneLocked;
 }
 
-bool UPredMovement::IsProneLockOnTimer() const
+bool UPredictedCharacterMovement::IsProneLockOnTimer() const
 {
 	return GetRemainingProneLockCooldown() > 0.f;
 }
 
-float UPredMovement::GetRemainingProneLockCooldown() const
+float UPredictedCharacterMovement::GetRemainingProneLockCooldown() const
 {
 	const float CurrentTimestamp = GetTimestamp();
 	const float RemainingCooldown = ProneLockDuration - (CurrentTimestamp - ProneLockTimestamp);
 	return FMath::Clamp(RemainingCooldown, 0.f, ProneLockDuration);
 }
 
-void UPredMovement::SetProneLock(bool bLock)
+void UPredictedCharacterMovement::SetProneLock(bool bLock)
 {
 	if (bLock)
 	{
@@ -1046,7 +1078,7 @@ void UPredMovement::SetProneLock(bool bLock)
 	}
 }
 
-float UPredMovement::GetTimestamp() const
+float UPredictedCharacterMovement::GetTimestamp() const
 {
 	if (CharacterOwner->GetLocalRole() == ROLE_Authority)
 	{
@@ -1070,12 +1102,12 @@ float UPredMovement::GetTimestamp() const
 	}
 }
 
-bool UPredMovement::IsProned() const
+bool UPredictedCharacterMovement::IsProned() const
 {
 	return PredCharacterOwner && PredCharacterOwner->IsProned();
 }
 
-void UPredMovement::Prone(bool bClientSimulation)
+void UPredictedCharacterMovement::Prone(bool bClientSimulation)
 {
 	if (!HasValidData())
 	{
@@ -1193,7 +1225,7 @@ void UPredMovement::Prone(bool bClientSimulation)
 	}
 }
 
-void UPredMovement::UnProne(bool bClientSimulation)
+void UPredictedCharacterMovement::UnProne(bool bClientSimulation)
 {
 	if (!HasValidData())
 	{
@@ -1205,7 +1237,7 @@ void UPredMovement::UnProne(bool bClientSimulation)
 		return;
 	}
 
-	APredCharacter* DefaultCharacter = PredCharacterOwner->GetClass()->GetDefaultObject<APredCharacter>();
+	APredictedCharacter* DefaultCharacter = PredCharacterOwner->GetClass()->GetDefaultObject<APredictedCharacter>();
 
 	// See if collision is already at desired size.
 	if (CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() == DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() &&
@@ -1343,17 +1375,17 @@ void UPredMovement::UnProne(bool bClientSimulation)
 	}
 }
 
-bool UPredMovement::CanProneInCurrentState() const
+bool UPredictedCharacterMovement::CanProneInCurrentState() const
 {
 	return (IsFalling() || IsMovingOnGround()) && UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics();
 }
 
-bool UPredMovement::CanCrouchInCurrentState() const
+bool UPredictedCharacterMovement::CanCrouchInCurrentState() const
 {
 	return Super::CanCrouchInCurrentState() && (!IsSprinting() || bCanSprintDuringCrouch);
 }
 
-void UPredMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
+void UPredictedCharacterMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 {
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
@@ -1450,7 +1482,7 @@ void UPredMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 	// Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
 }
 
-void UPredMovement::UpdateCharacterStateAfterMovement(float DeltaSeconds)
+void UPredictedCharacterMovement::UpdateCharacterStateAfterMovement(float DeltaSeconds)
 {
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
@@ -1494,7 +1526,7 @@ void UPredMovement::UpdateCharacterStateAfterMovement(float DeltaSeconds)
 #endif
 }
 
-bool UPredMovement::ClientUpdatePositionAfterServerUpdate()
+bool UPredictedCharacterMovement::ClientUpdatePositionAfterServerUpdate()
 {
 	const bool bRealStroll = bWantsToStroll;
 	const bool bRealWalk = bWantsToWalk;
@@ -1513,7 +1545,7 @@ bool UPredMovement::ClientUpdatePositionAfterServerUpdate()
 	return bResult;
 }
 
-void UPredMovement::OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData,
+void UPredictedCharacterMovement::OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData,
 	float TimeStamp, FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName,
 	bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode
 #if UE_5_03_OR_LATER
@@ -1536,7 +1568,7 @@ void UPredMovement::OnClientCorrectionReceived(class FNetworkPredictionData_Clie
 		bHasBase, bBaseRelativePosition, ServerMovementMode, ServerGravityDirection);
 }
 
-bool UPredMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
+bool UPredictedCharacterMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
 	const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase,
 	FName ClientBaseBoneName, uint8 ClientMovementMode)
 {
@@ -1562,7 +1594,7 @@ bool UPredMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTim
 	return false;
 }
 
-void UPredMovement::UpdateFromCompressedFlags(uint8 Flags)
+void UPredictedCharacterMovement::UpdateFromCompressedFlags(uint8 Flags)
 {
 	Super::UpdateFromCompressedFlags(Flags);
 
@@ -1628,7 +1660,7 @@ void FSavedMove_Character_Pred::SetMoveFor(ACharacter* C, float InDeltaTime, FVe
 {
 	Super::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
 
-	if (const UPredMovement* MoveComp = C ? Cast<UPredMovement>(C->GetCharacterMovement()) : nullptr)
+	if (const UPredictedCharacterMovement* MoveComp = C ? Cast<UPredictedCharacterMovement>(C->GetCharacterMovement()) : nullptr)
 	{
 		bWantsToProne = MoveComp->bWantsToProne;
 		bProneLocked = MoveComp->bProneLocked;
@@ -1643,7 +1675,7 @@ void FSavedMove_Character_Pred::PrepMoveFor(ACharacter* C)
 {
 	Super::PrepMoveFor(C);
 	
-	if (UPredMovement* MoveComp = C ? Cast<UPredMovement>(C->GetCharacterMovement()) : nullptr)
+	if (UPredictedCharacterMovement* MoveComp = C ? Cast<UPredictedCharacterMovement>(C->GetCharacterMovement()) : nullptr)
 	{
 		MoveComp->bProneLocked = bProneLocked;
 	}
@@ -1686,7 +1718,7 @@ void FSavedMove_Character_Pred::CombineWith(const FSavedMove_Character* OldMove,
 
 	const FSavedMove_Character_Pred* SavedOldMove = static_cast<const FSavedMove_Character_Pred*>(OldMove);
 
-	if (UPredMovement* MoveComp = C ? Cast<UPredMovement>(C->GetCharacterMovement()) : nullptr)
+	if (UPredictedCharacterMovement* MoveComp = C ? Cast<UPredictedCharacterMovement>(C->GetCharacterMovement()) : nullptr)
 	{
 		MoveComp->SetStamina(SavedOldMove->StartStamina);
 		MoveComp->SetStaminaDrained(SavedOldMove->bStaminaDrained);
@@ -1700,7 +1732,7 @@ void FSavedMove_Character_Pred::SetInitialPosition(ACharacter* C)
 	
 	Super::SetInitialPosition(C);
 
-	if (const UPredMovement* MoveComp = C ? Cast<UPredMovement>(C->GetCharacterMovement()) : nullptr)
+	if (const UPredictedCharacterMovement* MoveComp = C ? Cast<UPredictedCharacterMovement>(C->GetCharacterMovement()) : nullptr)
 	{
 		// Retrieve the value from our CMC to revert the saved move value back to this.
 		bStaminaDrained = MoveComp->IsStaminaDrained();
@@ -1711,7 +1743,7 @@ void FSavedMove_Character_Pred::SetInitialPosition(ACharacter* C)
 void FSavedMove_Character_Pred::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
 {
 	// When considering whether to delay or combine moves, we need to compare the move at the start and the end
-	if (const UPredMovement* MoveComp = C ? Cast<UPredMovement>(C->GetCharacterMovement()) : nullptr)
+	if (const UPredictedCharacterMovement* MoveComp = C ? Cast<UPredictedCharacterMovement>(C->GetCharacterMovement()) : nullptr)
 	{
 		EndStamina = MoveComp->GetStamina();
 
@@ -1733,7 +1765,7 @@ FSavedMovePtr FNetworkPredictionData_Client_Character_Pred::AllocateNewMove()
 	return MakeShared<FSavedMove_Character_Pred>();
 }
 
-void UPredMovement::TickCharacterPose(float DeltaTime)
+void UPredictedCharacterMovement::TickCharacterPose(float DeltaTime)
 {
 	/*
 	 * ACharacter::GetAnimRootMotionTranslationScale() is non-virtual, so we have to duplicate the entire function.
@@ -1791,11 +1823,11 @@ void UPredMovement::TickCharacterPose(float DeltaTime)
 	CharacterMesh->bIsAutonomousTickPose = false;
 }
 
-FNetworkPredictionData_Client* UPredMovement::GetPredictionData_Client() const
+FNetworkPredictionData_Client* UPredictedCharacterMovement::GetPredictionData_Client() const
 {
 	if (ClientPredictionData == nullptr)
 	{
-		UPredMovement* MutableThis = const_cast<UPredMovement*>(this);
+		UPredictedCharacterMovement* MutableThis = const_cast<UPredictedCharacterMovement*>(this);
 		MutableThis->ClientPredictionData = new FNetworkPredictionData_Client_Character_Pred(*this);
 	}
 

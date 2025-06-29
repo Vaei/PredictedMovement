@@ -230,6 +230,9 @@ void FPredictedNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Chara
 	
 	const FPredictedSavedMove& SavedMove = static_cast<const FPredictedSavedMove&>(ClientMove);
 
+	// Compressed flags
+	CompressedMoveFlagsExtra = SavedMove.GetCompressedFlagsExtra();
+	
 	// Stamina
 	Stamina = SavedMove.EndStamina;
 
@@ -251,6 +254,11 @@ bool FPredictedNetworkMoveData::Serialize(UCharacterMovementComponent& Character
 	Super::Serialize(CharacterMovement, Ar, PackageMap, MoveType);
 
 	// Client ➜ Server
+
+	// Compressed flags
+	SerializeOptionalValue<uint8>(Ar.IsSaving(), Ar, CompressedMoveFlagsExtra, 0);
+
+	// Stamina
 	SerializeOptionalValue<float>(Ar.IsSaving(), Ar, Stamina, 0.f);
 
 	// Serialize Modifier data
@@ -2074,44 +2082,59 @@ bool UPredictedCharacterMovement::ClientUpdatePositionAfterServerUpdate()
 	return bResult;
 }
 
-void UPredictedCharacterMovement::UpdateFromCompressedFlags(uint8 Flags)
+void UPredictedCharacterMovement::MoveAutonomous(float ClientTimeStamp, float DeltaTime, uint8 CompressedFlags,
+	const FVector& NewAccel)
 {
-	Super::UpdateFromCompressedFlags(Flags);
-
-	bWantsToStroll = (Flags & FSavedMove_Character::FLAG_Custom_2) != 0;
-	bWantsToWalk = (Flags & FSavedMove_Character::FLAG_Custom_3) != 0;
-	bWantsToSprint = (Flags & FSavedMove_Character::FLAG_Custom_0) != 0;
-	bWantsToProne = (Flags & FSavedMove_Character::FLAG_Custom_1) != 0;
-	bWantsToAimDownSights = (Flags & FSavedMove_Character::FLAG_Reserved_1) != 0;
+	if (!HasValidData())
+	{
+		return;
+	}
+	
+	if (const FPredictedNetworkMoveData* MoveData = static_cast<FPredictedNetworkMoveData*>(GetCurrentNetworkMoveData()))
+	{
+		// Extra set of compression flags
+		UpdateFromCompressedFlagsExtra(MoveData->CompressedMoveFlagsExtra);
+	}
+	
+	Super::MoveAutonomous(ClientTimeStamp, DeltaTime, CompressedFlags, NewAccel);
 }
 
-uint8 FPredictedSavedMove::GetCompressedFlags() const
+void UPredictedCharacterMovement::UpdateFromCompressedFlagsExtra(uint8 Flags)
 {
-	uint8 Result = Super::GetCompressedFlags();
+	bWantsToStroll = (Flags & FPredictedSavedMove::FLAGEX_Stroll) != 0;
+	bWantsToWalk = (Flags & FPredictedSavedMove::FLAGEX_Walk) != 0;
+	bWantsToSprint = (Flags & FPredictedSavedMove::FLAGEX_Sprint) != 0;
+	bWantsToProne = (Flags & FPredictedSavedMove::FLAGEX_Prone) != 0;
+	bWantsToAimDownSights = (Flags & FPredictedSavedMove::FLAGEX_ADS) != 0;
+}
 
-	if (bWantsToSprint)
-	{
-		Result |= FLAG_Custom_0;
-	}
-
-	if (bWantsToProne)
-	{
-		Result |= FLAG_Custom_1;
-	}
+uint8 FPredictedSavedMove::GetCompressedFlagsExtra() const
+{
+	uint8 Result = 0;
 
 	if (bWantsToStroll)
 	{
-		Result |= FLAG_Custom_2;
+		Result |= FLAGEX_Stroll;
 	}
 
 	if (bWantsToWalk)
 	{
-		Result |= FLAG_Custom_3;
+		Result |= FLAGEX_Walk;
 	}
 	
+	if (bWantsToSprint)
+	{
+		Result |= FLAGEX_Sprint;
+	}
+
+	if (bWantsToProne)
+	{
+		Result |= FLAGEX_Prone;
+	}
+
 	if (bWantsToAimDownSights)
 	{
-		Result |= FLAG_Reserved_1;
+		Result |= FLAGEX_ADS;
 	}
 
 	return Result;

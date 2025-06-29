@@ -689,7 +689,7 @@ void APredictedCharacter::OnRep_SimulatedBoost(uint8 PrevLevel)
 	}
 }
 
-bool APredictedCharacter::Boost(FGameplayTag Level, EModifierNetType NetType)
+bool APredictedCharacter::Boost(FGameplayTag Level, EModifierNetTypeLocal NetType)
 {
 	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy && Level.IsValid())
 	{
@@ -701,9 +701,9 @@ bool APredictedCharacter::Boost(FGameplayTag Level, EModifierNetType NetType)
 		
 		switch (NetType)
 		{
-		case EModifierNetType::LocalPredicted:
+		case EModifierNetTypeLocal::LocalPredicted:
 			return PredictedMovement->BoostLocal.AddModifier(LevelIndex);
-		case EModifierNetType::WithCorrection:
+		case EModifierNetTypeLocal::WithCorrection:
 			return PredictedMovement->BoostCorrection.AddModifier(LevelIndex);
 		default: return false;
 		}
@@ -711,7 +711,7 @@ bool APredictedCharacter::Boost(FGameplayTag Level, EModifierNetType NetType)
 	return false;
 }
 
-bool APredictedCharacter::UnBoost(FGameplayTag Level, EModifierNetType NetType, bool bRemoveAll)
+bool APredictedCharacter::UnBoost(FGameplayTag Level, EModifierNetTypeLocal NetType, bool bRemoveAll)
 {
 	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy && Level.IsValid())
 	{
@@ -723,9 +723,9 @@ bool APredictedCharacter::UnBoost(FGameplayTag Level, EModifierNetType NetType, 
 		
 		switch (NetType)
 		{
-		case EModifierNetType::LocalPredicted:
+		case EModifierNetTypeLocal::LocalPredicted:
 			return PredictedMovement->BoostLocal.RemoveModifier(LevelIndex, bRemoveAll);
-		case EModifierNetType::WithCorrection:
+		case EModifierNetTypeLocal::WithCorrection:
 			return PredictedMovement->BoostCorrection.RemoveModifier(LevelIndex, bRemoveAll);
 		default: return false;
 		}
@@ -733,15 +733,15 @@ bool APredictedCharacter::UnBoost(FGameplayTag Level, EModifierNetType NetType, 
 	return false;
 }
 
-bool APredictedCharacter::ResetBoost(EModifierNetType NetType)
+bool APredictedCharacter::ResetBoost(EModifierNetTypeLocal NetType)
 {
 	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy)
 	{
 		switch (NetType)
 		{
-		case EModifierNetType::LocalPredicted:
+		case EModifierNetTypeLocal::LocalPredicted:
 			return PredictedMovement->BoostLocal.ResetModifiers();
-		case EModifierNetType::WithCorrection:
+		case EModifierNetTypeLocal::WithCorrection:
 			return PredictedMovement->BoostCorrection.ResetModifiers();
 		default: return false;
 		}
@@ -776,7 +776,7 @@ void APredictedCharacter::OnRep_SimulatedHaste(uint8 PrevLevel)
 	}
 }
 
-bool APredictedCharacter::Haste(FGameplayTag Level, EModifierNetType NetType)
+bool APredictedCharacter::Haste(FGameplayTag Level, EModifierNetTypeLocal NetType)
 {
 	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy && Level.IsValid())
 	{
@@ -788,9 +788,9 @@ bool APredictedCharacter::Haste(FGameplayTag Level, EModifierNetType NetType)
 		
 		switch (NetType)
 		{
-		case EModifierNetType::LocalPredicted:
+		case EModifierNetTypeLocal::LocalPredicted:
 			return PredictedMovement->HasteLocal.AddModifier(LevelIndex);
-		case EModifierNetType::WithCorrection:
+		case EModifierNetTypeLocal::WithCorrection:
 			return PredictedMovement->HasteCorrection.AddModifier(LevelIndex);
 		default: return false;
 		}
@@ -798,7 +798,7 @@ bool APredictedCharacter::Haste(FGameplayTag Level, EModifierNetType NetType)
 	return false;
 }
 
-bool APredictedCharacter::UnHaste(FGameplayTag Level, EModifierNetType NetType, bool bRemoveAll)
+bool APredictedCharacter::UnHaste(FGameplayTag Level, EModifierNetTypeLocal NetType, bool bRemoveAll)
 {
 	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy && Level.IsValid())
 	{
@@ -810,9 +810,9 @@ bool APredictedCharacter::UnHaste(FGameplayTag Level, EModifierNetType NetType, 
 		
 		switch (NetType)
 		{
-		case EModifierNetType::LocalPredicted:
+		case EModifierNetTypeLocal::LocalPredicted:
 			return PredictedMovement->HasteLocal.RemoveModifier(LevelIndex, bRemoveAll);
-		case EModifierNetType::WithCorrection:
+		case EModifierNetTypeLocal::WithCorrection:
 			return PredictedMovement->HasteCorrection.RemoveModifier(LevelIndex, bRemoveAll);
 		default: return false;
 		}
@@ -820,15 +820,15 @@ bool APredictedCharacter::UnHaste(FGameplayTag Level, EModifierNetType NetType, 
 	return false;
 }
 
-bool APredictedCharacter::ResetHaste(EModifierNetType NetType)
+bool APredictedCharacter::ResetHaste(EModifierNetTypeLocal NetType)
 {
 	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy)
 	{
 		switch (NetType)
 		{
-		case EModifierNetType::LocalPredicted:
+		case EModifierNetTypeLocal::LocalPredicted:
 			return PredictedMovement->HasteLocal.ResetModifiers();
-		case EModifierNetType::WithCorrection:
+		case EModifierNetTypeLocal::WithCorrection:
 			return PredictedMovement->HasteCorrection.ResetModifiers();
 		default: return false;
 		}
@@ -863,7 +863,7 @@ void APredictedCharacter::OnRep_SimulatedSlow(uint8 PrevLevel)
 	}
 }
 
-bool APredictedCharacter::Slow(FGameplayTag Level, EModifierNetType NetType)
+bool APredictedCharacter::Slow(FGameplayTag Level, EModifierNetTypeLocal NetType)
 {
 	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy && Level.IsValid())
 	{
@@ -875,9 +875,9 @@ bool APredictedCharacter::Slow(FGameplayTag Level, EModifierNetType NetType)
 		
 		switch (NetType)
 		{
-		case EModifierNetType::LocalPredicted:
+		case EModifierNetTypeLocal::LocalPredicted:
 			return PredictedMovement->SlowLocal.AddModifier(LevelIndex);
-		case EModifierNetType::WithCorrection:
+		case EModifierNetTypeLocal::WithCorrection:
 			return PredictedMovement->SlowCorrection.AddModifier(LevelIndex);
 		default: return false;
 		}
@@ -885,7 +885,7 @@ bool APredictedCharacter::Slow(FGameplayTag Level, EModifierNetType NetType)
 	return false;
 }
 
-bool APredictedCharacter::UnSlow(FGameplayTag Level, EModifierNetType NetType, bool bRemoveAll)
+bool APredictedCharacter::UnSlow(FGameplayTag Level, EModifierNetTypeLocal NetType, bool bRemoveAll)
 {
 	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy && Level.IsValid())
 	{
@@ -897,9 +897,9 @@ bool APredictedCharacter::UnSlow(FGameplayTag Level, EModifierNetType NetType, b
 		
 		switch (NetType)
 		{
-		case EModifierNetType::LocalPredicted:
+		case EModifierNetTypeLocal::LocalPredicted:
 			return PredictedMovement->SlowLocal.RemoveModifier(LevelIndex, bRemoveAll);
-		case EModifierNetType::WithCorrection:
+		case EModifierNetTypeLocal::WithCorrection:
 			return PredictedMovement->SlowCorrection.RemoveModifier(LevelIndex, bRemoveAll);
 		default: return false;
 		}
@@ -907,15 +907,15 @@ bool APredictedCharacter::UnSlow(FGameplayTag Level, EModifierNetType NetType, b
 	return false;
 }
 
-bool APredictedCharacter::ResetSlow(EModifierNetType NetType)
+bool APredictedCharacter::ResetSlow(EModifierNetTypeLocal NetType)
 {
 	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy)
 	{
 		switch (NetType)
 		{
-		case EModifierNetType::LocalPredicted:
+		case EModifierNetTypeLocal::LocalPredicted:
 			return PredictedMovement->SlowLocal.ResetModifiers();
-		case EModifierNetType::WithCorrection:
+		case EModifierNetTypeLocal::WithCorrection:
 			return PredictedMovement->SlowCorrection.ResetModifiers();
 		default: return false;
 		}
@@ -1016,7 +1016,7 @@ void APredictedCharacter::OnRep_SimulatedSlowFall(uint8 PrevLevel)
 	}
 }
 
-bool APredictedCharacter::SlowFall(FGameplayTag Level, EModifierNetType NetType)
+bool APredictedCharacter::SlowFall(FGameplayTag Level, EModifierNetTypeLocal NetType)
 {
 	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy && Level.IsValid())
 	{
@@ -1028,9 +1028,9 @@ bool APredictedCharacter::SlowFall(FGameplayTag Level, EModifierNetType NetType)
 		
 		switch (NetType)
 		{
-		case EModifierNetType::LocalPredicted:
+		case EModifierNetTypeLocal::LocalPredicted:
 			return PredictedMovement->SlowFallLocal.AddModifier(LevelIndex);
-		case EModifierNetType::WithCorrection:
+		case EModifierNetTypeLocal::WithCorrection:
 			return PredictedMovement->SlowFallCorrection.AddModifier(LevelIndex);
 		default: return false;
 		}
@@ -1038,7 +1038,7 @@ bool APredictedCharacter::SlowFall(FGameplayTag Level, EModifierNetType NetType)
 	return false;
 }
 
-bool APredictedCharacter::UnSlowFall(FGameplayTag Level, EModifierNetType NetType, bool bRemoveAll)
+bool APredictedCharacter::UnSlowFall(FGameplayTag Level, EModifierNetTypeLocal NetType, bool bRemoveAll)
 {
 	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy && Level.IsValid())
 	{
@@ -1050,9 +1050,9 @@ bool APredictedCharacter::UnSlowFall(FGameplayTag Level, EModifierNetType NetTyp
 		
 		switch (NetType)
 		{
-		case EModifierNetType::LocalPredicted:
+		case EModifierNetTypeLocal::LocalPredicted:
 			return PredictedMovement->SlowFallLocal.RemoveModifier(LevelIndex, bRemoveAll);
-		case EModifierNetType::WithCorrection:
+		case EModifierNetTypeLocal::WithCorrection:
 			return PredictedMovement->SlowFallCorrection.RemoveModifier(LevelIndex, bRemoveAll);
 		default: return false;
 		}
@@ -1060,15 +1060,15 @@ bool APredictedCharacter::UnSlowFall(FGameplayTag Level, EModifierNetType NetTyp
 	return false;
 }
 
-bool APredictedCharacter::ResetSlowFall(EModifierNetType NetType)
+bool APredictedCharacter::ResetSlowFall(EModifierNetTypeLocal NetType)
 {
 	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy)
 	{
 		switch (NetType)
 		{
-		case EModifierNetType::LocalPredicted:
+		case EModifierNetTypeLocal::LocalPredicted:
 			return PredictedMovement->SlowFallLocal.ResetModifiers();
-		case EModifierNetType::WithCorrection:
+		case EModifierNetTypeLocal::WithCorrection:
 			return PredictedMovement->SlowFallCorrection.ResetModifiers();
 		default: return false;
 		}

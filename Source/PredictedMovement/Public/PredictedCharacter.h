@@ -3,8 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "PredTypes.h"
 #include "GameFramework/Character.h"
+#include "Modifier/ModifierTypes.h"
 #include "PredictedCharacter.generated.h"
 
 class UPredictedCharacterMovement;
@@ -23,11 +25,10 @@ class PREDICTEDMOVEMENT_API APredictedCharacter : public ACharacter
 private:
 	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
 	UPROPERTY(BlueprintReadOnly, Category=Character, meta=(AllowPrivateAccess = "true"))
-	TObjectPtr<UPredictedCharacterMovement> PredMovement;
+	TObjectPtr<UPredictedCharacterMovement> PredictedMovement;
 
-	friend class FPredictedSavedMove;
-protected:
-	FORCEINLINE UPredictedCharacterMovement* GetPredCharacterMovement() const { return PredMovement; }
+public:
+	UPredictedCharacterMovement* GetPredictedMovement() const { return PredictedMovement; }
 
 protected:
 	/** Set by character movement to specify that this Character is currently Strolling. */
@@ -46,7 +47,54 @@ public:
 	APredictedCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
+public:
+	template<typename T>
+	void NotifyModifierChanged(const FGameplayTag& ModifierType, const FGameplayTag& ModifierLevel,
+		const FGameplayTag& PrevModifierLevel, T ModifierLevelValue, T PrevModifierLevelValue, T InvalidLevel)
+	{
+		if (ModifierLevelValue != InvalidLevel && PrevModifierLevelValue == InvalidLevel)
+		{
+			OnModifierAdded(ModifierType, ModifierLevel, PrevModifierLevel);
+		}
+		else if (ModifierLevelValue == InvalidLevel && PrevModifierLevelValue != InvalidLevel)
+		{
+			OnModifierRemoved(ModifierType, ModifierLevel, PrevModifierLevel);
+		}
+		
+		OnModifierChanged(ModifierType, ModifierLevel, PrevModifierLevel);
+	}
+	
+	virtual void OnModifierChanged(const FGameplayTag& ModifierType, const FGameplayTag& ModifierLevel, const FGameplayTag& PrevModifierLevel);
+	virtual void OnModifierAdded(const FGameplayTag& ModifierType, const FGameplayTag& ModifierLevel, const FGameplayTag& PrevModifierLevel);
+	virtual void OnModifierRemoved(const FGameplayTag& ModifierType, const FGameplayTag& ModifierLevel, const FGameplayTag& PrevModifierLevel);
 
+	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="On Modifier Added"))
+	void K2_OnModifierAdded(const FGameplayTag& ModifierType, const FGameplayTag& ModifierLevel, const FGameplayTag& PrevModifierLevel);
+
+	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="On Modifier Changed"))
+	void K2_OnModifierChanged(const FGameplayTag& ModifierType, const FGameplayTag& ModifierLevel, const FGameplayTag& PrevModifierLevel);
+
+	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="On Modifier Removed"))
+	void K2_OnModifierRemoved(const FGameplayTag& ModifierType, const FGameplayTag& ModifierLevel, const FGameplayTag& PrevModifierLevel);
+
+public:
+	/** 
+	 * Grant the client position authority, based on the current state of the character.
+	 * @param ClientAuthSource What the client is requesting authority for, not used by default, requires override
+	 * @param OverrideDuration Override the default client authority time, -1.f to use default
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Character)
+	virtual void GrantClientAuthority(FGameplayTag ClientAuthSource, float OverrideDuration = -1.f);
+	
+	/**
+	 * Consume the PendingMove if it exists, by sending it to the server and clearing it
+	 * Useful for movement in GAS where we need the server to complete anything pending to resolve de-sync that occurs as a result of a delayed move
+	 * @note Doesn't simply trash the PendingMove and there is only ever one, this function is poorly named and comes from Unreal
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	void FlushServerMoves();
+	
 public:
 	/** Request Gait Mode based on Player's Input */
 	UFUNCTION(BlueprintCallable, Category=Character)
@@ -158,6 +206,14 @@ public:
 	/** Event when Character stops Walking. */
 	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="On End Walk"))
 	void K2_OnEndWalk();
+
+public:
+	/**
+	 * Request the character to start Running. The request is processed on the next update of the CharacterMovementComponent.
+	 * @note Running state is simply the absence of Strolling, Walking, or Sprinting.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
+	virtual void Run(bool bClientSimulation = false);
 	
 public:
 	void SetIsSprinting(bool bNewSprinting);
@@ -373,13 +429,260 @@ public:
 	/** Event when Character stops Proned. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="On End Prone"))
 	void K2_OnEndProne(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
-
+	
 public:
+	/* Boost Implementation */
+	
+	/** Set by character movement to specify that this Character's Boost level. */
+	UPROPERTY(ReplicatedUsing=OnRep_SimulatedBoost)
+	uint8 SimulatedBoost = NO_MODIFIER;
+
+	/** Handle Boost replicated from server */
+	UFUNCTION()
+	virtual void OnRep_SimulatedBoost(uint8 PrevLevel);
+
 	/**
-	 * Consume the PendingMove if it exists, by sending it to the server and clearing it
-	 * Useful for movement in GAS where we need the server to complete anything pending to resolve de-sync that occurs as a result of a delayed move
-	 * @note Doesn't simply trash the PendingMove and there is only ever one, this function is poorly named and comes from Unreal
+	 * Request the character to start Boost. The request is processed on the next update of the CharacterMovementComponent.
+	 * @param Level The level of the Boost to remove.
+	 * @param NetType How the Boost is applied, either locally predicted, with correction, or server initiated.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(GameplayTagFilter="Modifier.Boost", InvalidEnumValues="ServerInitiated"))
+	virtual bool Boost(FGameplayTag Level, EModifierNetType NetType);
+
+	/**
+	 * Request the character to stop Boost. The request is processed on the next update of the CharacterMovementComponent.
+	 * @param Level The level of the Boost to remove.
+	 * @param NetType How the Boost is applied, either locally predicted, with correction, or server initiated.
+	 * @param bRemoveAll If true, removes all Boosts of the specified level, otherwise only removes the first one found.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(GameplayTagFilter="Modifier.Boost", InvalidEnumValues="ServerInitiated"))
+	virtual bool UnBoost(FGameplayTag Level, EModifierNetType NetType, bool bRemoveAll=false);
+
+	/**
+	 * Reset the Boost for the specified NetType, removing all Boosts of that type.
+	 * @return True if any modifiers were removed, false if none were found.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(InvalidEnumValues="ServerInitiated"))
+	virtual bool ResetBoost(EModifierNetType NetType);
+
+	/**
+	 * Get the current Boost level of the character.
+	 * @return Current active Boost level if active, otherwise empty tag.
 	 */
 	UFUNCTION(BlueprintCallable, Category=Character)
-	void FlushServerMoves();
+	FGameplayTag GetBoostLevel() const;
+
+	/**
+	 * Determine if this character is currently Boosted.
+	 * @return True if this character has an active Boost.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	bool IsBoostActive() const;
+	
+	/* ~Boost Implementation */
+
+public:
+	/* Haste Implementation */
+	
+	/** Set by character movement to specify that this Character's Haste level. */
+	UPROPERTY(ReplicatedUsing=OnRep_SimulatedHaste)
+	uint8 SimulatedHaste = NO_MODIFIER;
+
+	/** Handle Haste replicated from server */
+	UFUNCTION()
+	virtual void OnRep_SimulatedHaste(uint8 PrevLevel);
+
+	/**
+	 * Request the character to start Haste. The request is processed on the next update of the CharacterMovementComponent.
+	 * @param Level The level of the Haste to remove.
+	 * @param NetType How the Haste is applied, either locally predicted, with correction, or server initiated.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(GameplayTagFilter="Modifier.Haste", InvalidEnumValues="ServerInitiated"))
+	virtual bool Haste(FGameplayTag Level, EModifierNetType NetType);
+
+	/**
+	 * Request the character to stop Haste. The request is processed on the next update of the CharacterMovementComponent.
+	 * @param Level The level of the Haste to remove.
+	 * @param NetType How the Haste is applied, either locally predicted, with correction, or server initiated.
+	 * @param bRemoveAll If true, removes all Hastes of the specified level, otherwise only removes the first one found.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(GameplayTagFilter="Modifier.Haste", InvalidEnumValues="ServerInitiated"))
+	virtual bool UnHaste(FGameplayTag Level, EModifierNetType NetType, bool bRemoveAll=false);
+
+	/**
+	 * Reset the Haste for the specified NetType, removing all Hastes of that type.
+	 * @return True if any modifiers were removed, false if none were found.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(InvalidEnumValues="ServerInitiated"))
+	virtual bool ResetHaste(EModifierNetType NetType);
+
+	/**
+	 * Get the current Haste level of the character.
+	 * @return Current active Haste level if active, otherwise empty tag.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	FGameplayTag GetHasteLevel() const;
+
+	/**
+	 * Determine if this character is currently Hasteed.
+	 * @return True if this character has an active Haste.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	bool IsHasteActive() const;
+	
+	/* ~Haste Implementation */
+
+public:
+	/* Slow Implementation */
+	
+	/** Set by character movement to specify that this Character's Slow level. */
+	UPROPERTY(ReplicatedUsing=OnRep_SimulatedSlow)
+	uint8 SimulatedSlow = NO_MODIFIER;
+
+	/** Handle Slow replicated from server */
+	UFUNCTION()
+	virtual void OnRep_SimulatedSlow(uint8 PrevLevel);
+
+	/**
+	 * Request the character to start Slow. The request is processed on the next update of the CharacterMovementComponent.
+	 * @param Level The level of the Slow to remove.
+	 * @param NetType How the Slow is applied, either locally predicted, with correction, or server initiated.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(GameplayTagFilter="Modifier.Slow", InvalidEnumValues="ServerInitiated"))
+	virtual bool Slow(FGameplayTag Level, EModifierNetType NetType);
+
+	/**
+	 * Request the character to stop Slow. The request is processed on the next update of the CharacterMovementComponent.
+	 * @param Level The level of the Slow to remove.
+	 * @param NetType How the Slow is applied, either locally predicted, with correction, or server initiated.
+	 * @param bRemoveAll If true, removes all Slows of the specified level, otherwise only removes the first one found.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(GameplayTagFilter="Modifier.Slow", InvalidEnumValues="ServerInitiated"))
+	virtual bool UnSlow(FGameplayTag Level, EModifierNetType NetType, bool bRemoveAll=false);
+
+	/**
+	 * Reset the Slow for the specified NetType, removing all Slows of that type.
+	 * @return True if any modifiers were removed, false if none were found.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(InvalidEnumValues="ServerInitiated"))
+	virtual bool ResetSlow(EModifierNetType NetType);
+
+	/**
+	 * Get the current Slow level of the character.
+	 * @return Current active Slow level if active, otherwise empty tag.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	FGameplayTag GetSlowLevel() const;
+
+	/**
+	 * Determine if this character is currently Slowed.
+	 * @return True if this character has an active Slow.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	bool IsSlowActive() const;
+	
+	/* ~Slow Implementation */
+	
+public:
+	/* Snare Implementation */
+	
+	/** Set by character movement to specify that this Character's Snare level. */
+	UPROPERTY(ReplicatedUsing=OnRep_SimulatedSnare)
+	uint8 SimulatedSnare = NO_MODIFIER;
+
+	/** Handle Snare replicated from server */
+	UFUNCTION()
+	virtual void OnRep_SimulatedSnare(uint8 PrevLevel);
+
+	/**
+	 * Request the character to start Modified. The request is processed on the next update of the CharacterMovementComponent.
+	 * @see OnStartModifier
+	 * @see IsModified
+	 * @see CharacterMovement->WantsToModifier
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(GameplayTagFilter="Modifier.Snare"))
+	virtual bool Snare(FGameplayTag Level);
+
+	/**
+	 * Request the character to stop Modified. The request is processed on the next update of the CharacterMovementComponent.
+	 * @see OnEndModifier
+	 * @see IsModified
+	 * @see CharacterMovement->WantsToModifier
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(GameplayTagFilter="Modifier.Snare"))
+	virtual bool UnSnare(FGameplayTag Level, bool bRemoveAll=false);
+
+	/**
+	 * Reset the Snare for the specified NetType, removing all Snares of that type.
+	 * @return True if any modifiers were removed, false if none were found.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	virtual bool ResetSnare();
+
+	/**
+	 * Get the current Snare level of the character.
+	 * @return Current active Snare level if active, otherwise empty tag.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	FGameplayTag GetSnareLevel() const;
+
+	/**
+	 * Determine if this character is currently Snareed.
+	 * @return True if this character has an active Snare.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	bool IsSnareActive() const;
+	
+	/* ~Snare Implementation */
+
+public:
+	/* SlowFall Implementation */
+	
+	/** Set by character movement to specify that this Character's SlowFall level. */
+	UPROPERTY(ReplicatedUsing=OnRep_SimulatedSlowFall)
+	uint8 SimulatedSlowFall = NO_MODIFIER;
+
+	/** Handle SlowFall replicated from server */
+	UFUNCTION()
+	virtual void OnRep_SimulatedSlowFall(uint8 PrevLevel);
+
+	/**
+	 * Request the character to start SlowFall. The request is processed on the next update of the CharacterMovementComponent.
+	 * @param Level The level of the SlowFall to remove.
+	 * @param NetType How the SlowFall is applied, either locally predicted, with correction, or server initiated.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(GameplayTagFilter="Modifier.SlowFall", InvalidEnumValues="ServerInitiated"))
+	virtual bool SlowFall(FGameplayTag Level, EModifierNetType NetType);
+
+	/**
+	 * Request the character to stop SlowFall. The request is processed on the next update of the CharacterMovementComponent.
+	 * @param Level The level of the SlowFall to remove.
+	 * @param NetType How the SlowFall is applied, either locally predicted, with correction, or server initiated.
+	 * @param bRemoveAll If true, removes all SlowFalls of the specified level, otherwise only removes the first one found.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(GameplayTagFilter="Modifier.SlowFall", InvalidEnumValues="ServerInitiated"))
+	virtual bool UnSlowFall(FGameplayTag Level, EModifierNetType NetType, bool bRemoveAll=false);
+
+	/**
+	 * Reset the SlowFall for the specified NetType, removing all SlowFalls of that type.
+	 * @return True if any modifiers were removed, false if none were found.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(InvalidEnumValues="ServerInitiated"))
+	virtual bool ResetSlowFall(EModifierNetType NetType);
+
+	/**
+	 * Get the current SlowFall level of the character.
+	 * @return Current active SlowFall level if active, otherwise empty tag.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	FGameplayTag GetSlowFallLevel() const;
+
+	/**
+	 * Determine if this character is currently SlowFalled.
+	 * @return True if this character has an active SlowFall.
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	bool IsSlowFallActive() const;
+	
+	/* ~SlowFall Implementation */
 };

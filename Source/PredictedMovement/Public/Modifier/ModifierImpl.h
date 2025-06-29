@@ -201,11 +201,11 @@ struct PREDICTEDMOVEMENT_API FMovementModifier
 		{
 			if (bRemoveAll)
 			{
-				WantsModifiers.RemoveAll([Level](const TModSize& ModLevel) { return ModLevel == Level; });
+				WantsModifiers.Remove(Level);
 			}
 			else
 			{
-				WantsModifiers.Remove(Level);
+				WantsModifiers.RemoveSingle(Level);
 			}
 			return true;
 		}

@@ -46,27 +46,28 @@ https://youtu.be/SHVm57AMruc
 
 # Changelog
 
+### 2.1.0
+* Movement Modifiers recreated from scratch
+  * Supports `LocalPredicted`, `ServerInitiated`, but also `LocalPredicted_WithCorrection`
+* Client Authority overhauled, now handles client corrections fully
+
+### 2.0.1
+* Change from `uint32:1` to `uint8:1`
+
 ### 2.0.0
 * Movement Modifiers added
-  * Instead of an on/off bool these have `FGameplayTag` representing multiple levels
-    e.g. `Snare.Level2`, `Snare.50_Pct`, `Snare.Hamstring`, etc.
-  * Local Predicted & Server Initiated modifiers
-  * Boost, SlowFall, Snare included by default on `main` branch
-  * Boost, Slow, SlowFall, Snare included by default on `single-cmc` branch
-* Partial Location-Only Client Authority solution added
-  * For server initiated modifiers in particular, but you can call for it anywhere for anything
-  * Utilized out of the box when Snare modifier is applied so that the client receiving the snare doesn't de-sync
-  * Authorities can stack if you want to extend the system to average them out, or similar
+  * Supports Local Predicted & Server Initiated modifiers
+  * Boost, SlowFall, Snare included by default
+* Client Authority solution added
+  * For Server Initiated modifiers in particular
+* `CanSprintInCurrentState()` no longer checks `IsSprintWithinAllowableInputAngle()`
+  * `IsSprintWithinAllowableInputAngle()` exposed for BP (`ASprintCharacter`) and should be checked individually for when considered sprinting
+    * Additional function added `IsSprintingInEffect()` that checks both `IsSprintingAtSpeed() && IsSprintWithinAllowableInputAngle()`
+    * e.g. `if (IsSprintingAtSpeed())` becomes `if (IsSprintingInEffect())`
+  * The goal is to not have it completely exit/re-entry sprinting state repeatedly when the angle continues to fail the check momentarily
+  * Exposed `MaxInputAngleSprint` which was previously 50.f
+* Movement Abilities updated to use push model for replication
 * Wiki added
-* `single-cmc` branch added to replace `link` branch
-  * Available to BP users
-  * Covers the needs of common games
-* Added Crouch movement properties to bring it inline with prone properties but only on `single-cmc` branch
-* Added Demo Content to `single-cmc` branch
-* Removed `IsSprintWithinAllowableInputAngle()` from `CanSprintInCurrentState()` to prevent constant exit/re-entry into sprint state
-  * `IsSprintingInEffect()` added which checks both `IsSprintWithinAllowableInputAngle()` + `IsSprintingAtSpeed()`
-  * `IsSprintWithinAllowableAngle()` exposed to BP from `ASprintCharacter`
-* Updated existing movement abilities to use push-model for replication
 
 ### 1.5.2
 * Version number follows Unreal format 1.0.5.2 > 1.5.2

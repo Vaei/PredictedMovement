@@ -21,6 +21,16 @@ enum class EModifierNetType : uint8
 };
 
 /**
+ * The network type of the modifier, which determines how it is applied and synchronized across clients and servers
+ */
+UENUM(BlueprintType)
+enum class EModifierNetTypeLocal : uint8
+{
+	LocalPredicted UMETA(DisplayName="Local Predicted", ToolTip="Locally predicted modifier that respects player input, e.g. Sprinting"),
+	WithCorrection UMETA(DisplayName="Local Predicted + Correction", ToolTip="Locally predicted modifier, but corrected by server when a mismatch occurs, e.g. Equipping a knife that results in higher speed"),
+};
+
+/**
  * The method used to calculate modifier levels
  */
 UENUM(BlueprintType)

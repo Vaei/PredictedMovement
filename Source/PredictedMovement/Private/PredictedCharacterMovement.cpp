@@ -169,11 +169,11 @@ void FPredictedMoveResponseDataContainer::ServerFillResponseData(const UCharacte
 	Stamina = MoveComp->GetStamina();
 
 	// Fill the response data with the current modifier state
-	BoostCorrection.ServerFillResponseData(MoveComp->BoostCorrection.Data.Modifiers);
-	HasteCorrection.ServerFillResponseData(MoveComp->HasteCorrection.Data.Modifiers);
-	SlowCorrection.ServerFillResponseData(MoveComp->SlowCorrection.Data.Modifiers);
-	SnareServer.ServerFillResponseData(MoveComp->SnareServer.Data.Modifiers);
-	SlowFallCorrection.ServerFillResponseData(MoveComp->SlowFallCorrection.Data.Modifiers);
+	BoostCorrection.ServerFillResponseData(MoveComp->BoostCorrection.Modifiers);
+	HasteCorrection.ServerFillResponseData(MoveComp->HasteCorrection.Modifiers);
+	SlowCorrection.ServerFillResponseData(MoveComp->SlowCorrection.Modifiers);
+	SnareServer.ServerFillResponseData(MoveComp->SnareServer.Modifiers);
+	SlowFallCorrection.ServerFillResponseData(MoveComp->SlowFallCorrection.Modifiers);
 
 	// Fill ClientAuthAlpha
 	ClientAuthAlpha = MoveComp->ClientAuthAlpha;
@@ -1487,9 +1487,9 @@ void UPredictedCharacterMovement::ProcessModifierMovementState()
 		{	// Boost
 			const FGameplayTag PrevBoostLevel = GetBoostLevel();
 			const uint8 PrevBoostLevelValue = BoostLevel;
-			if (FModifierStatics::ProcessModifiers<TMod_Local, TMod_LocalCorrection, TMod_Server>(
-				BoostLevel, BoostLevelMethod, BoostLevels, bLimitMaxBoosts, MaxBoosts, NO_MODIFIER,
-				&BoostLocal, &BoostCorrection, nullptr,
+			TArray<FMovementModifier> Boosts = { BoostLocal, BoostCorrection };
+			if (FModifierStatics::ProcessModifiers(BoostLevel, BoostLevelMethod, BoostLevels,
+				bLimitMaxBoosts, MaxBoosts, NO_MODIFIER, Boosts,
 				[this] { return CanBoostInCurrentState(); }))
 			{
 				PredCharacterOwner->NotifyModifierChanged(FModifierTags::Modifier_Boost,
@@ -1501,9 +1501,9 @@ void UPredictedCharacterMovement::ProcessModifierMovementState()
 		{	// Haste
 			const FGameplayTag PrevHasteLevel = GetHasteLevel();
 			const uint8 PrevHasteLevelValue = HasteLevel;
-			if (FModifierStatics::ProcessModifiers<TMod_Local, TMod_LocalCorrection, TMod_Server>(
-				HasteLevel, HasteLevelMethod, HasteLevels, bLimitMaxHastes, MaxHastes, NO_MODIFIER,
-				&HasteLocal, &HasteCorrection, nullptr,
+			TArray<FMovementModifier> Hastes = { HasteLocal, HasteCorrection };
+			if (FModifierStatics::ProcessModifiers(HasteLevel, HasteLevelMethod, HasteLevels,
+				bLimitMaxHastes, MaxHastes, NO_MODIFIER, Hastes,
 				[this] { return CanHasteInCurrentState(); }))
 			{
 				PredCharacterOwner->NotifyModifierChanged(FModifierTags::Modifier_Haste,
@@ -1515,9 +1515,9 @@ void UPredictedCharacterMovement::ProcessModifierMovementState()
 		{	// Slow
 			const FGameplayTag PrevSlowLevel = GetSlowLevel();
 			const uint8 PrevSlowLevelValue = SlowLevel;
-			if (FModifierStatics::ProcessModifiers<TMod_Local, TMod_LocalCorrection, TMod_Server>(
-				SlowLevel, SlowLevelMethod, SlowLevels, bLimitMaxSlows, MaxSlows, NO_MODIFIER,
-				&SlowLocal, &SlowCorrection, nullptr,
+			TArray<FMovementModifier> Slows = { SlowLocal, SlowCorrection };
+			if (FModifierStatics::ProcessModifiers(SlowLevel, SlowLevelMethod, SlowLevels,
+				bLimitMaxSlows, MaxSlows, NO_MODIFIER, Slows,
 				[this] { return CanSlowInCurrentState(); }))
 			{
 				PredCharacterOwner->NotifyModifierChanged(FModifierTags::Modifier_Slow,
@@ -1529,9 +1529,9 @@ void UPredictedCharacterMovement::ProcessModifierMovementState()
 		{	// Snare
 			const FGameplayTag PrevSnareLevel = GetSnareLevel();
 			const uint8 PrevSnareLevelValue = SnareLevel;
-			if (FModifierStatics::ProcessModifiers<TMod_Local, TMod_LocalCorrection, TMod_Server>(
-				SnareLevel, SnareLevelMethod, SnareLevels, bLimitMaxSnares, MaxSnares, NO_MODIFIER,
-				nullptr, nullptr, &SnareServer,
+			TArray<FMovementModifier> Snares = { SnareServer };
+			if (FModifierStatics::ProcessModifiers(SnareLevel, SnareLevelMethod, SnareLevels,
+				bLimitMaxSnares, MaxSnares, NO_MODIFIER, Snares,
 				[this] { return CanSnareInCurrentState(); }))
 			{
 				PredCharacterOwner->NotifyModifierChanged(FModifierTags::Modifier_Snare,
@@ -1543,9 +1543,9 @@ void UPredictedCharacterMovement::ProcessModifierMovementState()
 		{	// SlowFall
 			const FGameplayTag PrevSlowFallLevel = GetSlowFallLevel();
 			const uint8 PrevSlowFallLevelValue = SlowFallLevel;
-			if (FModifierStatics::ProcessModifiers<TMod_Local, TMod_LocalCorrection, TMod_Server>(
-				SlowFallLevel, SlowFallLevelMethod, SlowFallLevels, bLimitMaxSlowFalls, MaxSlowFalls, NO_MODIFIER,
-				&SlowFallLocal, &SlowFallCorrection, nullptr,
+			TArray<FMovementModifier> SlowFalls = { SlowFallLocal, SlowFallCorrection };
+			if (FModifierStatics::ProcessModifiers(SlowFallLevel, SlowFallLevelMethod, SlowFallLevels,
+				bLimitMaxSlowFalls, MaxSlowFalls, NO_MODIFIER, SlowFalls,
 				[this] { return CanSlowFallInCurrentState(); }))
 			{
 				PredCharacterOwner->NotifyModifierChanged(FModifierTags::Modifier_SlowFall,
@@ -2047,14 +2047,14 @@ bool UPredictedCharacterMovement::ClientUpdatePositionAfterServerUpdate()
 	const bool bRealAimDownSights = bWantsToAimDownSights;
 
 	// Modifiers
-	const TModifierStack RealBoostLocal = BoostLocal.Data.WantsModifiers;
-	const TModifierStack RealBoostCorrection = BoostCorrection.Data.WantsModifiers;
-	const TModifierStack RealHasteLocal = HasteLocal.Data.WantsModifiers;
-	const TModifierStack RealHasteCorrection = HasteCorrection.Data.WantsModifiers;
-	const TModifierStack RealSlowLocal = SlowLocal.Data.WantsModifiers;
-	const TModifierStack RealSlowCorrection = SlowCorrection.Data.WantsModifiers;
-	const TModifierStack RealSlowFallLocal = SlowFallLocal.Data.WantsModifiers;
-	const TModifierStack RealSlowFallCorrection = SlowFallCorrection.Data.WantsModifiers;
+	const TModifierStack RealBoostLocal = BoostLocal.WantsModifiers;
+	const TModifierStack RealBoostCorrection = BoostCorrection.WantsModifiers;
+	const TModifierStack RealHasteLocal = HasteLocal.WantsModifiers;
+	const TModifierStack RealHasteCorrection = HasteCorrection.WantsModifiers;
+	const TModifierStack RealSlowLocal = SlowLocal.WantsModifiers;
+	const TModifierStack RealSlowCorrection = SlowCorrection.WantsModifiers;
+	const TModifierStack RealSlowFallLocal = SlowFallLocal.WantsModifiers;
+	const TModifierStack RealSlowFallCorrection = SlowFallCorrection.WantsModifiers;
 
 	// Client location authority
 	const FVector ClientLoc = UpdatedComponent->GetComponentLocation();
@@ -2068,14 +2068,14 @@ bool UPredictedCharacterMovement::ClientUpdatePositionAfterServerUpdate()
 	bWantsToAimDownSights = bRealAimDownSights;
 
 	// Modifiers
-	BoostLocal.Data.WantsModifiers = RealBoostLocal;
-	BoostCorrection.Data.WantsModifiers = RealBoostCorrection;
-	HasteLocal.Data.WantsModifiers = RealHasteLocal;
-	HasteCorrection.Data.WantsModifiers = RealHasteCorrection;
-	SlowLocal.Data.WantsModifiers = RealSlowLocal;
-	SlowCorrection.Data.WantsModifiers = RealSlowCorrection;
-	SlowFallLocal.Data.WantsModifiers = RealSlowFallLocal;
-	SlowFallCorrection.Data.WantsModifiers = RealSlowFallCorrection;
+	BoostLocal.WantsModifiers = RealBoostLocal;
+	BoostCorrection.WantsModifiers = RealBoostCorrection;
+	HasteLocal.WantsModifiers = RealHasteLocal;
+	HasteCorrection.WantsModifiers = RealHasteCorrection;
+	SlowLocal.WantsModifiers = RealSlowLocal;
+	SlowCorrection.WantsModifiers = RealSlowCorrection;
+	SlowFallLocal.WantsModifiers = RealSlowFallLocal;
+	SlowFallCorrection.WantsModifiers = RealSlowFallCorrection;
 
 	// Preserve client location relative to the partial client authority we have
 	const FVector AuthLocation = FMath::Lerp<FVector>(UpdatedComponent->GetComponentLocation(), ClientLoc, ClientAuthAlpha);
@@ -2192,14 +2192,14 @@ void FPredictedSavedMove::SetMoveFor(ACharacter* C, float InDeltaTime, FVector c
 		bWantsToAimDownSights = MoveComp->bWantsToAimDownSights;
 
 		// Modifiers
-		BoostLocal.SetMoveFor(MoveComp->BoostLocal.Data.WantsModifiers);
-		BoostCorrection.SetMoveFor(MoveComp->BoostCorrection.Data.WantsModifiers);
-		HasteLocal.SetMoveFor(MoveComp->HasteLocal.Data.WantsModifiers);
-		HasteCorrection.SetMoveFor(MoveComp->HasteCorrection.Data.WantsModifiers);
-		SlowLocal.SetMoveFor(MoveComp->SlowLocal.Data.WantsModifiers);
-		SlowCorrection.SetMoveFor(MoveComp->SlowCorrection.Data.WantsModifiers);
-		SlowFallLocal.SetMoveFor(MoveComp->SlowFallLocal.Data.WantsModifiers);
-		SlowFallCorrection.SetMoveFor(MoveComp->SlowFallCorrection.Data.WantsModifiers);
+		BoostLocal.SetMoveFor(MoveComp->BoostLocal.WantsModifiers);
+		BoostCorrection.SetMoveFor(MoveComp->BoostCorrection.WantsModifiers);
+		HasteLocal.SetMoveFor(MoveComp->HasteLocal.WantsModifiers);
+		HasteCorrection.SetMoveFor(MoveComp->HasteCorrection.WantsModifiers);
+		SlowLocal.SetMoveFor(MoveComp->SlowLocal.WantsModifiers);
+		SlowCorrection.SetMoveFor(MoveComp->SlowCorrection.WantsModifiers);
+		SlowFallLocal.SetMoveFor(MoveComp->SlowFallLocal.WantsModifiers);
+		SlowFallCorrection.SetMoveFor(MoveComp->SlowFallCorrection.WantsModifiers);
 	}
 }
 
@@ -2273,14 +2273,14 @@ void FPredictedSavedMove::SetInitialPosition(ACharacter* C)
 		StartStamina = MoveComp->GetStamina();
 
 		// Modifiers
-		BoostLocal.SetInitialPosition(MoveComp->BoostLocal.Data.WantsModifiers);
-		BoostCorrection.SetInitialPosition(MoveComp->BoostCorrection.Data.WantsModifiers);
-		HasteLocal.SetInitialPosition(MoveComp->HasteLocal.Data.WantsModifiers);
-		HasteCorrection.SetInitialPosition(MoveComp->HasteCorrection.Data.WantsModifiers);
-		SlowLocal.SetInitialPosition(MoveComp->SlowLocal.Data.WantsModifiers);
-		SlowCorrection.SetInitialPosition(MoveComp->SlowCorrection.Data.WantsModifiers);
-		SlowFallLocal.SetInitialPosition(MoveComp->SlowFallLocal.Data.WantsModifiers);
-		SlowFallCorrection.SetInitialPosition(MoveComp->SlowFallCorrection.Data.WantsModifiers);
+		BoostLocal.SetInitialPosition(MoveComp->BoostLocal.WantsModifiers);
+		BoostCorrection.SetInitialPosition(MoveComp->BoostCorrection.WantsModifiers);
+		HasteLocal.SetInitialPosition(MoveComp->HasteLocal.WantsModifiers);
+		HasteCorrection.SetInitialPosition(MoveComp->HasteCorrection.WantsModifiers);
+		SlowLocal.SetInitialPosition(MoveComp->SlowLocal.WantsModifiers);
+		SlowCorrection.SetInitialPosition(MoveComp->SlowCorrection.WantsModifiers);
+		SlowFallLocal.SetInitialPosition(MoveComp->SlowFallLocal.WantsModifiers);
+		SlowFallCorrection.SetInitialPosition(MoveComp->SlowFallCorrection.WantsModifiers);
 
 		BoostLevel = MoveComp->BoostLevel;
 		HasteLevel = MoveComp->HasteLevel;
@@ -2328,11 +2328,11 @@ void FPredictedSavedMove::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMo
 		EndStamina = MoveComp->GetStamina();
 
 		// Modifiers
-		BoostCorrection.PostUpdate(MoveComp->BoostCorrection.Data.Modifiers);
-		HasteCorrection.PostUpdate(MoveComp->HasteCorrection.Data.Modifiers);
-		SlowCorrection.PostUpdate(MoveComp->SlowCorrection.Data.Modifiers);
-		SnareServer.PostUpdate(MoveComp->SnareServer.Data.Modifiers);
-		SlowFallCorrection.PostUpdate(MoveComp->SlowFallCorrection.Data.Modifiers);
+		BoostCorrection.PostUpdate(MoveComp->BoostCorrection.Modifiers);
+		HasteCorrection.PostUpdate(MoveComp->HasteCorrection.Modifiers);
+		SlowCorrection.PostUpdate(MoveComp->SlowCorrection.Modifiers);
+		SnareServer.PostUpdate(MoveComp->SnareServer.Modifiers);
+		SlowFallCorrection.PostUpdate(MoveComp->SlowFallCorrection.Modifiers);
 
 		if (PostUpdateMode == PostUpdate_Record)
 		{

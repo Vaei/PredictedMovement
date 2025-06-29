@@ -7,15 +7,16 @@
 #include "PredictedCharacterMovement.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Modifier/ModifierTags.h"
 
-#include UE_INLINE_GENERATED_CPP_BY_NAME(PredCharacter)
+#include UE_INLINE_GENERATED_CPP_BY_NAME(PredictedCharacter)
 
 DEFINE_LOG_CATEGORY_STATIC(LogPredCharacter, Log, All);
 
 APredictedCharacter::APredictedCharacter(const FObjectInitializer& FObjectInitializer)
 	: Super(FObjectInitializer.SetDefaultSubobjectClass<UPredictedCharacterMovement>(CharacterMovementComponentName))
 {
-	PredMovement = Cast<UPredictedCharacterMovement>(GetCharacterMovement());
+	PredictedMovement = Cast<UPredictedCharacterMovement>(GetCharacterMovement());
 
 	PronedEyeHeight = 16.f;
 }
@@ -35,11 +36,80 @@ void APredictedCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsStrolling, SharedParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsWalking, SharedParams);
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bIsSprinting, SharedParams);
+
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedBoost, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedHaste, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedSlow, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedSnare, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedSlowFall, SharedParams);
 }
 
+void APredictedCharacter::OnModifierChanged(const FGameplayTag& ModifierType, const FGameplayTag& ModifierLevel,
+	const FGameplayTag& PrevModifierLevel)
+{
+	K2_OnModifierChanged(ModifierType, ModifierLevel, PrevModifierLevel);
+
+	// Replicate to simulated proxies
+	if (PredictedMovement && HasAuthority())
+	{
+		if (ModifierType == FModifierTags::Modifier_Boost)
+		{
+			SimulatedBoost = PredictedMovement->GetBoostLevelIndex(ModifierLevel);
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedBoost, this);
+		}
+		else if (ModifierType == FModifierTags::Modifier_Haste)
+		{
+			SimulatedHaste = PredictedMovement->GetHasteLevelIndex(ModifierLevel);
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedHaste, this);
+		}
+		else if (ModifierType == FModifierTags::Modifier_Slow)
+		{
+			SimulatedSlow = PredictedMovement->GetSlowLevelIndex(ModifierLevel);
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedSlow, this);
+		}
+		else if (ModifierType == FModifierTags::Modifier_Snare)
+		{
+			SimulatedSnare = PredictedMovement->GetSnareLevelIndex(ModifierLevel);
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedSnare, this);
+		}
+		else if (ModifierType == FModifierTags::Modifier_SlowFall)
+		{
+			SimulatedSlowFall = PredictedMovement->GetSlowFallLevelIndex(ModifierLevel);
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedSlowFall, this);
+		}
+	}
+}
+
+void APredictedCharacter::OnModifierAdded(const FGameplayTag& ModifierType, const FGameplayTag& ModifierLevel,
+	const FGameplayTag& PrevModifierLevel)
+{
+	K2_OnModifierAdded(ModifierType, ModifierLevel, PrevModifierLevel);
+}
+
+void APredictedCharacter::OnModifierRemoved(const FGameplayTag& ModifierType, const FGameplayTag& ModifierLevel,
+	const FGameplayTag& PrevModifierLevel)
+{
+	K2_OnModifierRemoved(ModifierType, ModifierLevel, PrevModifierLevel);
+}
+
+void APredictedCharacter::GrantClientAuthority(FGameplayTag ClientAuthSource, float OverrideDuration)
+{
+	if (PredictedMovement)
+	{
+		PredictedMovement->GrantClientAuthority(ClientAuthSource, OverrideDuration);
+	}
+}
+
+void APredictedCharacter::FlushServerMoves()
+{
+	if (PredictedMovement)
+	{
+		PredictedMovement->FlushServerMoves();
+	}
+}
 void APredictedCharacter::SetGaitMode(EPredGaitMode NewGaitMode)
 { 
-	if (PredMovement)
+	if (PredictedMovement)
 	{
 		switch (NewGaitMode)
 		{
@@ -50,9 +120,7 @@ void APredictedCharacter::SetGaitMode(EPredGaitMode NewGaitMode)
 			Walk();
 			break;
 		case EPredGaitMode::Run:
-			UnStroll();
-			UnWalk();
-			UnSprint();
+			Run();
 			break;
 		case EPredGaitMode::Sprint:
 			Sprint();
@@ -63,12 +131,12 @@ void APredictedCharacter::SetGaitMode(EPredGaitMode NewGaitMode)
 
 EPredGaitMode APredictedCharacter::GetGaitMode() const
 {
-	return PredMovement ? PredMovement->GetGaitMode() : EPredGaitMode::Run;
+	return PredictedMovement ? PredictedMovement->GetGaitMode() : EPredGaitMode::Run;
 }
 
 EPredGaitMode APredictedCharacter::GetGaitSpeed() const
 {
-	return PredMovement ? PredMovement->GetGaitSpeed() : EPredGaitMode::Run;
+	return PredictedMovement ? PredictedMovement->GetGaitSpeed() : EPredGaitMode::Run;
 }
 
 FString APredictedCharacter::GetGaitModeString(EPredGaitMode GaitMode)
@@ -113,19 +181,19 @@ void APredictedCharacter::SetIsStrolling(bool bNewStrolling)
 
 void APredictedCharacter::OnRep_IsStrolling()
 {
-	if (PredMovement)
+	if (PredictedMovement)
 	{
 		if (bIsStrolling)
 		{
-			PredMovement->bWantsToStroll = true;
-			PredMovement->Stroll(true);
+			PredictedMovement->bWantsToStroll = true;
+			PredictedMovement->Stroll(true);
 		}
 		else
 		{
-			PredMovement->bWantsToStroll = false;
-			PredMovement->UnStroll(true);
+			PredictedMovement->bWantsToStroll = false;
+			PredictedMovement->UnStroll(true);
 		}
-		PredMovement->bNetworkUpdateReceived = true;
+		PredictedMovement->bNetworkUpdateReceived = true;
 	}
 }
 
@@ -136,9 +204,9 @@ bool APredictedCharacter::CanStroll() const
 
 void APredictedCharacter::Stroll(bool bClientSimulation)
 {
-	if (PredMovement && CanStroll())
+	if (PredictedMovement && CanStroll())
 	{
-		PredMovement->bWantsToStroll = true;
+		PredictedMovement->bWantsToStroll = true;
 		
 		if (!bClientSimulation)
 		{
@@ -156,9 +224,9 @@ void APredictedCharacter::Stroll(bool bClientSimulation)
 
 void APredictedCharacter::UnStroll(bool bClientSimulation)
 {
-	if (PredMovement)
+	if (PredictedMovement)
 	{
-		PredMovement->bWantsToStroll = false;
+		PredictedMovement->bWantsToStroll = false;
 	}
 }
 
@@ -189,19 +257,19 @@ void APredictedCharacter::SetIsWalking(bool bNewWalking)
 
 void APredictedCharacter::OnRep_IsWalking()
 {
-	if (PredMovement)
+	if (PredictedMovement)
 	{
 		if (bIsWalking)
 		{
-			PredMovement->bWantsToWalk = true;
-			PredMovement->Walk(true);
+			PredictedMovement->bWantsToWalk = true;
+			PredictedMovement->Walk(true);
 		}
 		else
 		{
-			PredMovement->bWantsToWalk = false;
-			PredMovement->UnWalk(true);
+			PredictedMovement->bWantsToWalk = false;
+			PredictedMovement->UnWalk(true);
 		}
-		PredMovement->bNetworkUpdateReceived = true;
+		PredictedMovement->bNetworkUpdateReceived = true;
 	}
 }
 
@@ -212,9 +280,9 @@ bool APredictedCharacter::CanWalk() const
 
 void APredictedCharacter::Walk(bool bClientSimulation)
 {
-	if (PredMovement && CanWalk())
+	if (PredictedMovement && CanWalk())
 	{
-		PredMovement->bWantsToWalk = true;
+		PredictedMovement->bWantsToWalk = true;
 		
 		if (!bClientSimulation)
 		{
@@ -232,9 +300,9 @@ void APredictedCharacter::Walk(bool bClientSimulation)
 
 void APredictedCharacter::UnWalk(bool bClientSimulation)
 {
-	if (PredMovement)
+	if (PredictedMovement)
 	{
-		PredMovement->bWantsToWalk = false;
+		PredictedMovement->bWantsToWalk = false;
 	}
 }
 
@@ -249,6 +317,13 @@ void APredictedCharacter::OnEndWalk()
 }
 
 /* SPRINTING */
+
+void APredictedCharacter::Run(bool bClientSimulation)
+{
+	UnStroll();
+	UnWalk();
+	UnSprint();
+}
 
 void APredictedCharacter::SetIsSprinting(bool bNewSprinting)
 {
@@ -265,12 +340,12 @@ void APredictedCharacter::SetIsSprinting(bool bNewSprinting)
 
 bool APredictedCharacter::IsSprintingAtSpeed() const
 {
-	return PredMovement ? PredMovement->IsSprintingAtSpeed() : false;
+	return PredictedMovement ? PredictedMovement->IsSprintingAtSpeed() : false;
 }
 
 bool APredictedCharacter::IsSprintWithinAllowableInputAngle() const
 {
-	return PredMovement && PredMovement->IsSprintWithinAllowableInputAngle();
+	return PredictedMovement && PredictedMovement->IsSprintWithinAllowableInputAngle();
 }
 
 bool APredictedCharacter::IsSprintingInEffect() const
@@ -280,19 +355,19 @@ bool APredictedCharacter::IsSprintingInEffect() const
 
 void APredictedCharacter::OnRep_IsSprinting()
 {
-	if (PredMovement)
+	if (PredictedMovement)
 	{
 		if (bIsSprinting)
 		{
-			PredMovement->bWantsToSprint = true;
-			PredMovement->Sprint(true);
+			PredictedMovement->bWantsToSprint = true;
+			PredictedMovement->Sprint(true);
 		}
 		else
 		{
-			PredMovement->bWantsToSprint = false;
-			PredMovement->UnSprint(true);
+			PredictedMovement->bWantsToSprint = false;
+			PredictedMovement->UnSprint(true);
 		}
-		PredMovement->bNetworkUpdateReceived = true;
+		PredictedMovement->bNetworkUpdateReceived = true;
 	}
 }
 
@@ -303,22 +378,22 @@ bool APredictedCharacter::CanSprint() const
 
 void APredictedCharacter::Sprint(bool bClientSimulation)
 {
-	if (PredMovement && CanSprint())
+	if (PredictedMovement && CanSprint())
 	{
-		PredMovement->bWantsToSprint = true;
+		PredictedMovement->bWantsToSprint = true;
 		
 		if (!bClientSimulation)
 		{
 			// If we can't sprint during certain states, then allow sprint to cancel those states
-			if (bIsCrouched && !PredMovement->bCanSprintDuringCrouch)
+			if (bIsCrouched && !PredictedMovement->bCanSprintDuringCrouch)
 			{
 				UnCrouch();
 			}
-			if (IsProned() && !PredMovement->bCanSprintDuringProne)
+			if (IsProned() && !PredictedMovement->bCanSprintDuringProne)
 			{
 				UnProne();
 			}
-			if (IsAimingDownSights() && !PredMovement->bCanSprintDuringAimDownSights)
+			if (IsAimingDownSights() && !PredictedMovement->bCanSprintDuringAimDownSights)
 			{
 				UnAimDownSights();
 			}
@@ -336,9 +411,9 @@ void APredictedCharacter::Sprint(bool bClientSimulation)
 
 void APredictedCharacter::UnSprint(bool bClientSimulation)
 {
-	if (PredMovement)
+	if (PredictedMovement)
 	{
-		PredMovement->bWantsToSprint = false;
+		PredictedMovement->bWantsToSprint = false;
 	}
 }
 
@@ -380,22 +455,22 @@ void APredictedCharacter::OnStaminaDrainRecovered()
 
 float APredictedCharacter::GetStamina() const
 {
-	return PredMovement ? PredMovement->GetStamina() : 0.f;
+	return PredictedMovement ? PredictedMovement->GetStamina() : 0.f;
 }
 
 float APredictedCharacter::GetMaxStamina() const
 {
-	return PredMovement ? PredMovement->GetMaxStamina() : 0.f;
+	return PredictedMovement ? PredictedMovement->GetMaxStamina() : 0.f;
 }
 
 float APredictedCharacter::GetStaminaPct() const
 {
-	return PredMovement ? PredMovement->GetStaminaPct() : 0.f;
+	return PredictedMovement ? PredictedMovement->GetStaminaPct() : 0.f;
 }
 
 bool APredictedCharacter::IsStaminaDrained() const
 {
-	return PredMovement ? PredMovement->IsStaminaDrained() : false;
+	return PredictedMovement ? PredictedMovement->IsStaminaDrained() : false;
 }
 
 void APredictedCharacter::SetIsAimingDownSights(bool bNewAimingDownSights)
@@ -413,19 +488,19 @@ void APredictedCharacter::SetIsAimingDownSights(bool bNewAimingDownSights)
 
 void APredictedCharacter::OnRep_IsAimingDownSights()
 {
-	if (PredMovement)
+	if (PredictedMovement)
 	{
 		if (bIsAimingDownSights)
 		{
-			PredMovement->bWantsToAimDownSights = true;
-			PredMovement->AimDownSights(true);
+			PredictedMovement->bWantsToAimDownSights = true;
+			PredictedMovement->AimDownSights(true);
 		}
 		else
 		{
-			PredMovement->bWantsToAimDownSights = false;
-			PredMovement->UnAimDownSights(true);
+			PredictedMovement->bWantsToAimDownSights = false;
+			PredictedMovement->UnAimDownSights(true);
 		}
-		PredMovement->bNetworkUpdateReceived = true;
+		PredictedMovement->bNetworkUpdateReceived = true;
 	}
 }
 
@@ -436,12 +511,12 @@ bool APredictedCharacter::CanAimDownSights() const
 
 void APredictedCharacter::AimDownSights(bool bClientSimulation)
 {
-	if (PredMovement && CanAimDownSights())
+	if (PredictedMovement && CanAimDownSights())
 	{
-		PredMovement->bWantsToAimDownSights = true;
+		PredictedMovement->bWantsToAimDownSights = true;
 
 		// If we can't sprint during ADS, then allow ADS to cancel sprint
-		if (!bClientSimulation && IsSprinting() && !PredMovement->bCanSprintDuringAimDownSights)
+		if (!bClientSimulation && IsSprinting() && !PredictedMovement->bCanSprintDuringAimDownSights)
 		{
 			UnSprint();
 		}
@@ -450,9 +525,9 @@ void APredictedCharacter::AimDownSights(bool bClientSimulation)
 
 void APredictedCharacter::UnAimDownSights(bool bClientSimulation)
 {
-	if (PredMovement)
+	if (PredictedMovement)
 	{
-		PredMovement->bWantsToAimDownSights = false;
+		PredictedMovement->bWantsToAimDownSights = false;
 	}
 }
 
@@ -493,19 +568,19 @@ void APredictedCharacter::SetIsProned(bool bNewProned)
 
 void APredictedCharacter::OnRep_IsProned()
 {
-	if (PredMovement)
+	if (PredictedMovement)
 	{
 		if (bIsProned)
 		{
-			PredMovement->bWantsToProne = true;
-			PredMovement->Prone(true);
+			PredictedMovement->bWantsToProne = true;
+			PredictedMovement->Prone(true);
 		}
 		else
 		{
-			PredMovement->bWantsToProne = false;
-			PredMovement->UnProne(true);
+			PredictedMovement->bWantsToProne = false;
+			PredictedMovement->UnProne(true);
 		}
-		PredMovement->bNetworkUpdateReceived = true;
+		PredictedMovement->bNetworkUpdateReceived = true;
 	}
 }
 
@@ -516,20 +591,20 @@ bool APredictedCharacter::CanProne() const
 
 void APredictedCharacter::Crouch(bool bClientSimulation)
 {
-	if (PredMovement)
+	if (PredictedMovement)
 	{
 		if (CanCrouch())
 		{
-			PredMovement->bWantsToCrouch = true;
+			PredictedMovement->bWantsToCrouch = true;
 			
 			// If we can't sprint during crouch, then allow crouch to cancel sprint
-			if (!bClientSimulation && IsSprinting() && !PredMovement->bCanSprintDuringCrouch)
+			if (!bClientSimulation && IsSprinting() && !PredictedMovement->bCanSprintDuringCrouch)
 			{
 				UnSprint();
 			}
 		}
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		else if (!PredMovement->CanEverCrouch())
+		else if (!PredictedMovement->CanEverCrouch())
 		{
 			UE_LOG(LogPredCharacter, Log, TEXT("%s is trying to crouch, but crouching is disabled on this character! (check CharacterMovement NavAgentSettings)"), *GetName());
 		}
@@ -539,12 +614,12 @@ void APredictedCharacter::Crouch(bool bClientSimulation)
 
 void APredictedCharacter::Prone(bool bClientSimulation)
 {
-	if (PredMovement && CanProne())
+	if (PredictedMovement && CanProne())
 	{
-		PredMovement->bWantsToProne = true;
+		PredictedMovement->bWantsToProne = true;
 		
 		// If we can't sprint during prone, then allow prone to cancel sprint
-		if (!bClientSimulation && IsSprinting() && !PredMovement->bCanSprintDuringProne)
+		if (!bClientSimulation && IsSprinting() && !PredictedMovement->bCanSprintDuringProne)
 		{
 			UnSprint();
 		}
@@ -553,9 +628,9 @@ void APredictedCharacter::Prone(bool bClientSimulation)
 
 void APredictedCharacter::UnProne(bool bClientSimulation)
 {
-	if (PredMovement)
+	if (PredictedMovement)
 	{
-		PredMovement->bWantsToProne = false;
+		PredictedMovement->bWantsToProne = false;
 	}
 }
 
@@ -599,10 +674,416 @@ void APredictedCharacter::OnEndProne(float HeightAdjust, float ScaledHeightAdjus
 	K2_OnEndProne(HeightAdjust, ScaledHeightAdjust);
 }
 
-void APredictedCharacter::FlushServerMoves()
+/* Boost Implementation */
+
+void APredictedCharacter::OnRep_SimulatedBoost(uint8 PrevLevel)
 {
-	if (PredMovement)
+	if (PredictedMovement && SimulatedBoost != PrevLevel)
 	{
-		PredMovement->FlushServerMoves();
+		const FGameplayTag PrevBoostLevel = PredictedMovement->GetBoostLevel();
+		PredictedMovement->BoostLevel = SimulatedBoost;
+		NotifyModifierChanged(FModifierTags::Modifier_Boost, PredictedMovement->GetBoostLevel(),
+			PrevBoostLevel, PredictedMovement->BoostLevel, PrevLevel, NO_MODIFIER);
+
+		PredictedMovement->bNetworkUpdateReceived = true;
 	}
 }
+
+bool APredictedCharacter::Boost(FGameplayTag Level, EModifierNetType NetType)
+{
+	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy && Level.IsValid())
+	{
+		const uint8 LevelIndex = PredictedMovement->GetBoostLevelIndex(Level);
+		if (LevelIndex == NO_MODIFIER)
+		{
+			return false;
+		}
+		
+		switch (NetType)
+		{
+		case EModifierNetType::LocalPredicted:
+			return PredictedMovement->BoostLocal.AddModifier(LevelIndex);
+		case EModifierNetType::WithCorrection:
+			return PredictedMovement->BoostCorrection.AddModifier(LevelIndex);
+		default: return false;
+		}
+	}
+	return false;
+}
+
+bool APredictedCharacter::UnBoost(FGameplayTag Level, EModifierNetType NetType, bool bRemoveAll)
+{
+	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy && Level.IsValid())
+	{
+		const uint8 LevelIndex = PredictedMovement->GetBoostLevelIndex(Level);
+		if (LevelIndex == NO_MODIFIER)
+		{
+			return false;
+		}
+		
+		switch (NetType)
+		{
+		case EModifierNetType::LocalPredicted:
+			return PredictedMovement->BoostLocal.RemoveModifier(LevelIndex, bRemoveAll);
+		case EModifierNetType::WithCorrection:
+			return PredictedMovement->BoostCorrection.RemoveModifier(LevelIndex, bRemoveAll);
+		default: return false;
+		}
+	}
+	return false;
+}
+
+bool APredictedCharacter::ResetBoost(EModifierNetType NetType)
+{
+	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy)
+	{
+		switch (NetType)
+		{
+		case EModifierNetType::LocalPredicted:
+			return PredictedMovement->BoostLocal.ResetModifiers();
+		case EModifierNetType::WithCorrection:
+			return PredictedMovement->BoostCorrection.ResetModifiers();
+		default: return false;
+		}
+	}
+	return false;
+}
+
+FGameplayTag APredictedCharacter::GetBoostLevel() const
+{
+	return PredictedMovement ? PredictedMovement->GetBoostLevel() : FGameplayTag::EmptyTag;
+}
+
+bool APredictedCharacter::IsBoostActive() const
+{
+	return PredictedMovement && PredictedMovement->IsBoostActive();
+}
+
+/* ~Boost Implementation */
+
+/* Haste Implementation */
+
+void APredictedCharacter::OnRep_SimulatedHaste(uint8 PrevLevel)
+{
+	if (PredictedMovement && SimulatedHaste != PrevLevel)
+	{
+		const FGameplayTag PrevHasteLevel = PredictedMovement->GetHasteLevel();
+		PredictedMovement->HasteLevel = SimulatedHaste;
+		NotifyModifierChanged(FModifierTags::Modifier_Haste, PredictedMovement->GetHasteLevel(),
+			PrevHasteLevel, PredictedMovement->HasteLevel, PrevLevel, NO_MODIFIER);
+
+		PredictedMovement->bNetworkUpdateReceived = true;
+	}
+}
+
+bool APredictedCharacter::Haste(FGameplayTag Level, EModifierNetType NetType)
+{
+	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy && Level.IsValid())
+	{
+		const uint8 LevelIndex = PredictedMovement->GetHasteLevelIndex(Level);
+		if (LevelIndex == NO_MODIFIER)
+		{
+			return false;
+		}
+		
+		switch (NetType)
+		{
+		case EModifierNetType::LocalPredicted:
+			return PredictedMovement->HasteLocal.AddModifier(LevelIndex);
+		case EModifierNetType::WithCorrection:
+			return PredictedMovement->HasteCorrection.AddModifier(LevelIndex);
+		default: return false;
+		}
+	}
+	return false;
+}
+
+bool APredictedCharacter::UnHaste(FGameplayTag Level, EModifierNetType NetType, bool bRemoveAll)
+{
+	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy && Level.IsValid())
+	{
+		const uint8 LevelIndex = PredictedMovement->GetHasteLevelIndex(Level);
+		if (LevelIndex == NO_MODIFIER)
+		{
+			return false;
+		}
+		
+		switch (NetType)
+		{
+		case EModifierNetType::LocalPredicted:
+			return PredictedMovement->HasteLocal.RemoveModifier(LevelIndex, bRemoveAll);
+		case EModifierNetType::WithCorrection:
+			return PredictedMovement->HasteCorrection.RemoveModifier(LevelIndex, bRemoveAll);
+		default: return false;
+		}
+	}
+	return false;
+}
+
+bool APredictedCharacter::ResetHaste(EModifierNetType NetType)
+{
+	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy)
+	{
+		switch (NetType)
+		{
+		case EModifierNetType::LocalPredicted:
+			return PredictedMovement->HasteLocal.ResetModifiers();
+		case EModifierNetType::WithCorrection:
+			return PredictedMovement->HasteCorrection.ResetModifiers();
+		default: return false;
+		}
+	}
+	return false;
+}
+
+FGameplayTag APredictedCharacter::GetHasteLevel() const
+{
+	return PredictedMovement ? PredictedMovement->GetHasteLevel() : FGameplayTag::EmptyTag;
+}
+
+bool APredictedCharacter::IsHasteActive() const
+{
+	return PredictedMovement && PredictedMovement->IsHasteActive();
+}
+
+/* ~Haste Implementation */
+
+/* Slow Implementation */
+
+void APredictedCharacter::OnRep_SimulatedSlow(uint8 PrevLevel)
+{
+	if (PredictedMovement && SimulatedSlow != PrevLevel)
+	{
+		const FGameplayTag PrevSlowLevel = PredictedMovement->GetSlowLevel();
+		PredictedMovement->SlowLevel = SimulatedSlow;
+		NotifyModifierChanged(FModifierTags::Modifier_Slow, PredictedMovement->GetSlowLevel(),
+			PrevSlowLevel, PredictedMovement->SlowLevel, PrevLevel, NO_MODIFIER);
+
+		PredictedMovement->bNetworkUpdateReceived = true;
+	}
+}
+
+bool APredictedCharacter::Slow(FGameplayTag Level, EModifierNetType NetType)
+{
+	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy && Level.IsValid())
+	{
+		const uint8 LevelIndex = PredictedMovement->GetSlowLevelIndex(Level);
+		if (LevelIndex == NO_MODIFIER)
+		{
+			return false;
+		}
+		
+		switch (NetType)
+		{
+		case EModifierNetType::LocalPredicted:
+			return PredictedMovement->SlowLocal.AddModifier(LevelIndex);
+		case EModifierNetType::WithCorrection:
+			return PredictedMovement->SlowCorrection.AddModifier(LevelIndex);
+		default: return false;
+		}
+	}
+	return false;
+}
+
+bool APredictedCharacter::UnSlow(FGameplayTag Level, EModifierNetType NetType, bool bRemoveAll)
+{
+	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy && Level.IsValid())
+	{
+		const uint8 LevelIndex = PredictedMovement->GetSlowLevelIndex(Level);
+		if (LevelIndex == NO_MODIFIER)
+		{
+			return false;
+		}
+		
+		switch (NetType)
+		{
+		case EModifierNetType::LocalPredicted:
+			return PredictedMovement->SlowLocal.RemoveModifier(LevelIndex, bRemoveAll);
+		case EModifierNetType::WithCorrection:
+			return PredictedMovement->SlowCorrection.RemoveModifier(LevelIndex, bRemoveAll);
+		default: return false;
+		}
+	}
+	return false;
+}
+
+bool APredictedCharacter::ResetSlow(EModifierNetType NetType)
+{
+	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy)
+	{
+		switch (NetType)
+		{
+		case EModifierNetType::LocalPredicted:
+			return PredictedMovement->SlowLocal.ResetModifiers();
+		case EModifierNetType::WithCorrection:
+			return PredictedMovement->SlowCorrection.ResetModifiers();
+		default: return false;
+		}
+	}
+	return false;
+}
+
+FGameplayTag APredictedCharacter::GetSlowLevel() const
+{
+	return PredictedMovement ? PredictedMovement->GetSlowLevel() : FGameplayTag::EmptyTag;
+}
+
+bool APredictedCharacter::IsSlowActive() const
+{
+	return PredictedMovement && PredictedMovement->IsSlowActive();
+}
+
+/* ~Slow Implementation */
+
+/* Snare Implementation */
+
+void APredictedCharacter::OnRep_SimulatedSnare(uint8 PrevLevel)
+{
+	if (PredictedMovement && SimulatedSnare != PrevLevel)
+	{
+		const FGameplayTag PrevSnareLevel = PredictedMovement->GetSnareLevel();
+		PredictedMovement->SnareLevel = SimulatedSnare;
+		NotifyModifierChanged(FModifierTags::Modifier_Snare, PredictedMovement->GetSnareLevel(),
+			PrevSnareLevel, PredictedMovement->SnareLevel, PrevLevel, NO_MODIFIER);
+
+		PredictedMovement->bNetworkUpdateReceived = true;
+	}
+}
+
+bool APredictedCharacter::Snare(FGameplayTag Level)
+{
+	if (PredictedMovement && HasAuthority() && Level.IsValid())
+	{
+		const uint8 LevelIndex = PredictedMovement->GetSnareLevelIndex(Level);
+		if (LevelIndex == NO_MODIFIER)
+		{
+			return false;
+		}
+		
+		return PredictedMovement->SnareServer.AddModifier(LevelIndex);
+	}
+	return false;
+}
+
+bool APredictedCharacter::UnSnare(FGameplayTag Level, bool bRemoveAll)
+{
+	if (PredictedMovement && HasAuthority() && Level.IsValid())
+	{
+		const uint8 LevelIndex = PredictedMovement->GetSnareLevelIndex(Level);
+		if (LevelIndex == NO_MODIFIER)
+		{
+			return false;
+		}
+
+		return PredictedMovement->SnareServer.RemoveModifier(LevelIndex, bRemoveAll);
+	}
+	return false;
+}
+
+bool APredictedCharacter::ResetSnare()
+{
+	if (PredictedMovement && HasAuthority())
+	{
+		return PredictedMovement->SnareServer.ResetModifiers();
+	}
+	return false;
+}
+
+FGameplayTag APredictedCharacter::GetSnareLevel() const
+{
+	return PredictedMovement ? PredictedMovement->GetSnareLevel() : FGameplayTag::EmptyTag;
+}
+
+bool APredictedCharacter::IsSnareActive() const
+{
+	return PredictedMovement && PredictedMovement->IsSnareActive();
+}
+
+/* ~Snare Implementation */
+
+/* SlowFall Implementation */
+
+void APredictedCharacter::OnRep_SimulatedSlowFall(uint8 PrevLevel)
+{
+	if (PredictedMovement && SimulatedSlowFall != PrevLevel)
+	{
+		const FGameplayTag PrevSlowFallLevel = PredictedMovement->GetSlowFallLevel();
+		PredictedMovement->SlowFallLevel = SimulatedSlowFall;
+		NotifyModifierChanged(FModifierTags::Modifier_SlowFall, PredictedMovement->GetSlowFallLevel(),
+			PrevSlowFallLevel, PredictedMovement->SlowFallLevel, PrevLevel, NO_MODIFIER);
+
+		PredictedMovement->bNetworkUpdateReceived = true;
+	}
+}
+
+bool APredictedCharacter::SlowFall(FGameplayTag Level, EModifierNetType NetType)
+{
+	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy && Level.IsValid())
+	{
+		const uint8 LevelIndex = PredictedMovement->GetSlowFallLevelIndex(Level);
+		if (LevelIndex == NO_MODIFIER)
+		{
+			return false;
+		}
+		
+		switch (NetType)
+		{
+		case EModifierNetType::LocalPredicted:
+			return PredictedMovement->SlowFallLocal.AddModifier(LevelIndex);
+		case EModifierNetType::WithCorrection:
+			return PredictedMovement->SlowFallCorrection.AddModifier(LevelIndex);
+		default: return false;
+		}
+	}
+	return false;
+}
+
+bool APredictedCharacter::UnSlowFall(FGameplayTag Level, EModifierNetType NetType, bool bRemoveAll)
+{
+	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy && Level.IsValid())
+	{
+		const uint8 LevelIndex = PredictedMovement->GetSlowFallLevelIndex(Level);
+		if (LevelIndex == NO_MODIFIER)
+		{
+			return false;
+		}
+		
+		switch (NetType)
+		{
+		case EModifierNetType::LocalPredicted:
+			return PredictedMovement->SlowFallLocal.RemoveModifier(LevelIndex, bRemoveAll);
+		case EModifierNetType::WithCorrection:
+			return PredictedMovement->SlowFallCorrection.RemoveModifier(LevelIndex, bRemoveAll);
+		default: return false;
+		}
+	}
+	return false;
+}
+
+bool APredictedCharacter::ResetSlowFall(EModifierNetType NetType)
+{
+	if (PredictedMovement && GetLocalRole() != ROLE_SimulatedProxy)
+	{
+		switch (NetType)
+		{
+		case EModifierNetType::LocalPredicted:
+			return PredictedMovement->SlowFallLocal.ResetModifiers();
+		case EModifierNetType::WithCorrection:
+			return PredictedMovement->SlowFallCorrection.ResetModifiers();
+		default: return false;
+		}
+	}
+	return false;
+}
+
+FGameplayTag APredictedCharacter::GetSlowFallLevel() const
+{
+	return PredictedMovement ? PredictedMovement->GetSlowFallLevel() : FGameplayTag::EmptyTag;
+}
+
+bool APredictedCharacter::IsSlowFallActive() const
+{
+	return PredictedMovement && PredictedMovement->IsSlowFallActive();
+}
+
+/* ~SlowFall Implementation */

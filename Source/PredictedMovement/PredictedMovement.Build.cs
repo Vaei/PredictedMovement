@@ -11,7 +11,8 @@ public class PredictedMovement : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core",
+				"Core", 
+				"GameplayTags",
 			}
 			);
 		
@@ -21,7 +22,6 @@ public class PredictedMovement : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"NetCore",
-				"GameplayTags",
 			}
 			);
 	}

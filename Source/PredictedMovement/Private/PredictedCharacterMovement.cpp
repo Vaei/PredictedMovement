@@ -16,6 +16,8 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(PredictedCharacterMovement)
 
+DEFINE_LOG_CATEGORY_STATIC(LogPredictedMovement, Log, All);
+
 namespace PredMovementCVars
 {
 #if UE_ENABLE_DEBUG_DRAWING
@@ -1802,7 +1804,7 @@ void UPredictedCharacterMovement::GrantClientAuthority(FGameplayTag ClientAuthSo
 #if WITH_EDITOR
 		FMessageLog("PIE").Error(FText::FromString(FString::Printf(TEXT("ClientAuthSource '%s' not found in ClientAuthParams"), *ClientAuthSource.ToString())));
 #else
-		UE_LOG(LogModifierMovement, Error, TEXT("ClientAuthSource '%s' not found"), *ClientAuthSource.ToString());
+		UE_LOG(LogPredictedMovement, Error, TEXT("ClientAuthSource '%s' not found"), *ClientAuthSource.ToString());
 #endif
 	}
 }

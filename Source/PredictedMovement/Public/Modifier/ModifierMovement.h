@@ -246,11 +246,11 @@ public:
 public:
 	/* Boost Implementation */
 
-	uint8 BoostLevel = UINT8_MAX;
-	bool IsBoostActive() const { return BoostLevel != UINT8_MAX; }
+	uint8 BoostLevel = NO_MODIFIER;
+	bool IsBoostActive() const { return BoostLevel != NO_MODIFIER; }
 	const FMovementModifierParams* GetBoostParams() const { return Boost.Find(GetBoostLevel()); }
 	FGameplayTag GetBoostLevel() const { return BoostLevels.IsValidIndex(BoostLevel) ? BoostLevels[BoostLevel] : FGameplayTag::EmptyTag; }
-	uint8 GetBoostLevelIndex(const FGameplayTag& Level) const { return BoostLevels.IndexOfByKey(Level) > INDEX_NONE ? BoostLevels.IndexOfByKey(Level) : UINT8_MAX; }
+	uint8 GetBoostLevelIndex(const FGameplayTag& Level) const { return BoostLevels.IndexOfByKey(Level) > INDEX_NONE ? BoostLevels.IndexOfByKey(Level) : NO_MODIFIER; }
 	virtual bool CanBoostInCurrentState() const;
 
 	float GetBoostSpeedScalar() const { return GetBoostParams() ? GetBoostParams()->MaxWalkSpeed : 1.f; }
@@ -265,11 +265,11 @@ public:
 public:
 	/* Snare Implementation */
 
-	uint8 SnareLevel = UINT8_MAX;
-	bool IsSnareActive() const { return SnareLevel != UINT8_MAX; }
+	uint8 SnareLevel = NO_MODIFIER;
+	bool IsSnareActive() const { return SnareLevel != NO_MODIFIER; }
 	const FMovementModifierParams* GetSnareParams() const { return Snare.Find(GetSnareLevel()); }
 	FGameplayTag GetSnareLevel() const { return SnareLevels.IsValidIndex(SnareLevel) ? SnareLevels[SnareLevel] : FGameplayTag::EmptyTag; }
-	uint8 GetSnareLevelIndex(const FGameplayTag& Level) const { return SnareLevels.IndexOfByKey(Level) > INDEX_NONE ? SnareLevels.IndexOfByKey(Level) : UINT8_MAX; }
+	uint8 GetSnareLevelIndex(const FGameplayTag& Level) const { return SnareLevels.IndexOfByKey(Level) > INDEX_NONE ? SnareLevels.IndexOfByKey(Level) : NO_MODIFIER; }
 	virtual bool CanSnareInCurrentState() const;
 
 	float GetSnareSpeedScalar() const { return GetSnareParams() ? GetSnareParams()->MaxWalkSpeed : 1.f; }
@@ -284,14 +284,15 @@ public:
 public:
 	/* SlowFall Implementation */
 
-	uint8 SlowFallLevel = UINT8_MAX;
-	bool IsSlowFallActive() const { return SlowFallLevel != UINT8_MAX; }
+	uint8 SlowFallLevel = NO_MODIFIER;
+	bool IsSlowFallActive() const { return SlowFallLevel != NO_MODIFIER; }
 	const FFallingModifierParams* GetSlowFallParams() const { return SlowFall.Find(GetSlowFallLevel()); }
 	FGameplayTag GetSlowFallLevel() const { return SlowFallLevels.IsValidIndex(SlowFallLevel) ? SlowFallLevels[SlowFallLevel] : FGameplayTag::EmptyTag; }
-	uint8 GetSlowFallLevelIndex(const FGameplayTag& Level) const { return SlowFallLevels.IndexOfByKey(Level) > INDEX_NONE ? SlowFallLevels.IndexOfByKey(Level) : UINT8_MAX; }
+	uint8 GetSlowFallLevelIndex(const FGameplayTag& Level) const { return SlowFallLevels.IndexOfByKey(Level) > INDEX_NONE ? SlowFallLevels.IndexOfByKey(Level) : NO_MODIFIER; }
 	virtual bool CanSlowFallInCurrentState() const;
 
 	virtual float GetSlowFallGravityZScalar() const { return GetSlowFallParams() ? GetSlowFallParams()->GetGravityScalar(Velocity) : 1.f; }
+	virtual bool RemoveVelocityZOnSlowFallStart() const;
 
 	/* ~SlowFall Implementation */
 
@@ -324,7 +325,6 @@ public:
 	 * @param ClientAuthSource What the client is requesting authority for, not used by default, requires override
 	 * @param OverrideDuration Override the default client authority time, -1.f to use default
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Character Movement (Networking)")
 	virtual void GrantClientAuthority(FGameplayTag ClientAuthSource, float OverrideDuration = -1.f);
 
 protected:
@@ -392,9 +392,9 @@ public:
 
 	FModifierSavedMove SlowFallLocal;
 
-	uint8 BoostLevel = UINT8_MAX;
-	uint8 SnareLevel = UINT8_MAX;
-	uint8 SlowFallLevel = UINT8_MAX;
+	uint8 BoostLevel = NO_MODIFIER;
+	uint8 SnareLevel = NO_MODIFIER;
+	uint8 SlowFallLevel = NO_MODIFIER;
 	
 	/** Clear saved move properties, so it can be re-used. */
 	virtual void Clear() override;

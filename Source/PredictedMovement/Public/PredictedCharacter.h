@@ -455,8 +455,8 @@ public:
 	 * @param Level The level of the Boost to remove.
 	 * @param NetType How the Boost is applied, either locally predicted, with correction, or server initiated.
 	 */
-	UFUNCTION(BlueprintCallable, Category=Character, meta=(GameplayTagFilter="Modifier.Boost", InvalidEnumValues="ServerInitiated"))
-	virtual bool Boost(FGameplayTag Level, EModifierNetType NetType);
+	UFUNCTION(BlueprintCallable, Category=Character, meta=(GameplayTagFilter="Modifier.Boost"))
+	virtual bool Boost(FGameplayTag Level, EModifierNetTypeLocal NetType);
 
 	/**
 	 * Request the character to stop Boost. The request is processed on the next update of the CharacterMovementComponent.
@@ -465,14 +465,14 @@ public:
 	 * @param bRemoveAll If true, removes all Boosts of the specified level, otherwise only removes the first one found.
 	 */
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(GameplayTagFilter="Modifier.Boost", InvalidEnumValues="ServerInitiated"))
-	virtual bool UnBoost(FGameplayTag Level, EModifierNetType NetType, bool bRemoveAll=false);
+	virtual bool UnBoost(FGameplayTag Level, EModifierNetTypeLocal NetType, bool bRemoveAll=false);
 
 	/**
 	 * Reset the Boost for the specified NetType, removing all Boosts of that type.
 	 * @return True if any modifiers were removed, false if none were found.
 	 */
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(InvalidEnumValues="ServerInitiated"))
-	virtual bool ResetBoost(EModifierNetType NetType);
+	virtual bool ResetBoost(EModifierNetTypeLocal NetType);
 
 	/**
 	 * Get the current Boost level of the character.
@@ -507,7 +507,7 @@ public:
 	 * @param NetType How the Haste is applied, either locally predicted, with correction, or server initiated.
 	 */
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(GameplayTagFilter="Modifier.Haste", InvalidEnumValues="ServerInitiated"))
-	virtual bool Haste(FGameplayTag Level, EModifierNetType NetType);
+	virtual bool Haste(FGameplayTag Level, EModifierNetTypeLocal NetType);
 
 	/**
 	 * Request the character to stop Haste. The request is processed on the next update of the CharacterMovementComponent.
@@ -516,14 +516,14 @@ public:
 	 * @param bRemoveAll If true, removes all Hastes of the specified level, otherwise only removes the first one found.
 	 */
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(GameplayTagFilter="Modifier.Haste", InvalidEnumValues="ServerInitiated"))
-	virtual bool UnHaste(FGameplayTag Level, EModifierNetType NetType, bool bRemoveAll=false);
+	virtual bool UnHaste(FGameplayTag Level, EModifierNetTypeLocal NetType, bool bRemoveAll=false);
 
 	/**
 	 * Reset the Haste for the specified NetType, removing all Hastes of that type.
 	 * @return True if any modifiers were removed, false if none were found.
 	 */
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(InvalidEnumValues="ServerInitiated"))
-	virtual bool ResetHaste(EModifierNetType NetType);
+	virtual bool ResetHaste(EModifierNetTypeLocal NetType);
 
 	/**
 	 * Get the current Haste level of the character.
@@ -558,7 +558,7 @@ public:
 	 * @param NetType How the Slow is applied, either locally predicted, with correction, or server initiated.
 	 */
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(GameplayTagFilter="Modifier.Slow", InvalidEnumValues="ServerInitiated"))
-	virtual bool Slow(FGameplayTag Level, EModifierNetType NetType);
+	virtual bool Slow(FGameplayTag Level, EModifierNetTypeLocal NetType);
 
 	/**
 	 * Request the character to stop Slow. The request is processed on the next update of the CharacterMovementComponent.
@@ -567,14 +567,14 @@ public:
 	 * @param bRemoveAll If true, removes all Slows of the specified level, otherwise only removes the first one found.
 	 */
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(GameplayTagFilter="Modifier.Slow", InvalidEnumValues="ServerInitiated"))
-	virtual bool UnSlow(FGameplayTag Level, EModifierNetType NetType, bool bRemoveAll=false);
+	virtual bool UnSlow(FGameplayTag Level, EModifierNetTypeLocal NetType, bool bRemoveAll=false);
 
 	/**
 	 * Reset the Slow for the specified NetType, removing all Slows of that type.
 	 * @return True if any modifiers were removed, false if none were found.
 	 */
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(InvalidEnumValues="ServerInitiated"))
-	virtual bool ResetSlow(EModifierNetType NetType);
+	virtual bool ResetSlow(EModifierNetTypeLocal NetType);
 
 	/**
 	 * Get the current Slow level of the character.
@@ -661,7 +661,7 @@ public:
 	 * @param NetType How the SlowFall is applied, either locally predicted, with correction, or server initiated.
 	 */
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(GameplayTagFilter="Modifier.SlowFall", InvalidEnumValues="ServerInitiated"))
-	virtual bool SlowFall(FGameplayTag Level, EModifierNetType NetType);
+	virtual bool SlowFall(FGameplayTag Level, EModifierNetTypeLocal NetType);
 
 	/**
 	 * Request the character to stop SlowFall. The request is processed on the next update of the CharacterMovementComponent.
@@ -670,14 +670,14 @@ public:
 	 * @param bRemoveAll If true, removes all SlowFalls of the specified level, otherwise only removes the first one found.
 	 */
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(GameplayTagFilter="Modifier.SlowFall", InvalidEnumValues="ServerInitiated"))
-	virtual bool UnSlowFall(FGameplayTag Level, EModifierNetType NetType, bool bRemoveAll=false);
+	virtual bool UnSlowFall(FGameplayTag Level, EModifierNetTypeLocal NetType, bool bRemoveAll=false);
 
 	/**
 	 * Reset the SlowFall for the specified NetType, removing all SlowFalls of that type.
 	 * @return True if any modifiers were removed, false if none were found.
 	 */
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(InvalidEnumValues="ServerInitiated"))
-	virtual bool ResetSlowFall(EModifierNetType NetType);
+	virtual bool ResetSlowFall(EModifierNetTypeLocal NetType);
 
 	/**
 	 * Get the current SlowFall level of the character.

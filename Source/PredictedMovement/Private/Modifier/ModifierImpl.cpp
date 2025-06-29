@@ -45,6 +45,27 @@ void FMovementModifier::LimitNumModifiers(TModifierStack& Modifiers, int32& Rema
 	RemainingModifiers = FMath::Max(RemainingModifiers - Modifiers.Num(), 0);
 }
 
+bool FMovementModifier::UpdateMovementState(bool bAllowedInCurrentState, bool bClampMax, int32& Remaining)
+{
+	// Only update the modifiers if the current state allows it
+	TModifierStack CurrentModifiers = bAllowedInCurrentState ? WantsModifiers : TModifierStack();
+
+	// Clamp the number of modifiers to the maximum allowed -- this removes old modifiers first
+	// Note: There may be potential for de-sync if client removes server modifiers out of order (cross that bridge when we get there)
+	if (bAllowedInCurrentState && bClampMax)
+	{
+		LimitNumModifiers(CurrentModifiers, Remaining);
+	}
+
+	// If the modifiers have changed, update the data
+	if (Modifiers != CurrentModifiers)
+	{
+		Modifiers = CurrentModifiers;
+		return true;
+	}
+	return false;
+}
+
 bool FModifierStatics::NetSerialize(TModifierStack& Modifiers, FArchive& Ar, const FString& ErrorName, uint8 MaxSerializedModifiers)
 {
 	// Don't serialize modifier stack if the max is 0
@@ -173,4 +194,33 @@ TModSize FModifierStatics::CombineModifierLevels(EModifierLevelMethod Method, co
 
 	// Clamp to max allowed
 	return FMath::Min(NewLevel, MaxLevel);
+}
+
+bool FModifierStatics::ProcessModifiers(TModSize& CurrentLevel, EModifierLevelMethod Method,
+	const TArray<FGameplayTag>& LevelTags, bool bLimitMaxModifiers, int32 MaxModifiers, TModSize InvalidLevel,
+	TArray<FMovementModifier>& Modifiers, const TFunctionRef<bool()>& CanActivateCallback)
+{
+	const TModSize PrevLevel = CurrentLevel;
+
+	// Determine the maximum level based on the available tags
+	const TModSize MaxLevel = LevelTags.Num() > 0 ? static_cast<TModSize>(LevelTags.Num() - 1) : 0;
+
+	// Update state
+	TArray<TModSize> Levels;
+	int32 Remaining = MaxModifiers;
+	for (FMovementModifier& Modifier : Modifiers)
+	{
+		if (Modifier.UpdateMovementState(CanActivateCallback(), bLimitMaxModifiers, Remaining))
+		{
+			// Update the modifier levels based on the method
+			const TModSize NewLevel = UpdateModifierLevel(Method, Modifier.Modifiers, MaxLevel, InvalidLevel);
+			if (NewLevel != InvalidLevel)
+			{
+				Levels.Add(NewLevel);
+			}
+		}
+	}
+
+	CurrentLevel = CombineModifierLevels(Method, Levels, MaxLevel, InvalidLevel);
+	return CurrentLevel != PrevLevel;
 }

@@ -10,18 +10,6 @@ using TModSize = uint8;  // If you want more than 255 modifiers, change this to 
 using TModifierStack = TArray<TModSize>;
 
 /**
- * Represents a single modifier that can be applied to a character
- */
-struct PREDICTEDMOVEMENT_API FMovementModifierData
-{
-	/** The requested input state, which requests modifiers of the specified level */
-	TModifierStack WantsModifiers;
-	
-	/** The actual state, which represents the actual modifiers applied to the character */
-	TModifierStack Modifiers;
-};
-
-/**
  * FSavedMove_Character
  */
 struct PREDICTEDMOVEMENT_API FModifierSavedMove
@@ -184,82 +172,96 @@ struct PREDICTEDMOVEMENT_API FModifierMoveData_ServerInitiated
  */
 struct PREDICTEDMOVEMENT_API FMovementModifier
 {
-	FMovementModifierData Data;
+	/** The requested input state, which requests modifiers of the specified level */
+	TModifierStack WantsModifiers;
 	
-	TModSize GetWantedModifierLevel() const { return Data.WantsModifiers.Num(); }
-	TModSize GetModifierLevel() const { return Data.Modifiers.Num(); }
-
+	/** The actual state, which represents the actual modifiers applied to the character */
+	TModifierStack Modifiers;
+	
+	/**
+	 * Adds a modifier to the stack
+	 * @param Level The level of the modifier to add
+	 * @return True if the modifier was added
+	 */
 	bool AddModifier(TModSize Level)
 	{
-		Data.WantsModifiers.Add(Level);
+		WantsModifiers.Add(Level);
 		return true;
 	}
 
+	/**
+	 * Removes a modifier from the stack
+	 * @param Level The level of the modifier to remove
+	 * @param bRemoveAll If true, removes all modifiers of the specified level, otherwise removes only one
+	 * @return True if the modifier was removed, false otherwise
+	 */
 	bool RemoveModifier(TModSize Level, bool bRemoveAll)
 	{
-		if (Data.WantsModifiers.Contains(Level))
+		if (WantsModifiers.Contains(Level))
 		{
 			if (bRemoveAll)
 			{
-				Data.WantsModifiers.RemoveAll([Level](const TModSize& ModLevel) { return ModLevel == Level; });
+				WantsModifiers.RemoveAll([Level](const TModSize& ModLevel) { return ModLevel == Level; });
 			}
 			else
 			{
-				Data.WantsModifiers.Remove(Level);
+				WantsModifiers.Remove(Level);
 			}
 			return true;
 		}
 		return false;
 	}
 
+	/**
+	 * Removes all modifiers from the stack
+	 * @return True if any modifiers were removed, false otherwise
+	 */
 	bool ResetModifiers()
 	{
-		if (Data.WantsModifiers.Num() > 0)
+		if (WantsModifiers.Num() > 0)
 		{
-			Data.WantsModifiers.Reset();
+			WantsModifiers.Reset();
 			return true;
 		}
 		return false;
 	}
 
+	/**
+	 * Returns the number of wanted modifiers in the stack that match the specified level
+	 * This is the requested modifiers, not the actual modifiers applied to the character
+	 * @param Level The level to filter by
+	 * @return The number of modifiers that match the specified level
+	 */
 	TModSize GetNumWantedModifiersByLevel(TModSize Level) const
 	{
-		return Data.WantsModifiers.FilterByPredicate([Level](uint8 ModifierLevel)
+		return WantsModifiers.FilterByPredicate([Level](uint8 ModifierLevel)
 		{
 			return ModifierLevel == Level;
 		}).Num();
 	}
 
+	/**
+	 * Returns the number of modifiers in the stack that match the specified level
+	 * This is the actual modifiers applied to the character, not the requested ones
+	 * @param Level The level to filter by
+	 * @return The number of modifiers that match the specified level
+	 */
 	TModSize GetNumModifiersByLevel(TModSize Level) const
 	{
-		return Data.Modifiers.FilterByPredicate([Level](uint8 ModifierLevel)
+		return Modifiers.FilterByPredicate([Level](uint8 ModifierLevel)
 		{
 			return ModifierLevel == Level;
 		}).Num();
 	}
 
+	/**
+	 * Limits the number of modifiers in the stack to the specified maximum
+	 * Supports limiting between different types of modifiers affecting the same type of movement, e.g. BoostLocal and BoostCorrection
+	 */
 	static void LimitNumModifiers(TModifierStack& Modifiers, int32& RemainingModifiers);
 
-	bool UpdateMovementState(bool bAllowedInCurrentState, bool bClampMax, int32& Remaining)
-	{
-		// Clamp the number of modifiers to the maximum allowed -- this removes old modifiers first
-		// Note: There may be potential for de-sync if client removes server modifiers out of order (cross that bridge when we get there)
-		if (bAllowedInCurrentState && bClampMax)
-		{
-			LimitNumModifiers(Data.WantsModifiers, Remaining);
-		}
-
-		// Only update the modifiers if the current state allows it
-		const TModifierStack Modifiers = bAllowedInCurrentState ? Data.WantsModifiers : TModifierStack();
-
-		// If the modifiers have changed, update the data
-		if (Data.Modifiers != Modifiers)
-		{
-			Data.Modifiers = Modifiers;
-			return true;
-		}
-		return false;
-	}
+	/** Applies WantsModifiers to Modifiers based on the current state of the character */
+	bool UpdateMovementState(bool bAllowedInCurrentState, bool bClampMax, int32& Remaining);
 };
 
 /**
@@ -272,14 +274,14 @@ struct PREDICTEDMOVEMENT_API FMovementModifier_LocalPredicted : FMovementModifie
 	FMovementModifier_LocalPredicted()
 	{}
 
-	void ServerMove_PerformMovement(const TModifierStack& WantsModifiers)
+	void ServerMove_PerformMovement(const TModifierStack& InWantsModifiers)
 	{
-		Data.WantsModifiers = WantsModifiers;
+		WantsModifiers = InWantsModifiers;
 	}
 
-	void CombineWith(const TModifierStack& WantsModifiers)
+	void CombineWith(const TModifierStack& InWantsModifiers)
 	{
-		Data.WantsModifiers = WantsModifiers;
+		WantsModifiers = InWantsModifiers;
 	}
 };
 
@@ -295,14 +297,14 @@ struct PREDICTEDMOVEMENT_API FMovementModifier_LocalPredicted : FMovementModifie
  */
 struct PREDICTEDMOVEMENT_API FMovementModifier_WithCorrection final : FMovementModifier_LocalPredicted
 {
-	bool ServerCheckClientError(const TModifierStack& Modifiers) const
+	bool ServerCheckClientError(const TModifierStack& InModifiers) const
 	{
-		return Data.Modifiers != Modifiers;
+		return Modifiers != InModifiers;
 	}
 
-	void OnClientCorrectionReceived(const TModifierStack& Modifiers)
+	void OnClientCorrectionReceived(const TModifierStack& InModifiers)
 	{
-		Data.WantsModifiers = Modifiers;
+		WantsModifiers = InModifiers;
 	}
 };
 
@@ -349,58 +351,11 @@ struct PREDICTEDMOVEMENT_API FModifierStatics
 	 * @param bLimitMaxModifiers Whether to limit the maximum number of modifiers
 	 * @param MaxModifiers The maximum number of modifiers allowed
 	 * @param InvalidLevel The level to return if no valid modifiers are found
-	 * @param Local Pointer to the local predicted modifier, can be nullptr
-	 * @param Correction Pointer to the correction modifier, can be nullptr
-	 * @param Server Pointer to the server initiated modifier, can be nullptr
+	 * @param Modifiers The array of modifiers to process
 	 * @param CanActivateCallback Callback to determine if the modifier can be activated
 	 * @return True if the current level changed, false otherwise
 	 */
-	template<
-	typename TLocalPredicted,
-	typename TCorrection,
-	typename TServer>
-	static bool ProcessModifiers(
-	TModSize& CurrentLevel,
-	EModifierLevelMethod Method,
-	const TArray<FGameplayTag>& LevelTags,
-	bool bLimitMaxModifiers,
-	int32 MaxModifiers,
-	TModSize InvalidLevel,
-	TLocalPredicted* Local,
-	TCorrection* Correction,
-	TServer* Server,
-	TFunctionRef<bool()> CanActivateCallback)
-	{
-		const TModSize PrevLevel = CurrentLevel;
-		bool bStateChanged = false;
-
-		int32 Remaining = MaxModifiers;
-
-		// Update state
-		bStateChanged |= Local ? Local->UpdateMovementState(CanActivateCallback(), bLimitMaxModifiers, Remaining) : false;
-		bStateChanged |= Correction ? Correction->UpdateMovementState(CanActivateCallback(), bLimitMaxModifiers, Remaining) : false;
-		bStateChanged |= Server ? Server->UpdateMovementState(CanActivateCallback(), bLimitMaxModifiers, Remaining) : false;
-
-		if (bStateChanged)
-		{
-			// Determine the maximum level based on the available tags
-			const TModSize MaxLevel = LevelTags.Num() > 0 ? static_cast<TModSize>(LevelTags.Num() - 1) : 0;
-
-			// Update the modifier levels based on the method
-			const TModSize LocalLevel      = Local		? UpdateModifierLevel(Method, Local->Data.Modifiers, MaxLevel, InvalidLevel) : InvalidLevel;
-			const TModSize CorrectionLevel = Correction ? UpdateModifierLevel(Method, Correction->Data.Modifiers, MaxLevel, InvalidLevel) : InvalidLevel;
-			const TModSize ServerLevel     = Server		? UpdateModifierLevel(Method, Server->Data.Modifiers, MaxLevel, InvalidLevel) : InvalidLevel;
-
-			// Combine the levels into a single current level
-			TArray<TModSize> Levels;
-			if (LocalLevel != InvalidLevel)      { Levels.Add(LocalLevel); }
-			if (CorrectionLevel != InvalidLevel) { Levels.Add(CorrectionLevel); }
-			if (ServerLevel != InvalidLevel)     { Levels.Add(ServerLevel); }
-
-			CurrentLevel = Levels.Num() > 0 ? CombineModifierLevels(Method, Levels, MaxLevel, InvalidLevel) : InvalidLevel;
-			return CurrentLevel != PrevLevel;
-		}
-
-		return false;
-	}
+	static bool ProcessModifiers(TModSize& CurrentLevel, EModifierLevelMethod Method, const TArray<FGameplayTag>& LevelTags,
+		bool bLimitMaxModifiers, int32 MaxModifiers, TModSize InvalidLevel,	TArray<FMovementModifier>& Modifiers,
+		const TFunctionRef<bool()>& CanActivateCallback);
 };

@@ -92,7 +92,16 @@ private:
 };
 
 /**
- * @TODO description
+ * A complete character movement component combined from the PredictedMovement repo.
+ *
+ * Separates movement property getters between base and scalar functions
+ * 
+ * Stackable modifiers: Boost, Haste, Slow, Snare, and SlowFall
+ *	Supports local predicted, local predicted with corrections, server-initiated
+ * Partial client authority for server-initiated movement
+ * 
+ * Gait modes: Stroll, Walk, Run, Sprint
+ * Features: Prone, Stamina, AimDownSights
  */
 UCLASS()
 class PREDICTEDMOVEMENT_API UPredictedCharacterMovement : public UCharacterMovementComponent

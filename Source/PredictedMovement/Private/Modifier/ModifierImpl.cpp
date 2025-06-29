@@ -110,7 +110,7 @@ TModSize FModifierStatics::UpdateModifierLevel(EModifierLevelMethod Method, cons
 		return InvalidLevel;
 	}
 
-	TModSize NewLevel = 0;
+	TModSize NewLevel;
 
 	switch (Method)
 	{
@@ -123,10 +123,16 @@ TModSize FModifierStatics::UpdateModifierLevel(EModifierLevelMethod Method, cons
 		break;
 
 	case EModifierLevelMethod::Stack:
-		for (const TModSize& Level : Modifiers)
 		{
-			// We are only counting the number of modifiers, so we add 1 because levels are 0-based
-			NewLevel += Level + 1;
+			uint64 Total = 0;
+			for (const TModSize& Level : Modifiers)
+			{
+				// We are only counting the number of modifiers, so we add 1 because levels are 0-based
+				Total += Level + 1;
+			}
+
+			// Subtract 1 to convert back to 0-based level
+			NewLevel = Total > 0 ? Total - 1 : 0;
 		}
 		break;
 
@@ -147,7 +153,7 @@ TModSize FModifierStatics::UpdateModifierLevel(EModifierLevelMethod Method, cons
 	}
 
 	// Clamp to max allowed
-	return FMath::Min(NewLevel, MaxLevel);
+	return FMath::Clamp(NewLevel, 0, MaxLevel);
 }
 
 TModSize FModifierStatics::CombineModifierLevels(EModifierLevelMethod Method, const TModifierStack& ModifierLevels,
@@ -158,7 +164,7 @@ TModSize FModifierStatics::CombineModifierLevels(EModifierLevelMethod Method, co
 		return InvalidLevel;
 	}
 
-	TModSize NewLevel = 0;
+	TModSize NewLevel;
 
 	switch (Method)
 	{
@@ -171,9 +177,16 @@ TModSize FModifierStatics::CombineModifierLevels(EModifierLevelMethod Method, co
 		break;
 
 	case EModifierLevelMethod::Stack:
-		for (const TModSize& Level : ModifierLevels)
 		{
-			NewLevel += Level;
+			uint64 Total = 0;
+			for (const TModSize& Level : ModifierLevels)
+			{
+				// We are only counting the number of modifiers, so we add 1 because levels are 0-based
+				Total += Level + 1;
+			}
+
+			// Subtract 1 to convert back to 0-based level
+			NewLevel = Total > 0 ? Total - 1 : 0;
 		}
 		break;
 
@@ -193,7 +206,7 @@ TModSize FModifierStatics::CombineModifierLevels(EModifierLevelMethod Method, co
 	}
 
 	// Clamp to max allowed
-	return FMath::Min(NewLevel, MaxLevel);
+	return FMath::Clamp(NewLevel, 0, MaxLevel);
 }
 
 bool FModifierStatics::ProcessModifiers(TModSize& CurrentLevel, EModifierLevelMethod Method,

@@ -7,6 +7,7 @@
 #include "Curves/CurveFloat.h"
 #include "ModifierTypes.generated.h"
 
+#define NO_MODIFIER UINT8_MAX
 
 /**
  * The network type of the modifier, which determines how it is applied and synchronized across clients and servers
@@ -20,6 +21,16 @@ enum class EModifierNetType : uint8
 };
 
 /**
+ * The network type of the modifier, which determines how it is applied and synchronized across clients and servers
+ */
+UENUM(BlueprintType)
+enum class EModifierNetTypeLocal : uint8
+{
+	LocalPredicted UMETA(DisplayName="Local Predicted", ToolTip="Locally predicted modifier that respects player input, e.g. Sprinting"),
+	WithCorrection UMETA(DisplayName="Local Predicted + Correction", ToolTip="Locally predicted modifier, but corrected by server when a mismatch occurs, e.g. Equipping a knife that results in higher speed"),
+};
+
+/**
  * The method used to calculate modifier levels
  */
 UENUM(BlueprintType)
@@ -29,6 +40,15 @@ enum class EModifierLevelMethod : uint8
 	Min					UMETA(ToolTip="The lowest active modifier level will be applied"),
 	Stack				UMETA(ToolTip="Level stacks by each modifier that is added. e.g. add a level 1 modifier and a level 4 modifier, and it applies level 5"),
 	Average 			UMETA(ToolTip="The average modifier level will be applied"),
+};
+
+UENUM(BlueprintType)
+enum class EModifierFallZ : uint8
+{
+	Disabled			UMETA(ToolTip="Do not remove Velocity.Z when modifier starts"),
+	Enabled				UMETA(ToolTip="Remove Velocity.Z when modifier starts"),
+	Falling				UMETA(ToolTip="Remove Velocity.Z when modifier starts, but only if the character is falling (Velocity.Z < 0)"),
+	Rising				UMETA(ToolTip="Remove Velocity.Z when modifier starts, but only if the character is rising (Velocity.Z > 0)"),
 };
 
 /**
@@ -98,11 +118,11 @@ struct PREDICTEDMOVEMENT_API FFallingModifierParams
 {
 	GENERATED_BODY()
 
-	FFallingModifierParams(float InGravityScalar = 1.f)
+	FFallingModifierParams(float InGravityScalar = 1.f, EModifierFallZ InRemoveVelocityZ = EModifierFallZ::Disabled)
 		: bGravityScalarFromVelocityZ(false)
 		, GravityScalar(InGravityScalar)
 		, GravityScalarFallVelocityCurve(nullptr)
-		, bRemoveVelocityZOnStart(false)
+		, RemoveVelocityZOnStart(InRemoveVelocityZ)
 		, bOverrideAirControl(false)
 		, AirControlScalar(1.f)
 		, AirControlOverride(1.f)
@@ -122,7 +142,7 @@ struct PREDICTEDMOVEMENT_API FFallingModifierParams
 
 	/** Set Velocity.Z = 0.f when air fall starts */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(DisplayName="Remove Velocity Z On Start"))
-	bool bRemoveVelocityZOnStart;
+	EModifierFallZ RemoveVelocityZOnStart;
 
 	/** If true, directly set the air control value */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier)

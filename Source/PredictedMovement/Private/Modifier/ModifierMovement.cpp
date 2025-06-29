@@ -37,7 +37,6 @@ UModifierMovement::UModifierMovement(const FObjectInitializer& ObjectInitializer
 	// Init Modifier Levels
 	Boost.Add(FModifierTags::Modifier_Boost, { 1.50f });  // 50% Speed Boost
 	Snare.Add(FModifierTags::Modifier_Snare, { 0.50f });  // 50% Speed Snare
-
 	SlowFall.Add(FModifierTags::Modifier_SlowFall, { 0.1f });  // 90% Gravity Reduction
 
 	// Auth params for Snare
@@ -58,9 +57,9 @@ void FModifierMoveResponseDataContainer::ServerFillResponseData(const UCharacter
 	const UModifierMovement* MoveComp = Cast<UModifierMovement>(&CharacterMovement);
 
 	// Fill the response data with the current modifier state
-	BoostCorrection.ServerFillResponseData(MoveComp->BoostCorrection.Data.Modifiers);
-	BoostServer.ServerFillResponseData(MoveComp->BoostServer.Data.Modifiers);
-	SnareServer.ServerFillResponseData(MoveComp->SnareServer.Data.Modifiers);
+	BoostCorrection.ServerFillResponseData(MoveComp->BoostCorrection.Modifiers);
+	BoostServer.ServerFillResponseData(MoveComp->BoostServer.Modifiers);
+	SnareServer.ServerFillResponseData(MoveComp->SnareServer.Modifiers);
 
 	// Fill ClientAuthAlpha
 	ClientAuthAlpha = MoveComp->ClientAuthAlpha;
@@ -236,6 +235,32 @@ bool UModifierMovement::CanSlowFallInCurrentState() const
 	return UpdatedComponent && !UpdatedComponent->IsSimulatingPhysics() && (IsFalling() || IsMovingOnGround());
 }
 
+bool UModifierMovement::RemoveVelocityZOnSlowFallStart() const
+{
+	if (IsMovingOnGround())
+	{
+		return false;
+	}
+	
+	// Optionally clear Z velocity if slow fall is active
+	const EModifierFallZ RemoveVelocityZ = GetSlowFallParams() ?
+		GetSlowFallParams()->RemoveVelocityZOnStart : EModifierFallZ::Disabled;
+		
+	switch (RemoveVelocityZ)
+	{
+	case EModifierFallZ::Disabled:
+		return false;
+	case EModifierFallZ::Enabled:
+		return true;
+	case EModifierFallZ::Falling:
+		return Velocity.Z < 0.f;
+	case EModifierFallZ::Rising:
+		return Velocity.Z > 0.f;
+	}
+
+	return false;
+}
+
 void UModifierMovement::ProcessModifierMovementState()
 {
 	// Proxies get replicated Modifier state.
@@ -246,42 +271,42 @@ void UModifierMovement::ProcessModifierMovementState()
 		{	// Boost
 			const FGameplayTag PrevBoostLevel = GetBoostLevel();
 			const uint8 PrevBoostLevelValue = BoostLevel;
-			if (FModifierStatics::ProcessModifiers<TMod_Local, TMod_LocalCorrection, TMod_Server>(
-				BoostLevel, BoostLevelMethod, BoostLevels, bLimitMaxBoosts, MaxBoosts, UINT8_MAX,
-				&BoostLocal, &BoostCorrection, &BoostServer,
+			TArray<FMovementModifier> Boosts = { BoostLocal, BoostCorrection, BoostServer };
+			if (FModifierStatics::ProcessModifiers(BoostLevel, BoostLevelMethod, BoostLevels,
+				bLimitMaxBoosts, MaxBoosts, NO_MODIFIER, Boosts,
 				[this] { return CanBoostInCurrentState(); }))
 			{
 				ModifierCharacterOwner->NotifyModifierChanged(FModifierTags::Modifier_Boost,
 					GetBoostLevel(), PrevBoostLevel, BoostLevel,
-					PrevBoostLevelValue, UINT8_MAX);
+					PrevBoostLevelValue, NO_MODIFIER);
 			}
 		}
 
 		{	// Snare
 			const FGameplayTag PrevSnareLevel = GetSnareLevel();
 			const uint8 PrevSnareLevelValue = SnareLevel;
-			if (FModifierStatics::ProcessModifiers<TMod_Local, TMod_LocalCorrection, TMod_Server>(
-				SnareLevel, SnareLevelMethod, SnareLevels, bLimitMaxSnares, MaxSnares, UINT8_MAX,
-				nullptr, nullptr, &SnareServer,
+			TArray<FMovementModifier> Snares = { SnareServer };
+			if (FModifierStatics::ProcessModifiers(SnareLevel, SnareLevelMethod, SnareLevels,
+				bLimitMaxSnares, MaxSnares, NO_MODIFIER, Snares,
 				[this] { return CanSnareInCurrentState(); }))
 			{
 				ModifierCharacterOwner->NotifyModifierChanged(FModifierTags::Modifier_Snare,
 					GetSnareLevel(), PrevSnareLevel, SnareLevel,
-					PrevSnareLevelValue, UINT8_MAX);
+					PrevSnareLevelValue, NO_MODIFIER);
 			}
 		}
 
 		{	// SlowFall
 			const FGameplayTag PrevSlowFallLevel = GetSlowFallLevel();
 			const uint8 PrevSlowFallLevelValue = SlowFallLevel;
-			if (FModifierStatics::ProcessModifiers<TMod_Local, TMod_LocalCorrection, TMod_Server>(
-				SlowFallLevel, SlowFallLevelMethod, SlowFallLevels, bLimitMaxSlowFalls, MaxSlowFalls, UINT8_MAX,
-				&SlowFallLocal, nullptr, nullptr,
+			TArray<FMovementModifier> SlowFalls = { SlowFallLocal };
+			if (FModifierStatics::ProcessModifiers(SlowFallLevel, SlowFallLevelMethod, SlowFallLevels,
+				bLimitMaxSlowFalls, MaxSlowFalls, NO_MODIFIER, SlowFalls,
 				[this] { return CanSlowFallInCurrentState(); }))
 			{
 				ModifierCharacterOwner->NotifyModifierChanged(FModifierTags::Modifier_SlowFall,
 					GetSlowFallLevel(), PrevSlowFallLevel, SlowFallLevel,
-					PrevSlowFallLevelValue, UINT8_MAX);
+					PrevSlowFallLevelValue, NO_MODIFIER);
 			}
 		}
 	}
@@ -315,8 +340,8 @@ void UModifierMovement::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
-		// Clear Z velocity if slow fall is active
-		if (!bWasSlowFalling && IsSlowFallActive() && GetSlowFallParams() && GetSlowFallParams()->bRemoveVelocityZOnStart)
+		// Optionally clear Z velocity if slow fall is active
+		if (!bWasSlowFalling && IsSlowFallActive() && RemoveVelocityZOnSlowFallStart())
 		{
 			Velocity.Z = 0.f;
 		}
@@ -523,20 +548,9 @@ bool UModifierMovement::ServerCheckClientError(float ClientTimeStamp, float Delt
 	// Trigger a client correction if the value in the Client differs
 	const FModifierNetworkMoveData* CurrentMoveData = static_cast<const FModifierNetworkMoveData*>(GetCurrentNetworkMoveData());
 
-	if (BoostCorrection.ServerCheckClientError(CurrentMoveData->BoostCorrection.Modifiers))
-	{
-		return true;
-	}
-
-	if (BoostServer.ServerCheckClientError(CurrentMoveData->BoostServer.Modifiers))
-	{
-		return true;
-	}
-
-	if (SnareServer.ServerCheckClientError(CurrentMoveData->SnareServer.Modifiers))
-	{
-		return true;
-	}
+	if (BoostCorrection.ServerCheckClientError(CurrentMoveData->BoostCorrection.Modifiers))	{ return true; }
+	if (BoostServer.ServerCheckClientError(CurrentMoveData->BoostServer.Modifiers)) { return true; }
+	if (SnareServer.ServerCheckClientError(CurrentMoveData->SnareServer.Modifiers)) { return true; }
 
 	return false;
 }
@@ -626,17 +640,17 @@ void UModifierMovement::OnClientCorrectionReceived(class FNetworkPredictionData_
 
 bool UModifierMovement::ClientUpdatePositionAfterServerUpdate()
 {
-	const TModifierStack RealBoostLocal = BoostLocal.Data.WantsModifiers;
-	const TModifierStack RealBoostCorrection = BoostCorrection.Data.WantsModifiers;
-	const TModifierStack RealSlowFallLocal = SlowFallLocal.Data.WantsModifiers;
+	const TModifierStack RealBoostLocal = BoostLocal.WantsModifiers;
+	const TModifierStack RealBoostCorrection = BoostCorrection.WantsModifiers;
+	const TModifierStack RealSlowFallLocal = SlowFallLocal.WantsModifiers;
 
 	const FVector ClientLoc = UpdatedComponent->GetComponentLocation();
 	
 	const bool bResult = Super::ClientUpdatePositionAfterServerUpdate();
 	
-	BoostLocal.Data.WantsModifiers = RealBoostLocal;
-	BoostCorrection.Data.WantsModifiers = RealBoostCorrection;
-	SlowFallLocal.Data.WantsModifiers = RealSlowFallLocal;
+	BoostLocal.WantsModifiers = RealBoostLocal;
+	BoostCorrection.WantsModifiers = RealBoostCorrection;
+	SlowFallLocal.WantsModifiers = RealSlowFallLocal;
 
 	// Preserve client location relative to the partial client authority we have
 	const FVector AuthLocation = FMath::Lerp<FVector>(UpdatedComponent->GetComponentLocation(), ClientLoc, ClientAuthAlpha);
@@ -712,6 +726,10 @@ void FSavedMove_Character_Modifier::Clear()
 	BoostServer.Clear();
 	SnareServer.Clear();
 	SlowFallLocal.Clear();
+
+	BoostLevel = NO_MODIFIER;
+	SnareLevel = NO_MODIFIER;
+	SlowFallLevel = NO_MODIFIER;
 }
 
 void FSavedMove_Character_Modifier::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel,
@@ -723,10 +741,9 @@ void FSavedMove_Character_Modifier::SetMoveFor(ACharacter* C, float InDeltaTime,
 
 	if (const UModifierMovement* MoveComp = Cast<AModifierCharacter>(C)->GetModifierCharacterMovement())
 	{
-		BoostLocal.SetMoveFor(MoveComp->BoostLocal.Data.WantsModifiers);
-		BoostCorrection.SetMoveFor(MoveComp->BoostCorrection.Data.WantsModifiers);
-
-		SlowFallLocal.SetMoveFor(MoveComp->SlowFallLocal.Data.WantsModifiers);
+		BoostLocal.SetMoveFor(MoveComp->BoostLocal.WantsModifiers);
+		BoostCorrection.SetMoveFor(MoveComp->BoostCorrection.WantsModifiers);
+		SlowFallLocal.SetMoveFor(MoveComp->SlowFallLocal.WantsModifiers);
 	}
 }
 
@@ -775,10 +792,9 @@ void FSavedMove_Character_Modifier::SetInitialPosition(ACharacter* C)
 	// Retrieve the value from our CMC to revert the saved move value back to this.
 	if (const UModifierMovement* MoveComp = Cast<AModifierCharacter>(C)->GetModifierCharacterMovement())
 	{
-		BoostLocal.SetInitialPosition(MoveComp->BoostLocal.Data.WantsModifiers);
-		BoostCorrection.SetInitialPosition(MoveComp->BoostCorrection.Data.WantsModifiers);
-
-		SlowFallLocal.SetInitialPosition(MoveComp->SlowFallLocal.Data.WantsModifiers);
+		BoostLocal.SetInitialPosition(MoveComp->BoostLocal.WantsModifiers);
+		BoostCorrection.SetInitialPosition(MoveComp->BoostCorrection.WantsModifiers);
+		SlowFallLocal.SetInitialPosition(MoveComp->SlowFallLocal.WantsModifiers);
 
 		BoostLevel = MoveComp->BoostLevel;
 		SnareLevel = MoveComp->SnareLevel;
@@ -797,7 +813,6 @@ void FSavedMove_Character_Modifier::CombineWith(const FSavedMove_Character* OldM
 	{
 		MoveComp->BoostLocal.CombineWith(SavedOldMove->BoostLocal.WantsModifiers);
 		MoveComp->BoostCorrection.CombineWith(SavedOldMove->BoostCorrection.WantsModifiers);
-
 		MoveComp->SlowFallLocal.CombineWith(SavedOldMove->SlowFallLocal.WantsModifiers);
 
 		MoveComp->BoostLevel = SavedOldMove->BoostLevel;
@@ -811,9 +826,9 @@ void FSavedMove_Character_Modifier::PostUpdate(ACharacter* C, EPostUpdateMode Po
 	// When considering whether to delay or combine moves, we need to compare the move at the start and the end
 	if (const UModifierMovement* MoveComp = C ? Cast<UModifierMovement>(C->GetCharacterMovement()) : nullptr)
 	{
-		BoostCorrection.PostUpdate(MoveComp->BoostCorrection.Data.Modifiers);
-		BoostServer.PostUpdate(MoveComp->BoostServer.Data.Modifiers);
-		SnareServer.PostUpdate(MoveComp->SnareServer.Data.Modifiers);
+		BoostCorrection.PostUpdate(MoveComp->BoostCorrection.Modifiers);
+		BoostServer.PostUpdate(MoveComp->BoostServer.Modifiers);
+		SnareServer.PostUpdate(MoveComp->SnareServer.Modifiers);
 
 		// if (PostUpdateMode == PostUpdate_Record)
 	}

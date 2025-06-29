@@ -50,9 +50,18 @@ public:
 	using Super = FCharacterNetworkMoveData;
  
 	FPredictedNetworkMoveData()
-		: Stamina(0)
+		: CompressedMoveFlagsExtra(0)
+		, Stamina(0)
 	{}
 
+	/**
+	 * Extra set of compressed move flags for additional movement states
+	 * Because otherwise CompressedFlags only has FLAG_Reserved_1 remaining
+	 * @note FLAGEX_Custom_0, FLAGEX_Custom_1, FLAGEX_Custom_2 are available for use by the game, however they may be used in the future
+	 * @see FPredictedSavedMove::CompressedFlagsExtra
+	 */
+	uint8 CompressedMoveFlagsExtra;
+	
 	float Stamina;
 
 	/*
@@ -1091,7 +1100,10 @@ public:
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 
 protected:
-	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
+	virtual void MoveAutonomous(float ClientTimeStamp, float DeltaTime, uint8 CompressedFlags, const FVector& NewAccel) override;
+	
+	/** Unpack compressed flags from a saved move and set state accordingly. See FPredictedSavedMove. */
+	virtual void UpdateFromCompressedFlagsExtra(uint8 Flags);
 };
 
 class PREDICTEDMOVEMENT_API FPredictedSavedMove : public FSavedMove_Character
@@ -1145,8 +1157,22 @@ public:
 	uint8 SnareLevel = NO_MODIFIER;
 	uint8 SlowFallLevel = NO_MODIFIER;
 
+	// Bit masks used by GetCompressedFlags() to encode movement information.
+	enum CompressedFlagsExtra
+	{
+		FLAGEX_Stroll		= 0x01,
+		FLAGEX_Walk			= 0x02,
+		FLAGEX_Sprint		= 0x04,
+		FLAGEX_Prone		= 0x08,
+		FLAGEX_ADS			= 0x10,
+		// Remaining bit masks are available for custom flags, but may be used in the future.
+		FLAGEX_Custom_0		= 0x20,
+		FLAGEX_Custom_1		= 0x40,
+		FLAGEX_Custom_2		= 0x80,
+	};
+
 	/** Returns a byte containing encoded special movement information (jumping, crouching, etc.)	 */
-	virtual uint8 GetCompressedFlags() const override;
+	virtual uint8 GetCompressedFlagsExtra() const;
 	
 	/** Clear saved move properties, so it can be re-used. */
 	virtual void Clear() override;

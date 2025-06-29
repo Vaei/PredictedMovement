@@ -49,11 +49,11 @@ UPredictedCharacterMovement::UPredictedCharacterMovement(const FObjectInitialize
 
 	// Defaults
 	GroundFriction = 12.f;  // More grounded, less sliding
-	RotationRate.Yaw = 540.f;
+	RotationRate.Yaw = 500.f;
 	
 	// Strolling
 	MaxAccelerationStrolling = 512.f;
-	MaxWalkSpeedStrolling = 96.f;
+	MaxWalkSpeedStrolling = 120.f;
 	BrakingDecelerationStrolling = 512.f;
 	GroundFrictionStrolling = 12.f;
 	BrakingFrictionStrolling = 4.f;
@@ -62,12 +62,12 @@ UPredictedCharacterMovement::UPredictedCharacterMovement(const FObjectInitialize
 
 	// Walking
 	MaxAcceleration = 1300.f;
-	MaxWalkSpeed = 240.f;
+	MaxWalkSpeed = 260.f;
 	VelocityCheckMitigatorWalking = 0.98f;
 	
 	// Running
 	MaxAccelerationRunning = 1600.f;
-	MaxWalkSpeedRunning = 600.f;
+	MaxWalkSpeedRunning = 500.f;
 	BrakingDecelerationRunning = 512.f;
 	GroundFrictionRunning = 12.f;
 	BrakingFrictionRunning = 4.f;

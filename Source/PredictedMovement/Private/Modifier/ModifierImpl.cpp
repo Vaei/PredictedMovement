@@ -211,29 +211,34 @@ TModSize FModifierStatics::CombineModifierLevels(EModifierLevelMethod Method, co
 
 bool FModifierStatics::ProcessModifiers(TModSize& CurrentLevel, EModifierLevelMethod Method,
 	const TArray<FGameplayTag>& LevelTags, bool bLimitMaxModifiers, int32 MaxModifiers, TModSize InvalidLevel,
-	TArray<FMovementModifier>& Modifiers, const TFunctionRef<bool()>& CanActivateCallback)
+	const TArray<FMovementModifier*>& Modifiers, const TFunctionRef<bool()>& CanActivateCallback)
 {
 	const TModSize PrevLevel = CurrentLevel;
 
 	// Determine the maximum level based on the available tags
 	const TModSize MaxLevel = LevelTags.Num() > 0 ? static_cast<TModSize>(LevelTags.Num() - 1) : 0;
 
-	// Update state
+	// Track modifier data
+	bool bStateChanged = false;
 	TArray<TModSize> Levels;
 	int32 Remaining = MaxModifiers;
-	for (FMovementModifier& Modifier : Modifiers)
+
+	// Iterate through all modifiers and update their state
+	for (FMovementModifier* Modifier : Modifiers)
 	{
-		if (Modifier.UpdateMovementState(CanActivateCallback(), bLimitMaxModifiers, Remaining))
+		// Track if any state changed
+		bStateChanged |= Modifier->UpdateMovementState(CanActivateCallback(), bLimitMaxModifiers, Remaining);
+
+		// Always read and process the current modifier data
+		const TModSize NewLevel = UpdateModifierLevel(Method, Modifier->Modifiers, MaxLevel, InvalidLevel);
+		if (NewLevel != InvalidLevel)
 		{
-			// Update the modifier levels based on the method
-			const TModSize NewLevel = UpdateModifierLevel(Method, Modifier.Modifiers, MaxLevel, InvalidLevel);
-			if (NewLevel != InvalidLevel)
-			{
-				Levels.Add(NewLevel);
-			}
+			Levels.Add(NewLevel);
 		}
 	}
 
-	CurrentLevel = CombineModifierLevels(Method, Levels, MaxLevel, InvalidLevel);
-	return CurrentLevel != PrevLevel;
+	// Combine all active modifier levels
+	CurrentLevel = Levels.Num() > 0 ? CombineModifierLevels(Method, Levels, MaxLevel, InvalidLevel) : InvalidLevel;
+
+	return bStateChanged || CurrentLevel != PrevLevel;
 }

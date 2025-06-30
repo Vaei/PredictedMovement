@@ -201,11 +201,11 @@ struct PREDICTEDMOVEMENT_API FMovementModifier
 		{
 			if (bRemoveAll)
 			{
-				WantsModifiers.RemoveAll([Level](const TModSize& ModLevel) { return ModLevel == Level; });
+				WantsModifiers.Remove(Level);
 			}
 			else
 			{
-				WantsModifiers.Remove(Level);
+				WantsModifiers.RemoveSingle(Level);
 			}
 			return true;
 		}
@@ -356,6 +356,6 @@ struct PREDICTEDMOVEMENT_API FModifierStatics
 	 * @return True if the current level changed, false otherwise
 	 */
 	static bool ProcessModifiers(TModSize& CurrentLevel, EModifierLevelMethod Method, const TArray<FGameplayTag>& LevelTags,
-		bool bLimitMaxModifiers, int32 MaxModifiers, TModSize InvalidLevel,	TArray<FMovementModifier>& Modifiers,
+		bool bLimitMaxModifiers, int32 MaxModifiers, TModSize InvalidLevel,	const TArray<FMovementModifier*>& Modifiers,
 		const TFunctionRef<bool()>& CanActivateCallback);
 };

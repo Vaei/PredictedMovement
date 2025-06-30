@@ -4,7 +4,7 @@
 > PredictedMovement offers several shells usually with a derived `UCharacterMovementComponent` and `ACharacter` which form a single net predicted movement state.
 
 > [!NOTE]
-> For blueprint users the `single-cmc` branch contains a feature-rich `ACharacter` and `UCharacterMovementComponent` you can use right away in your projects.
+> For BP users the `single-cmc` branch contains a feature-rich `ACharacter` you can use right away.
 > <br>Check out the Demo content in the plugin's content folder or [read more about it here.](https://github.com/Vaei/PredictedMovement/wiki/Single%E2%80%90CMC-Branch)
 
 # How to Use

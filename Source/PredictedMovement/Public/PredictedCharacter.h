@@ -223,7 +223,13 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category=Character, meta=(HidePin="bClientSimulation"))
 	virtual void Run(bool bClientSimulation = false);
-	
+
+	UFUNCTION(BlueprintPure, Category=Character)
+	bool IsRunning() const { return !IsStrolling() && !IsWalking() && !IsSprinting(); }
+
+	UFUNCTION(BlueprintPure, Category=Character)
+	bool IsRunningAtSpeed() const;
+
 public:
 	void SetIsSprinting(bool bNewSprinting);
 

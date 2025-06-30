@@ -6,7 +6,8 @@
 #include "GameplayTagContainer.h"
 #include "ModifierTypes.h"
 
-using TModSize = uint8;  // If you want more than 255 modifiers, change this to uint16 or uint32
+// UINT8_MAX is NO_MODIFIER, so UINT8_MAX-1 is the max for uint8 -- NO_MODIFIER is defined in ModifierTypes.h
+using TModSize = uint8;  // If you want more than 254 modifiers, change this to uint16 or uint32
 using TModifierStack = TArray<TModSize>;
 
 /**
@@ -62,7 +63,7 @@ struct PREDICTEDMOVEMENT_API FModifierSavedMove_WithCorrection final : FModifier
 	virtual void Clear() override
 	{
 		Super::Clear();
-		Modifiers = {};
+		Modifiers.Empty();
 	}
 
 	void PostUpdate(const TModifierStack& InModifiers)

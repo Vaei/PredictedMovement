@@ -2,10 +2,12 @@
 
 > [!IMPORTANT]
 > PredictedMovement offers several shells usually with a derived `UCharacterMovementComponent` and `ACharacter` which form a single net predicted movement state.
-> <br>The BP friendly `single-cmc` branch features a complete feature-rich `ACharacter` and `UCharacterMovementComponent` you can use right away in your projects -- check out the Demo content in the plugin's content folder.
+> <br>The BP friendly `single-cmc` branch features a complete feature-rich `ACharacter` and `UCharacterMovementComponent` you can use right away in your projects -- check out the Demo content in the plugin's content folder or [read more about it here](https://github.com/Vaei/PredictedMovement/wiki/Single%E2%80%90CMC-Branch)
+
+# How to Use
 
 > [!NOTE]
-> [Read the Wiki for instructions](https://github.com/Vaei/PredictedMovement/wiki/How-to-Use)
+> [Read the Wiki to learn how to use Predicted Movement](https://github.com/Vaei/PredictedMovement/wiki/How-to-Use)
 
 # Abilities
 

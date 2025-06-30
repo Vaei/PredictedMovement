@@ -211,7 +211,7 @@ TModSize FModifierStatics::CombineModifierLevels(EModifierLevelMethod Method, co
 
 bool FModifierStatics::ProcessModifiers(TModSize& CurrentLevel, EModifierLevelMethod Method,
 	const TArray<FGameplayTag>& LevelTags, bool bLimitMaxModifiers, int32 MaxModifiers, TModSize InvalidLevel,
-	TArray<FMovementModifier>& Modifiers, const TFunctionRef<bool()>& CanActivateCallback)
+	const TArray<FMovementModifier*>& Modifiers, const TFunctionRef<bool()>& CanActivateCallback)
 {
 	const TModSize PrevLevel = CurrentLevel;
 
@@ -221,12 +221,12 @@ bool FModifierStatics::ProcessModifiers(TModSize& CurrentLevel, EModifierLevelMe
 	// Update state
 	TArray<TModSize> Levels;
 	int32 Remaining = MaxModifiers;
-	for (FMovementModifier& Modifier : Modifiers)
+	for (FMovementModifier* Modifier : Modifiers)
 	{
-		if (Modifier.UpdateMovementState(CanActivateCallback(), bLimitMaxModifiers, Remaining))
+		if (Modifier->UpdateMovementState(CanActivateCallback(), bLimitMaxModifiers, Remaining))
 		{
 			// Update the modifier levels based on the method
-			const TModSize NewLevel = UpdateModifierLevel(Method, Modifier.Modifiers, MaxLevel, InvalidLevel);
+			const TModSize NewLevel = UpdateModifierLevel(Method, Modifier->Modifiers, MaxLevel, InvalidLevel);
 			if (NewLevel != InvalidLevel)
 			{
 				Levels.Add(NewLevel);

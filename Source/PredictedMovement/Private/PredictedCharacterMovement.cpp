@@ -148,7 +148,7 @@ UPredictedCharacterMovement::UPredictedCharacterMovement(const FObjectInitialize
 	Boost.Add(FModifierTags::Modifier_Boost, { 1.50f });		// 50% Speed Boost
 	Haste.Add(FModifierTags::Modifier_Haste, { 1.50f });		// 50% Speed Haste (Sprinting)
 	Slow.Add(FModifierTags::Modifier_Slow, { 0.50f });		// 50% Speed Slow
-	Snare.Add(FModifierTags::Modifier_Snare, { 0.50f });		// 50% Speed Snare
+	Snare.Add(FModifierTags::Modifier_Snare, { 0.33f });		// 33% Speed Snare
 	SlowFall.Add(FModifierTags::Modifier_SlowFall, { 0.1f, EModifierFallZ::Enabled });  // 90% Gravity Reduction
 
 	// Auth params for Snare
@@ -1491,7 +1491,7 @@ void UPredictedCharacterMovement::ProcessModifierMovementState()
 		{	// Boost
 			const FGameplayTag PrevBoostLevel = GetBoostLevel();
 			const uint8 PrevBoostLevelValue = BoostLevel;
-			TArray<FMovementModifier> Boosts = { BoostLocal, BoostCorrection };
+			const TArray<FMovementModifier*> Boosts = { &BoostLocal, &BoostCorrection };
 			if (FModifierStatics::ProcessModifiers(BoostLevel, BoostLevelMethod, BoostLevels,
 				bLimitMaxBoosts, MaxBoosts, NO_MODIFIER, Boosts,
 				[this] { return CanBoostInCurrentState(); }))
@@ -1505,7 +1505,7 @@ void UPredictedCharacterMovement::ProcessModifierMovementState()
 		{	// Haste
 			const FGameplayTag PrevHasteLevel = GetHasteLevel();
 			const uint8 PrevHasteLevelValue = HasteLevel;
-			TArray<FMovementModifier> Hastes = { HasteLocal, HasteCorrection };
+			const TArray<FMovementModifier*> Hastes = { &HasteLocal, &HasteCorrection };
 			if (FModifierStatics::ProcessModifiers(HasteLevel, HasteLevelMethod, HasteLevels,
 				bLimitMaxHastes, MaxHastes, NO_MODIFIER, Hastes,
 				[this] { return CanHasteInCurrentState(); }))
@@ -1519,7 +1519,7 @@ void UPredictedCharacterMovement::ProcessModifierMovementState()
 		{	// Slow
 			const FGameplayTag PrevSlowLevel = GetSlowLevel();
 			const uint8 PrevSlowLevelValue = SlowLevel;
-			TArray<FMovementModifier> Slows = { SlowLocal, SlowCorrection };
+			const TArray<FMovementModifier*> Slows = { &SlowLocal, &SlowCorrection };
 			if (FModifierStatics::ProcessModifiers(SlowLevel, SlowLevelMethod, SlowLevels,
 				bLimitMaxSlows, MaxSlows, NO_MODIFIER, Slows,
 				[this] { return CanSlowInCurrentState(); }))
@@ -1533,7 +1533,7 @@ void UPredictedCharacterMovement::ProcessModifierMovementState()
 		{	// Snare
 			const FGameplayTag PrevSnareLevel = GetSnareLevel();
 			const uint8 PrevSnareLevelValue = SnareLevel;
-			TArray<FMovementModifier> Snares = { SnareServer };
+			const TArray<FMovementModifier*> Snares = { &SnareServer };
 			if (FModifierStatics::ProcessModifiers(SnareLevel, SnareLevelMethod, SnareLevels,
 				bLimitMaxSnares, MaxSnares, NO_MODIFIER, Snares,
 				[this] { return CanSnareInCurrentState(); }))
@@ -1547,7 +1547,7 @@ void UPredictedCharacterMovement::ProcessModifierMovementState()
 		{	// SlowFall
 			const FGameplayTag PrevSlowFallLevel = GetSlowFallLevel();
 			const uint8 PrevSlowFallLevelValue = SlowFallLevel;
-			TArray<FMovementModifier> SlowFalls = { SlowFallLocal, SlowFallCorrection };
+			const TArray<FMovementModifier*> SlowFalls = { &SlowFallLocal, &SlowFallCorrection };
 			if (FModifierStatics::ProcessModifiers(SlowFallLevel, SlowFallLevelMethod, SlowFallLevels,
 				bLimitMaxSlowFalls, MaxSlowFalls, NO_MODIFIER, SlowFalls,
 				[this] { return CanSlowFallInCurrentState(); }))

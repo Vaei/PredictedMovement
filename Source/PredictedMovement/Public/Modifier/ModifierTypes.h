@@ -222,7 +222,7 @@ struct PREDICTEDMOVEMENT_API FClientAuthParams
 	bool bEnableClientAuth;
 	
 	/**
-	 * How long to allow client to have positional authority after being Snared
+	 * How long to allow client to have positional authority
 	 */
 	UPROPERTY(Category="Character Movement (Networking)", EditAnywhere, BlueprintReadOnly, meta=(ClampMin="0", UIMin="0", ForceUnits="s", EditCondition="bEnableClientAuth", EditConditionHides))
 	float ClientAuthTime;

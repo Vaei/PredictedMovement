@@ -5,7 +5,7 @@
 
 > [!NOTE]
 > For blueprint users the `single-cmc` branch contains a feature-rich `ACharacter` you can use right away in your projects.
-> <br><br>Check out the Demo content in the plugin's content folder or [read more about it here.](https://github.com/Vaei/PredictedMovement/wiki/Single%E2%80%90CMC-Branch)
+> <br>Check out the Demo content in the plugin's content folder or [read more about it here.](https://github.com/Vaei/PredictedMovement/wiki/Single%E2%80%90CMC-Branch)
 
 # How to Use
 

@@ -2,13 +2,10 @@
 
 > [!IMPORTANT]
 > PredictedMovement offers several shells usually with a derived `UCharacterMovementComponent` and `ACharacter` which form a single net predicted movement state.
+> <br>The BP friendly `single-cmc` branch features a complete feature-rich `ACharacter` and `UCharacterMovementComponent` you can use right away in your projects
 
 > [!NOTE]
 > [Read the Wiki for instructions](https://github.com/Vaei/PredictedMovement/wiki/How-to-Use)
-
-> [!TIP]
-> [Third Person Template Example Project here for PredictedMovement 1.0.0](https://github.com/Vaei/PredictedMovementExample)
-> <br>_Coming Soon-ish for 2.0.0_
 
 # Abilities
 
@@ -27,20 +24,23 @@ It makes you sprint by changing your movement properties when activated.
 Net predicted stamina and drain state. It also includes a correction mechanism.
 
 ## Modifiers
-_Added in version 2.0.0 of PredictedMovement_
+Modifiers are similar to states such as sprinting, however instead of a single on/off state, they contain multiple levels, e.g. `Boost Level 1-5`.
 
-Modifiers are similar to states such as sprinting, however instead of a single on/off state, they contain multiple levels, e.g. `Boost Level 1-5` (or more, or less).
+Included Modifiers: `Boost`, `Snare`, `SlowFall`. The `single-cmc` branch includes also `Slow` and `Haste` (boost, but only affects Sprint).
 
-Included Modifiers: `Boost`, `Snare`, `SlowFall`
+Modifiers come in three formats: `Local Predicted`, `Local Predicted + Corrections`, and `Server Initiated`. [Read about the differences here.](https://github.com/Vaei/PredictedMovement/wiki/Modifiers)
 
-Modifiers come in two formats: `Local Predicted` (applied to self, e.g. a buff) and `Server Initiated` (applied to another, e.g. a debuff).
+Furthermore, `Server Initiated` modifiers include a functional and production tested client authority solution, that allows limited/partial location authority for the client when the server applies a Modifier to your character, to prevent problematic de-sync. [You can read about this here](https://github.com/Vaei/PredictedMovement/wiki/Client-Authority).
 
-Furthermore, `Server Initiated` modifiers include a functional and production tested client authority solution, that allows limited/partial location authority for the client when the server applies a Modifier to your character, to prevent problematic de-sync.
+The included modifiers can be duplicated to achieve plenty of other effects.
 
-The included modifiers can be duplicated to achieve plenty of other modifications.
+## Gait Modes
+`single-cmc` includes Stroll, Walk, Run, Sprint gait modes as well as AimDownSights.
+
+Stroll was added for the sake of NPCs who are not doing anything, but you don't want them to remain completely stationary.
 
 # Demonstration
-I used this in my own project, here you can see the character sprinting, consuming stamina, strafing, and proning with high latency (>220ms) and `p.netshowcorrections 1`. As you can see, there is no desync.
+I use PredictedMovement in my own projects, here you can see the character sprinting, consuming stamina, strafing, and proning with high latency (>220ms) and `p.netshowcorrections 1`. As you can see, there is no desync. This was from version 1 of PredictedMovement and it has only improved since.
 
 https://youtu.be/SHVm57AMruc
 
@@ -50,6 +50,7 @@ https://youtu.be/SHVm57AMruc
 * Movement Modifiers recreated from scratch
   * Supports `LocalPredicted`, `ServerInitiated`, but also `LocalPredicted_WithCorrection`
 * Client Authority overhauled, now handles client corrections fully
+* `single-cmc` branch added with full BP support and demo content
 
 ### 2.0.1
 * Change from `uint32:1` to `uint8:1`

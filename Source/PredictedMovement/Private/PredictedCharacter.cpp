@@ -325,6 +325,11 @@ void APredictedCharacter::Run(bool bClientSimulation)
 	UnSprint();
 }
 
+bool APredictedCharacter::IsRunningAtSpeed() const
+{
+	return PredictedMovement ? PredictedMovement->IsRunningAtSpeed() : false;
+}
+
 void APredictedCharacter::SetIsSprinting(bool bNewSprinting)
 {
 	if (bIsSprinting != bNewSprinting)

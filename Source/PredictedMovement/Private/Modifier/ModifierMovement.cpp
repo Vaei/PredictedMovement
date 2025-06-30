@@ -271,7 +271,7 @@ void UModifierMovement::ProcessModifierMovementState()
 		{	// Boost
 			const FGameplayTag PrevBoostLevel = GetBoostLevel();
 			const uint8 PrevBoostLevelValue = BoostLevel;
-			TArray<FMovementModifier> Boosts = { BoostLocal, BoostCorrection, BoostServer };
+			const TArray<FMovementModifier*> Boosts = { &BoostLocal, &BoostCorrection, &BoostServer };
 			if (FModifierStatics::ProcessModifiers(BoostLevel, BoostLevelMethod, BoostLevels,
 				bLimitMaxBoosts, MaxBoosts, NO_MODIFIER, Boosts,
 				[this] { return CanBoostInCurrentState(); }))
@@ -285,7 +285,7 @@ void UModifierMovement::ProcessModifierMovementState()
 		{	// Snare
 			const FGameplayTag PrevSnareLevel = GetSnareLevel();
 			const uint8 PrevSnareLevelValue = SnareLevel;
-			TArray<FMovementModifier> Snares = { SnareServer };
+			const TArray<FMovementModifier*> Snares = { &SnareServer };
 			if (FModifierStatics::ProcessModifiers(SnareLevel, SnareLevelMethod, SnareLevels,
 				bLimitMaxSnares, MaxSnares, NO_MODIFIER, Snares,
 				[this] { return CanSnareInCurrentState(); }))
@@ -299,7 +299,7 @@ void UModifierMovement::ProcessModifierMovementState()
 		{	// SlowFall
 			const FGameplayTag PrevSlowFallLevel = GetSlowFallLevel();
 			const uint8 PrevSlowFallLevelValue = SlowFallLevel;
-			TArray<FMovementModifier> SlowFalls = { SlowFallLocal };
+			const TArray<FMovementModifier*> SlowFalls = { &SlowFallLocal };
 			if (FModifierStatics::ProcessModifiers(SlowFallLevel, SlowFallLevelMethod, SlowFallLevels,
 				bLimitMaxSlowFalls, MaxSlowFalls, NO_MODIFIER, SlowFalls,
 				[this] { return CanSlowFallInCurrentState(); }))

@@ -263,6 +263,8 @@ bool UModifierMovement::RemoveVelocityZOnSlowFallStart() const
 
 void UModifierMovement::ProcessModifierMovementState()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UModifierMovement::ProcessModifierMovementState);
+	
 	// Proxies get replicated Modifier state.
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
@@ -314,6 +316,8 @@ void UModifierMovement::ProcessModifierMovementState()
 
 void UModifierMovement::UpdateModifierMovementState()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UModifierMovement::UpdateModifierMovementState);
+	
 	if (!HasValidData())
 	{
 		return;
@@ -359,12 +363,16 @@ void UModifierMovement::UpdateCharacterStateAfterMovement(float DeltaSeconds)
 
 FClientAuthData* UModifierMovement::ProcessClientAuthData()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UModifierMovement::ProcessClientAuthData);
+	
 	ClientAuthStack.SortByPriority();
 	return ClientAuthStack.GetFirst();
 }
 
 FClientAuthParams UModifierMovement::GetClientAuthParams(const FClientAuthData* ClientAuthData)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UModifierMovement::GetClientAuthParams);
+	
 	if (!ClientAuthData)
 	{
 		return {};
@@ -402,6 +410,8 @@ FClientAuthParams UModifierMovement::GetClientAuthParams(const FClientAuthData* 
 
 void UModifierMovement::GrantClientAuthority(FGameplayTag ClientAuthSource, float OverrideDuration)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UModifierMovement::GrantClientAuthority);
+	
 	if (!CharacterOwner || !CharacterOwner->HasAuthority())
 	{
 		return;
@@ -434,6 +444,8 @@ void UModifierMovement::GrantClientAuthority(FGameplayTag ClientAuthSource, floa
 
 bool UModifierMovement::ServerShouldGrantClientPositionAuthority(FVector& ClientLoc, FClientAuthData*& AuthData)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UModifierMovement::ServerShouldGrantClientPositionAuthority);
+	
 	AuthData = nullptr;
 	
 	// Already ignoring client movement error checks and correction

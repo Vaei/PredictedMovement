@@ -233,13 +233,7 @@ struct PREDICTEDMOVEMENT_API FMovementModifier
 	 * @param Level The level to filter by
 	 * @return The number of modifiers that match the specified level
 	 */
-	TModSize GetNumWantedModifiersByLevel(TModSize Level) const
-	{
-		return WantsModifiers.FilterByPredicate([Level](uint8 ModifierLevel)
-		{
-			return ModifierLevel == Level;
-		}).Num();
-	}
+	TModSize GetNumWantedModifiersByLevel(TModSize Level) const;
 
 	/**
 	 * Returns the number of modifiers in the stack that match the specified level
@@ -247,13 +241,7 @@ struct PREDICTEDMOVEMENT_API FMovementModifier
 	 * @param Level The level to filter by
 	 * @return The number of modifiers that match the specified level
 	 */
-	TModSize GetNumModifiersByLevel(TModSize Level) const
-	{
-		return Modifiers.FilterByPredicate([Level](uint8 ModifierLevel)
-		{
-			return ModifierLevel == Level;
-		}).Num();
-	}
+	TModSize GetNumModifiersByLevel(TModSize Level) const;
 
 	/**
 	 * Limits the number of modifiers in the stack to the specified maximum

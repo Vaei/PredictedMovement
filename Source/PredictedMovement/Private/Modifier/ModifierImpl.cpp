@@ -24,8 +24,30 @@ bool FModifierMoveData_ServerInitiated::Serialize(FArchive& Ar, const FString& E
 	return FModifierStatics::NetSerialize(Modifiers, Ar, ErrorName, MaxSerializedModifiers);
 }
 
+TModSize FMovementModifier::GetNumWantedModifiersByLevel(TModSize Level) const
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(FMovementModifier::GetNumWantedModifiersByLevel);
+	
+	return WantsModifiers.FilterByPredicate([Level](uint8 ModifierLevel)
+	{
+		return ModifierLevel == Level;
+	}).Num();
+}
+
+TModSize FMovementModifier::GetNumModifiersByLevel(TModSize Level) const
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(FMovementModifier::GetNumModifiersByLevel);
+	
+	return Modifiers.FilterByPredicate([Level](uint8 ModifierLevel)
+	{
+		return ModifierLevel == Level;
+	}).Num();
+}
+
 void FMovementModifier::LimitNumModifiers(TModifierStack& Modifiers, int32& RemainingModifiers)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FMovementModifier::LimitNumModifiers);
+	
 	if (Modifiers.Num() > RemainingModifiers)
 	{
 		// Limit the number of modifiers to the maximum allowed
@@ -47,6 +69,8 @@ void FMovementModifier::LimitNumModifiers(TModifierStack& Modifiers, int32& Rema
 
 bool FMovementModifier::UpdateMovementState(bool bAllowedInCurrentState, bool bClampMax, int32& Remaining)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FMovementModifier::UpdateMovementState);
+	
 	// Only update the modifiers if the current state allows it
 	TModifierStack CurrentModifiers = bAllowedInCurrentState ? WantsModifiers : TModifierStack();
 
@@ -68,6 +92,8 @@ bool FMovementModifier::UpdateMovementState(bool bAllowedInCurrentState, bool bC
 
 bool FModifierStatics::NetSerialize(TModifierStack& Modifiers, FArchive& Ar, const FString& ErrorName, uint8 MaxSerializedModifiers)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FModifierStatics::NetSerialize);
+	
 	// Don't serialize modifier stack if the max is 0
 	if (MaxSerializedModifiers <= 1)
 	{
@@ -105,6 +131,8 @@ bool FModifierStatics::NetSerialize(TModifierStack& Modifiers, FArchive& Ar, con
 TModSize FModifierStatics::UpdateModifierLevel(EModifierLevelMethod Method, const TModifierStack& Modifiers,
 	TModSize MaxLevel, TModSize InvalidLevel)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FModifierStatics::UpdateModifierLevel);
+	
 	if (Modifiers.IsEmpty())
 	{
 		return InvalidLevel;
@@ -159,6 +187,8 @@ TModSize FModifierStatics::UpdateModifierLevel(EModifierLevelMethod Method, cons
 TModSize FModifierStatics::CombineModifierLevels(EModifierLevelMethod Method, const TModifierStack& ModifierLevels,
 	TModSize MaxLevel, TModSize InvalidLevel)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FModifierStatics::CombineModifierLevels);
+	
 	if (ModifierLevels.IsEmpty())
 	{
 		return InvalidLevel;
@@ -213,6 +243,8 @@ bool FModifierStatics::ProcessModifiers(TModSize& CurrentLevel, EModifierLevelMe
 	const TArray<FGameplayTag>& LevelTags, bool bLimitMaxModifiers, int32 MaxModifiers, TModSize InvalidLevel,
 	const TArray<FMovementModifier*>& Modifiers, const TFunctionRef<bool()>& CanActivateCallback)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FModifierStatics::ProcessModifiers);
+	
 	const TModSize PrevLevel = CurrentLevel;
 
 	// Determine the maximum level based on the available tags

@@ -1483,6 +1483,8 @@ bool UPredictedCharacterMovement::RemoveVelocityZOnSlowFallStart() const
 
 void UPredictedCharacterMovement::ProcessModifierMovementState()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UModifierMovement::ProcessModifierMovementState);
+	
 	// Proxies get replicated Modifier state.
 	if (CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
 	{
@@ -1562,6 +1564,8 @@ void UPredictedCharacterMovement::ProcessModifierMovementState()
 
 void UPredictedCharacterMovement::UpdateModifierMovementState()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UModifierMovement::UpdateModifierMovementState);
+	
 	if (!HasValidData())
 	{
 		return;
@@ -1740,12 +1744,16 @@ void UPredictedCharacterMovement::UpdateCharacterStateAfterMovement(float DeltaS
 
 FClientAuthData* UPredictedCharacterMovement::ProcessClientAuthData()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UPredictedCharacterMovement::ProcessClientAuthData);
+	
 	ClientAuthStack.SortByPriority();
 	return ClientAuthStack.GetFirst();
 }
 
 FClientAuthParams UPredictedCharacterMovement::GetClientAuthParams(const FClientAuthData* ClientAuthData)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UPredictedCharacterMovement::GetClientAuthParams);
+	
 	if (!ClientAuthData)
 	{
 		return {};
@@ -1783,6 +1791,8 @@ FClientAuthParams UPredictedCharacterMovement::GetClientAuthParams(const FClient
 
 void UPredictedCharacterMovement::GrantClientAuthority(FGameplayTag ClientAuthSource, float OverrideDuration)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UPredictedCharacterMovement::GrantClientAuthority);
+	
 	if (!CharacterOwner || !CharacterOwner->HasAuthority())
 	{
 		return;
@@ -1815,6 +1825,8 @@ void UPredictedCharacterMovement::GrantClientAuthority(FGameplayTag ClientAuthSo
 
 bool UPredictedCharacterMovement::ServerShouldGrantClientPositionAuthority(FVector& ClientLoc, FClientAuthData*& AuthData)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UPredictedCharacterMovement::ServerShouldGrantClientPositionAuthority);
+	
 	AuthData = nullptr;
 	
 	// Already ignoring client movement error checks and correction

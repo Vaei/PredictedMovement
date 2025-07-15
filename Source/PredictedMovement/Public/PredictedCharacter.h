@@ -395,6 +395,12 @@ public:
 	uint8 bIsProned:1;
 	
 public:
+	/** Default standing eye height */
+	UFUNCTION(BlueprintPure, Category=Character)
+	virtual float GetStandingBaseEyeHeight() const;
+	
+	virtual float GetBaseEyeHeight() const;
+	
 	virtual void RecalculateBaseEyeHeight() override;
 	
 	virtual void SetIsProned(bool bNewProned);

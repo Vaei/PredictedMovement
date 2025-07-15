@@ -546,6 +546,21 @@ void APredictedCharacter::OnEndAimDownSights()
 	K2_OnEndAimDownSights();
 }
 
+float APredictedCharacter::GetStandingBaseEyeHeight() const
+{
+	return GetDefault<ACharacter>(GetClass())->BaseEyeHeight;
+}
+
+float APredictedCharacter::GetBaseEyeHeight() const
+{
+	switch (GetStance())
+	{
+	case EPredStance::Crouch: return CrouchedEyeHeight;
+	case EPredStance::Prone: return PronedEyeHeight;
+	default: return GetStandingBaseEyeHeight();
+	}
+}
+
 void APredictedCharacter::RecalculateBaseEyeHeight()
 {
 	if (bIsProned)

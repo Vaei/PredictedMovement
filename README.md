@@ -51,6 +51,9 @@ https://youtu.be/SHVm57AMruc
 
 # Changelog
 
+### 2.1.1
+* Improve base eye height handling
+
 ### 2.1.0
 * Movement Modifiers recreated from scratch
   * Supports `LocalPredicted`, `ServerInitiated`, but also `LocalPredicted_WithCorrection`

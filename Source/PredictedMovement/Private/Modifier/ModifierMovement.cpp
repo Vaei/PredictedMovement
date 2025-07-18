@@ -278,7 +278,7 @@ void UModifierMovement::ProcessModifierMovementState()
 				bLimitMaxBoosts, MaxBoosts, NO_MODIFIER, Boosts,
 				[this] { return CanBoostInCurrentState(); }))
 			{
-				ModifierCharacterOwner->NotifyModifierChanged(FModifierTags::Modifier_Boost,
+				ModifierCharacterOwner->NotifyModifierChanged<uint8>(FModifierTags::Modifier_Boost,
 					GetBoostLevel(), PrevBoostLevel, BoostLevel,
 					PrevBoostLevelValue, NO_MODIFIER);
 			}
@@ -292,7 +292,7 @@ void UModifierMovement::ProcessModifierMovementState()
 				bLimitMaxSnares, MaxSnares, NO_MODIFIER, Snares,
 				[this] { return CanSnareInCurrentState(); }))
 			{
-				ModifierCharacterOwner->NotifyModifierChanged(FModifierTags::Modifier_Snare,
+				ModifierCharacterOwner->NotifyModifierChanged<uint8>(FModifierTags::Modifier_Snare,
 					GetSnareLevel(), PrevSnareLevel, SnareLevel,
 					PrevSnareLevelValue, NO_MODIFIER);
 			}
@@ -306,7 +306,7 @@ void UModifierMovement::ProcessModifierMovementState()
 				bLimitMaxSlowFalls, MaxSlowFalls, NO_MODIFIER, SlowFalls,
 				[this] { return CanSlowFallInCurrentState(); }))
 			{
-				ModifierCharacterOwner->NotifyModifierChanged(FModifierTags::Modifier_SlowFall,
+				ModifierCharacterOwner->NotifyModifierChanged<uint8>(FModifierTags::Modifier_SlowFall,
 					GetSlowFallLevel(), PrevSlowFallLevel, SlowFallLevel,
 					PrevSlowFallLevelValue, NO_MODIFIER);
 			}

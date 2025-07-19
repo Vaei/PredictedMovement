@@ -1498,7 +1498,7 @@ void UPredictedCharacterMovement::ProcessModifierMovementState()
 				bLimitMaxBoosts, MaxBoosts, NO_MODIFIER, Boosts,
 				[this] { return CanBoostInCurrentState(); }))
 			{
-				PredCharacterOwner->NotifyModifierChanged(FModifierTags::Modifier_Boost,
+				PredCharacterOwner->NotifyModifierChanged<uint8>(FModifierTags::Modifier_Boost,
 					GetBoostLevel(), PrevBoostLevel, BoostLevel,
 					PrevBoostLevelValue, NO_MODIFIER);
 			}
@@ -1512,7 +1512,7 @@ void UPredictedCharacterMovement::ProcessModifierMovementState()
 				bLimitMaxHastes, MaxHastes, NO_MODIFIER, Hastes,
 				[this] { return CanHasteInCurrentState(); }))
 			{
-				PredCharacterOwner->NotifyModifierChanged(FModifierTags::Modifier_Haste,
+				PredCharacterOwner->NotifyModifierChanged<uint8>(FModifierTags::Modifier_Haste,
 					GetHasteLevel(), PrevHasteLevel, HasteLevel,
 					PrevHasteLevelValue, NO_MODIFIER);
 			}
@@ -1526,7 +1526,7 @@ void UPredictedCharacterMovement::ProcessModifierMovementState()
 				bLimitMaxSlows, MaxSlows, NO_MODIFIER, Slows,
 				[this] { return CanSlowInCurrentState(); }))
 			{
-				PredCharacterOwner->NotifyModifierChanged(FModifierTags::Modifier_Slow,
+				PredCharacterOwner->NotifyModifierChanged<uint8>(FModifierTags::Modifier_Slow,
 					GetSlowLevel(), PrevSlowLevel, SlowLevel,
 					PrevSlowLevelValue, NO_MODIFIER);
 			}
@@ -1540,7 +1540,7 @@ void UPredictedCharacterMovement::ProcessModifierMovementState()
 				bLimitMaxSnares, MaxSnares, NO_MODIFIER, Snares,
 				[this] { return CanSnareInCurrentState(); }))
 			{
-				PredCharacterOwner->NotifyModifierChanged(FModifierTags::Modifier_Snare,
+				PredCharacterOwner->NotifyModifierChanged<uint8>(FModifierTags::Modifier_Snare,
 					GetSnareLevel(), PrevSnareLevel, SnareLevel,
 					PrevSnareLevelValue, NO_MODIFIER);
 			}
@@ -1554,7 +1554,7 @@ void UPredictedCharacterMovement::ProcessModifierMovementState()
 				bLimitMaxSlowFalls, MaxSlowFalls, NO_MODIFIER, SlowFalls,
 				[this] { return CanSlowFallInCurrentState(); }))
 			{
-				PredCharacterOwner->NotifyModifierChanged(FModifierTags::Modifier_SlowFall,
+				PredCharacterOwner->NotifyModifierChanged<uint8>(FModifierTags::Modifier_SlowFall,
 					GetSlowFallLevel(), PrevSlowFallLevel, SlowFallLevel,
 					PrevSlowFallLevelValue, NO_MODIFIER);
 			}

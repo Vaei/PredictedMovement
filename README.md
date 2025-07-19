@@ -51,6 +51,9 @@ https://youtu.be/SHVm57AMruc
 
 # Changelog
 
+### 2.1.2
+* Specify template type as `NotifyModifierChanged<uint8>` instead of inferring for the sake of clang
+
 ### 2.1.1
 * Improve base eye height handling
 

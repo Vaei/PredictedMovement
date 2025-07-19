@@ -85,7 +85,7 @@ void AModifierCharacter::OnRep_SimulatedBoost(uint8 PrevLevel)
 	{
 		const FGameplayTag PrevBoostLevel = ModifierMovement->GetBoostLevel();
 		ModifierMovement->BoostLevel = SimulatedBoost;
-		NotifyModifierChanged(FModifierTags::Modifier_Boost, ModifierMovement->GetBoostLevel(),
+		NotifyModifierChanged<uint8>(FModifierTags::Modifier_Boost, ModifierMovement->GetBoostLevel(),
 			PrevBoostLevel, ModifierMovement->BoostLevel, PrevLevel, NO_MODIFIER);
 
 		ModifierMovement->bNetworkUpdateReceived = true;
@@ -187,7 +187,7 @@ void AModifierCharacter::OnRep_SimulatedSnare(uint8 PrevLevel)
 	{
 		const FGameplayTag PrevSnareLevel = ModifierMovement->GetSnareLevel();
 		ModifierMovement->SnareLevel = SimulatedSnare;
-		NotifyModifierChanged(FModifierTags::Modifier_Snare, ModifierMovement->GetSnareLevel(),
+		NotifyModifierChanged<uint8>(FModifierTags::Modifier_Snare, ModifierMovement->GetSnareLevel(),
 			PrevSnareLevel, ModifierMovement->SnareLevel, PrevLevel, NO_MODIFIER);
 
 		ModifierMovement->bNetworkUpdateReceived = true;
@@ -253,7 +253,7 @@ void AModifierCharacter::OnRep_SimulatedSlowFall(uint8 PrevLevel)
 	{
 		const FGameplayTag PrevSlowFallLevel = ModifierMovement->GetSlowFallLevel();
 		ModifierMovement->SlowFallLevel = SimulatedSlowFall;
-		NotifyModifierChanged(FModifierTags::Modifier_SlowFall, ModifierMovement->GetSlowFallLevel(),
+		NotifyModifierChanged<uint8>(FModifierTags::Modifier_SlowFall, ModifierMovement->GetSlowFallLevel(),
 			PrevSlowFallLevel, ModifierMovement->SlowFallLevel, PrevLevel, NO_MODIFIER);
 
 		ModifierMovement->bNetworkUpdateReceived = true;

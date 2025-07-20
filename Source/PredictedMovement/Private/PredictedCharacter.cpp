@@ -398,10 +398,6 @@ void APredictedCharacter::Sprint(bool bClientSimulation)
 			{
 				UnProne();
 			}
-			if (IsAimingDownSights() && !PredictedMovement->bCanSprintDuringAimDownSights)
-			{
-				UnAimDownSights();
-			}
 			if (IsStrolling())
 			{
 				UnStroll();
@@ -519,12 +515,6 @@ void APredictedCharacter::AimDownSights(bool bClientSimulation)
 	if (PredictedMovement && CanAimDownSights())
 	{
 		PredictedMovement->bWantsToAimDownSights = true;
-
-		// If we can't sprint during ADS, then allow ADS to cancel sprint
-		if (!bClientSimulation && IsSprinting() && !PredictedMovement->bCanSprintDuringAimDownSights)
-		{
-			UnSprint();
-		}
 	}
 }
 

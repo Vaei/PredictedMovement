@@ -51,6 +51,9 @@ https://youtu.be/SHVm57AMruc
 
 # Changelog
 
+### 2.1.4
+* AimDownSights/sprint don't modify other's input on `single-cmc`
+
 ### 2.1.3
 * Add further missing templates for clang
 

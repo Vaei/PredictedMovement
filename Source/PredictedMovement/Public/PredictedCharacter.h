@@ -321,6 +321,52 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category=Character, meta=(DisplayName="OnStaminaDrainRecovered"))
 	void K2_OnStaminaDrainRecovered();
 
+	/**
+	 * Set the stamina directly
+	 * @WARNING DE-SYNC - Calling this from outside CMC prediction will de-sync
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	void SetStamina(float NewStamina);
+
+	/**
+	 * Add stamina
+	 * @WARNING DE-SYNC - Calling this from outside CMC prediction will de-sync
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	void AddStamina(float AddedStamina);
+	
+	/**
+	 * Set the maximum stamina directly
+	 * @WARNING DE-SYNC - Calling this from outside CMC prediction will de-sync
+	 * Only use this for non-gameplay critical/affecting situations
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	void SetMaxStamina(float NewMaxStamina);
+
+	/**
+	 * Add maximum stamina
+	 * @WARNING DE-SYNC - Calling this from outside CMC prediction will de-sync
+	 * Only use this for non-gameplay critical/affecting situations
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	void AddMaxStamina(float AddedMaxStamina);
+
+	/**
+	 * Reset maximum stamina to BaseMaxStamina
+	 * @WARNING DE-SYNC - Calling this from outside CMC prediction will de-sync
+	 * Only use this for non-gameplay critical/affecting situations
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	void ResetMaxStamina();
+	
+	/**
+	 * Set the stamina drained state directly
+	 * @WARNING DE-SYNC - Calling this from outside CMC prediction will de-sync
+	 * Only use this for non-gameplay critical/affecting situations
+	 */
+	UFUNCTION(BlueprintCallable, Category=Character)
+	void SetStaminaDrained(bool bNewStaminaDrained);
+	
 	UFUNCTION(BlueprintPure, Category=Character)
 	float GetStamina() const;
 	

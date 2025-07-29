@@ -454,6 +454,54 @@ void APredictedCharacter::OnStaminaDrainRecovered()
 	NotifyOnStaminaDrainRecovered.Broadcast();
 }
 
+void APredictedCharacter::SetStamina(float NewStamina)
+{
+	if (PredictedMovement)
+	{
+		PredictedMovement->SetStamina(NewStamina);
+	}
+}
+
+void APredictedCharacter::AddStamina(float AddedStamina)
+{
+	if (PredictedMovement)
+	{
+		PredictedMovement->SetStamina(PredictedMovement->GetStamina() + AddedStamina);
+	}
+}
+
+void APredictedCharacter::SetMaxStamina(float NewMaxStamina)
+{
+	if (PredictedMovement)
+	{
+		PredictedMovement->SetMaxStamina(NewMaxStamina);
+	}
+}
+
+void APredictedCharacter::AddMaxStamina(float AddedMaxStamina)
+{
+	if (PredictedMovement)
+	{
+		PredictedMovement->SetMaxStamina(PredictedMovement->GetMaxStamina() + AddedMaxStamina);
+	}
+}
+
+void APredictedCharacter::ResetMaxStamina()
+{
+	if (PredictedMovement)
+	{
+		PredictedMovement->SetMaxStamina(PredictedMovement->BaseMaxStamina);
+	}
+}
+
+void APredictedCharacter::SetStaminaDrained(bool bNewStaminaDrained)
+{
+	if (PredictedMovement)
+	{
+		PredictedMovement->SetStaminaDrained(bNewStaminaDrained);
+	}
+}
+
 float APredictedCharacter::GetStamina() const
 {
 	return PredictedMovement ? PredictedMovement->GetStamina() : 0.f;

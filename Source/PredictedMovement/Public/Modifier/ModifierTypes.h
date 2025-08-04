@@ -138,7 +138,7 @@ struct PREDICTEDMOVEMENT_API FFallingModifierParams
 
 	/** Gravity scale curve based on fall velocity */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(EditCondition="bGravityScalarFromVelocityZ", EditConditionHides))
-	UCurveFloat* GravityScalarFallVelocityCurve;
+	TObjectPtr<UCurveFloat> GravityScalarFallVelocityCurve;
 
 	/** Set Velocity.Z = 0.f when air fall starts */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modifier, meta=(DisplayName="Remove Velocity Z On Start"))

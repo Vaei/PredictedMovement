@@ -51,6 +51,13 @@ https://youtu.be/SHVm57AMruc
 
 # Changelog
 
+### 2.1.6
+* Replace native ptr with TObjectPtr
+
+### 2.1.5
+* BP Exposed `SetStamina()`, `AddStamina()`, `SetMaxStamina()`, `AddMaxStamina()`, `SetStaminaDrained()`
+  * These will run outside of prediction and will make you de-sync if used during gameplay critical situations
+
 ### 2.1.4
 * AimDownSights/sprint don't modify other's input on `single-cmc`
 

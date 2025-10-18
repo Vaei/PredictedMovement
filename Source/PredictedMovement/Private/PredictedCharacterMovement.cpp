@@ -1723,7 +1723,7 @@ void UPredictedCharacterMovement::UpdateCharacterStateAfterMovement(float DeltaS
 
 	Super::UpdateCharacterStateAfterMovement(DeltaSeconds);
 	
-#if !UE_BUILD_SHIPPING
+#if UE_ENABLE_DEBUG_DRAWING
 	// Draw Stamina values to Screen
 	if (GEngine && PredMovementCVars::DrawStaminaValues > 0)
 	{

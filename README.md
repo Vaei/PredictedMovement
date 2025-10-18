@@ -51,6 +51,9 @@ https://youtu.be/SHVm57AMruc
 
 # Changelog
 
+### 2.1.7
+* Fix pre-processor macro for `DrawStaminaValues` cvar (fixes packaging error)
+
 ### 2.1.6
 * Replace native ptr with TObjectPtr
 

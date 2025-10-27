@@ -51,6 +51,9 @@ https://youtu.be/SHVm57AMruc
 
 # Changelog
 
+### 2.1.8
+* `single-cmc` `IsStaminaRecovered()` marked as `virtual`
+
 ### 2.1.7
 * Fix pre-processor macro for `DrawStaminaValues` cvar (fixes packaging error)
 

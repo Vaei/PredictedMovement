@@ -859,7 +859,7 @@ public:
 	float GetStaminaPct() const { return Stamina / MaxStamina; }
 	float GetMaxStamina() const { return MaxStamina; }
 	bool IsStaminaDrained() const { return bStaminaDrained; }
-	bool IsStaminaRecovered() const
+	virtual bool IsStaminaRecovered() const
 	{
 		return bStaminaRecoveryFromPct ? GetStaminaPct() >= StaminaRecoveryPct : GetStamina() >= StaminaRecoveryAmount;
 	}

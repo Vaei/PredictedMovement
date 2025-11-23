@@ -5,6 +5,7 @@
 
 > [!NOTE]
 > For BP users the `single-cmc` branch contains a feature-rich `ACharacter` you can use right away.
+> <br>Get the Demo content from [Releases](https://github.com/Vaei/PredictedMovement/releases/tag/release)
 > <br>Check out the Demo content in the plugin's content folder or [read more about it here.](https://github.com/Vaei/PredictedMovement/wiki/Single%E2%80%90CMC-Branch)
 
 # How to Use
@@ -50,6 +51,9 @@ I use PredictedMovement in my own projects, here you can see the character sprin
 https://youtu.be/SHVm57AMruc
 
 # Changelog
+
+### 2.1.9
+* Removed Git LFS - now using Releases for Content
 
 ### 2.1.8
 * `single-cmc` `IsStaminaRecovered()` marked as `virtual`

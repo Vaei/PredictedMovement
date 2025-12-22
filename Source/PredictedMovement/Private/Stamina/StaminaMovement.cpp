@@ -197,7 +197,7 @@ void FSavedMove_Character_Stamina::SetInitialPosition(ACharacter* C)
 void FSavedMove_Character_Stamina::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
 {
 	// When considering whether to delay or combine moves, we need to compare the move at the start and the end
-	if (UStaminaMovement* MoveComp = C ? Cast<UStaminaMovement>(C->GetCharacterMovement()) : nullptr)
+	if (const UStaminaMovement* MoveComp = C ? Cast<UStaminaMovement>(C->GetCharacterMovement()) : nullptr)
 	{
 		EndStamina = MoveComp->GetStamina();
 	

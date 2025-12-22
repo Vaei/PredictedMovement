@@ -214,13 +214,15 @@ void FSavedMove_Character_Stamina::PostUpdate(ACharacter* C, EPostUpdateMode Pos
 	Super::PostUpdate(C, PostUpdateMode);
 }
 
+#if UE_5_03_OR_LATER
 void UStaminaMovement::OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData,
 	float TimeStamp, FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName,
-	bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode
-#if UE_5_03_OR_LATER
-	, FVector ServerGravityDirection
+	bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode, FVector ServerGravityDirection)
+#else
+void UStaminaMovement::OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData,
+	float TimeStamp, FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName,
+	bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode)
 #endif
-	)
 {
 	// This occurs on AutonomousProxy, when the server sends the move response
 	// This is where we receive the snare, and can override the server's location, assuming it has given us authority

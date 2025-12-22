@@ -140,13 +140,14 @@ public:
 	 */
 	// virtual void ClientHandleMoveResponse(const FCharacterMoveResponseDataContainer& MoveResponse) override;
 
+#if UE_5_03_OR_LATER
 	virtual void OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData, float TimeStamp,
 		FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase,
-		bool bBaseRelativePosition, uint8 ServerMovementMode
-#if UE_5_03_OR_LATER
-		, FVector ServerGravityDirection) override;
+		bool bBaseRelativePosition, uint8 ServerMovementMode, FVector ServerGravityDirection) override;
 #else
-		) override;
+	virtual void OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData, float TimeStamp,
+	FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase,
+	bool bBaseRelativePosition, uint8 ServerMovementMode) override;
 #endif
 
 	virtual bool ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,

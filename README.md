@@ -52,6 +52,11 @@ https://youtu.be/SHVm57AMruc
 
 # Changelog
 
+### 2.1.10
+* Update for UE5.7
+* Add missing const for `UStaminaMovement`
+* gitignore Content
+
 ### 2.1.9
 * Removed Git LFS - now using Releases for Content
 

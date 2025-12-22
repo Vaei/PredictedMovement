@@ -2023,13 +2023,15 @@ void UPredictedCharacterMovement::ClientAdjustPosition_Implementation(float Time
 	UpdatedComponent->SetWorldLocation(AuthLocation, false);
 }
 
+#if UE_5_03_OR_LATER
 void UPredictedCharacterMovement::OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData,
 	float TimeStamp, FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName,
-	bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode
-#if UE_5_03_OR_LATER
-	, FVector ServerGravityDirection
+	bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode, FVector ServerGravityDirection)
+#else
+void UPredictedCharacterMovement::OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData,
+	float TimeStamp, FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName,
+	bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode)
 #endif
-	)
 {
 	// This occurs on AutonomousProxy, when the server sends the move response
 	// This is where we receive the snare, and can override the server's location, assuming it has given us authority

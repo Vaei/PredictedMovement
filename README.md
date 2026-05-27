@@ -56,7 +56,7 @@ https://youtu.be/SHVm57AMruc
 _Nuked Git LFS - You may need to re-clone!_
 
 * Update in preparation for UE5.8
-* 
+* Fix access specifier for ApplyVelocityBraking
 
 ### 2.1.10
 * Update for UE5.7

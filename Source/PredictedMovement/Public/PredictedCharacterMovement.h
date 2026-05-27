@@ -785,6 +785,8 @@ public:
 public:	
 	virtual void CalcStamina(float DeltaTime);
 	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
+	
+protected:
 	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
 
 public:

@@ -1063,6 +1063,16 @@ public:
 	virtual void ServerMove_PerformMovement(const FCharacterNetworkMoveData& MoveData) override;
 
 protected:
+#if UE_5_08_OR_LATER
+	// UE 5.8 replaced the UPrimitiveComponent* movement-base parameter with FMovementBaseInterfaceData*
+	virtual bool ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
+		const FVector& ClientWorldLocation, const FVector& RelativeClientLocation,
+		FMovementBaseInterfaceData* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode) override;
+
+	virtual void ServerMoveHandleClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
+		const FVector& RelativeClientLocation, FMovementBaseInterfaceData* ClientMovementBase, FName ClientBaseBoneName,
+		uint8 ClientMovementMode) override;
+#else
 	virtual bool ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
 		const FVector& ClientWorldLocation, const FVector& RelativeClientLocation,
 		UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode) override;
@@ -1070,14 +1080,25 @@ protected:
 	virtual void ServerMoveHandleClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
 		const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName,
 		uint8 ClientMovementMode) override;
+#endif
 
 public:
+#if UE_5_08_OR_LATER
+	virtual void ClientAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, FVector NewVel,
+		FMovementBaseInterfaceData* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition,
+		uint8 ServerMovementMode, TOptional<FRotator> OptionalRotation = TOptional<FRotator>()) override;
+#else
 	virtual void ClientAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, FVector NewVel,
 		UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition,
 		uint8 ServerMovementMode, TOptional<FRotator> OptionalRotation = TOptional<FRotator>()) override;
+#endif
 
 protected:
-#if UE_5_03_OR_LATER
+#if UE_5_08_OR_LATER
+	virtual void OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData, float TimeStamp,
+		FVector NewLocation, FVector NewVelocity, FMovementBaseInterfaceData* NewBase, FName NewBaseBoneName, bool bHasBase,
+		bool bBaseRelativePosition, uint8 ServerMovementMode, FVector ServerGravityDirection) override;
+#elif UE_5_03_OR_LATER
 	virtual void OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData, float TimeStamp,
 		FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase,
 		bool bBaseRelativePosition, uint8 ServerMovementMode, FVector ServerGravityDirection) override;

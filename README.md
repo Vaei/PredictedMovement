@@ -52,6 +52,12 @@ https://youtu.be/SHVm57AMruc
 
 # Changelog
 
+### 2.2.0
+_Nuked Git LFS - You may need to re-clone!_
+
+* Update in preparation for UE5.8
+* 
+
 ### 2.1.10
 * Update for UE5.7
 * Add missing const for `UStaminaMovement`

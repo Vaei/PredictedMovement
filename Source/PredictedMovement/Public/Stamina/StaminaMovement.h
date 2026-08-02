@@ -140,7 +140,12 @@ public:
 	 */
 	// virtual void ClientHandleMoveResponse(const FCharacterMoveResponseDataContainer& MoveResponse) override;
 
-#if UE_5_03_OR_LATER
+#if UE_5_08_OR_LATER
+	// UE 5.8 replaced the UPrimitiveComponent* movement-base parameter with FMovementBaseInterfaceData*
+	virtual void OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData, float TimeStamp,
+		FVector NewLocation, FVector NewVelocity, FMovementBaseInterfaceData* NewBase, FName NewBaseBoneName, bool bHasBase,
+		bool bBaseRelativePosition, uint8 ServerMovementMode, FVector ServerGravityDirection) override;
+#elif UE_5_03_OR_LATER
 	virtual void OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData, float TimeStamp,
 		FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase,
 		bool bBaseRelativePosition, uint8 ServerMovementMode, FVector ServerGravityDirection) override;
@@ -150,9 +155,15 @@ public:
 	bool bBaseRelativePosition, uint8 ServerMovementMode) override;
 #endif
 
+#if UE_5_08_OR_LATER
+	virtual bool ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
+		const FVector& ClientWorldLocation, const FVector& RelativeClientLocation,
+		FMovementBaseInterfaceData* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode) override;
+#else
 	virtual bool ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
 		const FVector& ClientWorldLocation, const FVector& RelativeClientLocation,
 		UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode) override;
+#endif
 
 	/** Get prediction data for a client game. Should not be used if not running as a client. Allocates the data on demand and can be overridden to allocate a custom override if desired. Result must be a FNetworkPredictionData_Client_Character. */
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;

@@ -545,9 +545,15 @@ void UModifierMovement::ServerMove_PerformMovement(const FCharacterNetworkMoveDa
 	Super::ServerMove_PerformMovement(MoveData);
 }
 
+#if UE_5_08_OR_LATER
+bool UModifierMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
+	const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, FMovementBaseInterfaceData* ClientMovementBase,
+	FName ClientBaseBoneName, uint8 ClientMovementMode)
+#else
 bool UModifierMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
 	const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase,
 	FName ClientBaseBoneName, uint8 ClientMovementMode)
+#endif
 {
 	// ServerMovePacked_ServerReceive ➜ ServerMove_HandleMoveData ➜ ServerMove_PerformMovement
 	// ➜ ServerMoveHandleClientError ➜ ServerCheckClientError
@@ -567,9 +573,15 @@ bool UModifierMovement::ServerCheckClientError(float ClientTimeStamp, float Delt
 	return false;
 }
 
+#if UE_5_08_OR_LATER
+void UModifierMovement::ServerMoveHandleClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
+	const FVector& RelativeClientLocation, FMovementBaseInterfaceData* ClientMovementBase, FName ClientBaseBoneName,
+	uint8 ClientMovementMode)
+#else
 void UModifierMovement::ServerMoveHandleClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel,
 	const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName,
 	uint8 ClientMovementMode)
+#endif
 {
 	// This is the entry-point for determining how to handle client corrections; we can determine they are out of sync
 	// and make any changes that suit our needs
@@ -604,9 +616,15 @@ void UModifierMovement::ServerMoveHandleClientError(float ClientTimeStamp, float
 		ClientBaseBoneName, ClientMovementMode);
 }
 
+#if UE_5_08_OR_LATER
+void UModifierMovement::ClientAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, FVector NewVel,
+	FMovementBaseInterfaceData* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition,
+	uint8 ServerMovementMode, TOptional<FRotator> OptionalRotation)
+#else
 void UModifierMovement::ClientAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, FVector NewVel,
 	UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition,
 	uint8 ServerMovementMode, TOptional<FRotator> OptionalRotation)
+#endif
 {
 	if (!HasValidData() || !IsActive())
 	{
@@ -626,7 +644,11 @@ void UModifierMovement::ClientAdjustPosition_Implementation(float TimeStamp, FVe
 	UpdatedComponent->SetWorldLocation(AuthLocation, false);
 }
 
-#if UE_5_03_OR_LATER
+#if UE_5_08_OR_LATER
+void UModifierMovement::OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData,
+	float TimeStamp, FVector NewLocation, FVector NewVelocity, FMovementBaseInterfaceData* NewBase, FName NewBaseBoneName,
+	bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode, FVector ServerGravityDirection)
+#elif UE_5_03_OR_LATER
 void UModifierMovement::OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData,
 	float TimeStamp, FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName,
 	bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode, FVector ServerGravityDirection)

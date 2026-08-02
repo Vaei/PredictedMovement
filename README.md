@@ -52,6 +52,12 @@ https://youtu.be/SHVm57AMruc
 
 # Changelog
 
+### 2.3.0
+_Beta addition_
+
+* Added listen server mesh extrapolation
+  * Greatly improves results for listen servers observing simulated proxies
+
 ### 2.2.0
 _Nuked Git LFS - You may need to re-clone!_
 

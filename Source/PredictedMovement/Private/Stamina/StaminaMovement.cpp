@@ -214,7 +214,11 @@ void FSavedMove_Character_Stamina::PostUpdate(ACharacter* C, EPostUpdateMode Pos
 	Super::PostUpdate(C, PostUpdateMode);
 }
 
-#if UE_5_03_OR_LATER
+#if UE_5_08_OR_LATER
+void UStaminaMovement::OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData,
+	float TimeStamp, FVector NewLocation, FVector NewVelocity, FMovementBaseInterfaceData* NewBase, FName NewBaseBoneName,
+	bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode, FVector ServerGravityDirection)
+#elif UE_5_03_OR_LATER
 void UStaminaMovement::OnClientCorrectionReceived(class FNetworkPredictionData_Client_Character& ClientData,
 	float TimeStamp, FVector NewLocation, FVector NewVelocity, UPrimitiveComponent* NewBase, FName NewBaseBoneName,
 	bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode, FVector ServerGravityDirection)
@@ -239,7 +243,11 @@ void UStaminaMovement::OnClientCorrectionReceived(class FNetworkPredictionData_C
 		bHasBase, bBaseRelativePosition, ServerMovementMode, ServerGravityDirection);
 }
 
+#if UE_5_08_OR_LATER
+bool UStaminaMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel, const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, FMovementBaseInterfaceData* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
+#else
 bool UStaminaMovement::ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel, const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
+#endif
 {
 	// ServerMovePacked_ServerReceive ➜ ServerMove_HandleMoveData ➜ ServerMove_PerformMovement
 	// ➜ ServerMoveHandleClientError ➜ ServerCheckClientError

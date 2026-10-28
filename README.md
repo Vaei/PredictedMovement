@@ -1,5 +1,7 @@
 # Predicted Movement <img align="right" width=128, height=128 src="https://github.com/Vaei/PredictedMovement/blob/main/Resources/Icon128.png">
 
+_From the same author: [Lila](https://lila-3d.github.io/)_
+
 > [!IMPORTANT]
 > PredictedMovement offers several shells usually with a derived `UCharacterMovementComponent` and `ACharacter` which form a single net predicted movement state.
 

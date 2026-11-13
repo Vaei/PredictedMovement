@@ -52,6 +52,13 @@ https://youtu.be/SHVm57AMruc
 
 # Changelog
 
+### 2.5.0
+* Add `AimDownSightsMode` to `single-cmc`: `Scalar` or `Gait`
+  * Nothing changes by default: `Scalar` is the default and `Gait` is opt-in
+  * `Gait` restricts you to `AimDownSightsGait` (default `Walk`) instead of applying the AimingDownSights scalars
+  * Override `GetAimDownSightsGait()` to choose the gait per state, for example Stroll when already restricted to Walk
+  * Sprint is still governed by `bCanSprintDuringAimDownSights`
+
 ### 2.4.0
 * Add DirectSet support for TerminalVelocity
   * By default this will change nothing for you, it is opt-in

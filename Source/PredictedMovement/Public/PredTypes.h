@@ -14,6 +14,14 @@ enum class EPredGaitMode : uint8
 	Sprint,
 };
 
+/** How AimDownSights changes movement properties */
+UENUM(BlueprintType)
+enum class EPredAimDownSightsMode : uint8
+{
+	Scalar		UMETA(ToolTip="Multiply movement properties by the AimingDownSights scalars"),
+	Gait		UMETA(ToolTip="Restrict the gait mode while AimingDownSights, the scalars are not applied"),
+};
+
 UENUM(BlueprintType)
 enum class EPredStance : uint8
 {

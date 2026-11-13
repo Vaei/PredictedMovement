@@ -145,6 +145,8 @@ UPredictedCharacterMovement::UPredictedCharacterMovement(const FObjectInitialize
 	NetworkStaminaCorrectionThreshold = 2.f;
 
 	// Aim Down Sights
+	AimDownSightsMode = EPredAimDownSightsMode::Scalar;
+	AimDownSightsGait = EPredGaitMode::Walk;
 	MaxWalkSpeedAimingDownSightsScalar = 0.333f;
 	MaxAccelerationAimingDownSightsScalar = 0.666f;
 	BrakingDecelerationAimingDownSightsScalar = 0.75f;
@@ -377,6 +379,16 @@ void UPredictedCharacterMovement::BeginPlay()
 
 EPredGaitMode UPredictedCharacterMovement::GetGaitMode() const
 {
+	const EPredGaitMode GaitMode = GetUnrestrictedGaitMode();
+	if (GaitMode != EPredGaitMode::Sprint && IsAimDownSightsRestrictingGait())
+	{
+		return GetAimDownSightsGait(GaitMode);
+	}
+	return GaitMode;
+}
+
+EPredGaitMode UPredictedCharacterMovement::GetUnrestrictedGaitMode() const
+{
 	if (IsSprinting())
 	{
 		return EPredGaitMode::Sprint;
@@ -397,6 +409,14 @@ EPredGaitMode UPredictedCharacterMovement::GetGaitSpeed() const
 	if (IsSprintingInEffect())
 	{
 		return EPredGaitMode::Sprint;
+	}
+	if (!IsSprinting() && IsAimDownSightsRestrictingGait())
+	{
+		// The at-speed checks test the Run/Walk input state, which the restriction does not change
+		const EPredGaitMode GaitMode = GetGaitMode();
+		const bool bAtSpeed = GaitMode != EPredGaitMode::Stroll && IsGaitAtSpeed(
+			GaitMode == EPredGaitMode::Walk ? VelocityCheckMitigatorWalking : VelocityCheckMitigatorRunning);
+		return bAtSpeed ? GaitMode : EPredGaitMode::Stroll;
 	}
 	if (IsRunningAtSpeed())
 	{
@@ -444,7 +464,7 @@ float UPredictedCharacterMovement::GetGaitSpeedFactor() const
 	 */
 	
 	const float StaminaDrained = IsStaminaDrained() ? MaxWalkSpeedScalarStaminaDrained : 1.f;
-	const float AimingDownSights = IsAimingDownSights() ? MaxWalkSpeedAimingDownSightsScalar : 1.f;
+	const float AimingDownSights = IsAimDownSightsScalingMovement() ? MaxWalkSpeedAimingDownSightsScalar : 1.f;
 	const float BoostScalar = GetBoostSpeedScalar();
 	const float SlowScalar = GetSlowSpeedScalar();
 	const float SnareScalar = GetSnareSpeedScalar();
@@ -454,7 +474,7 @@ float UPredictedCharacterMovement::GetGaitSpeedFactor() const
 float UPredictedCharacterMovement::GetMaxAccelerationScalar() const
 {
 	const float StaminaDrained = IsStaminaDrained() ? MaxAccelerationScalarStaminaDrained : 1.f;
-	const float AimingDownSights = IsAimingDownSights() ? MaxAccelerationAimingDownSightsScalar : 1.f;
+	const float AimingDownSights = IsAimDownSightsScalingMovement() ? MaxAccelerationAimingDownSightsScalar : 1.f;
 	const float BoostScalar = GetBoostAccelScalar();
 	const float SlowScalar = GetSlowAccelScalar();
 	const float SnareScalar = GetSnareAccelScalar();
@@ -465,7 +485,7 @@ float UPredictedCharacterMovement::GetMaxAccelerationScalar() const
 float UPredictedCharacterMovement::GetMaxSpeedScalar() const
 {
 	const float StaminaDrained = IsStaminaDrained() ? MaxWalkSpeedScalarStaminaDrained : 1.f;
-	const float AimingDownSights = IsAimingDownSights() ? MaxWalkSpeedAimingDownSightsScalar : 1.f;
+	const float AimingDownSights = IsAimDownSightsScalingMovement() ? MaxWalkSpeedAimingDownSightsScalar : 1.f;
 	const float BoostScalar = GetBoostSpeedScalar();
 	const float SlowScalar = GetSlowSpeedScalar();
 	const float SnareScalar = GetSnareSpeedScalar();
@@ -476,7 +496,7 @@ float UPredictedCharacterMovement::GetMaxSpeedScalar() const
 float UPredictedCharacterMovement::GetMaxBrakingDecelerationScalar() const
 {
 	const float StaminaDrained = IsStaminaDrained() ? MaxBrakingDecelerationScalarStaminaDrained : 1.f;
-	const float AimingDownSights = IsAimingDownSights() ? BrakingDecelerationAimingDownSightsScalar : 1.f;
+	const float AimingDownSights = IsAimDownSightsScalingMovement() ? BrakingDecelerationAimingDownSightsScalar : 1.f;
 	const float BoostScalar = GetBoostBrakingScalar();
 	const float SlowScalar = GetSlowBrakingScalar();
 	const float SnareScalar = GetSnareBrakingScalar();
@@ -486,7 +506,7 @@ float UPredictedCharacterMovement::GetMaxBrakingDecelerationScalar() const
 
 float UPredictedCharacterMovement::GetGroundFrictionScalar() const
 {
-	const float AimingDownSights = IsAimingDownSights() ? GroundFrictionAimingDownSightsScalar : 1.f;
+	const float AimingDownSights = IsAimDownSightsScalingMovement() ? GroundFrictionAimingDownSightsScalar : 1.f;
 	const float BoostScalar = GetBoostGroundFrictionScalar();
 	const float SlowScalar = GetSlowGroundFrictionScalar();
 	const float SnareScalar = GetSnareGroundFrictionScalar();
@@ -496,7 +516,7 @@ float UPredictedCharacterMovement::GetGroundFrictionScalar() const
 
 float UPredictedCharacterMovement::GetBrakingFrictionScalar() const
 {
-	const float AimingDownSights = IsAimingDownSights() ? BrakingFrictionAimingDownSightsScalar : 1.f;
+	const float AimingDownSights = IsAimDownSightsScalingMovement() ? BrakingFrictionAimingDownSightsScalar : 1.f;
 	const float BoostScalar = GetBoostBrakingFrictionScalar();
 	const float SlowScalar = GetSlowBrakingFrictionScalar();
 	const float SnareScalar = GetSnareBrakingFrictionScalar();
@@ -1150,6 +1170,21 @@ void UPredictedCharacterMovement::OnStaminaDrainRecovered()
 bool UPredictedCharacterMovement::IsAimingDownSights() const
 {
 	return PredCharacterOwner && PredCharacterOwner->IsAimingDownSights();
+}
+
+bool UPredictedCharacterMovement::IsAimDownSightsRestrictingGait() const
+{
+	return GetAimDownSightsMode() == EPredAimDownSightsMode::Gait && IsAimingDownSights();
+}
+
+bool UPredictedCharacterMovement::IsAimDownSightsScalingMovement() const
+{
+	return GetAimDownSightsMode() == EPredAimDownSightsMode::Scalar && IsAimingDownSights();
+}
+
+EPredGaitMode UPredictedCharacterMovement::GetAimDownSightsGait(EPredGaitMode UnrestrictedGait) const
+{
+	return FMath::Min(UnrestrictedGait, AimDownSightsGait);
 }
 
 void UPredictedCharacterMovement::AimDownSights(bool bClientSimulation)

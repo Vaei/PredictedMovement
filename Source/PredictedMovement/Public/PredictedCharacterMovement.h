@@ -424,6 +424,18 @@ private:
 	bool bStaminaDrained;
 
 public:
+	/** How AimingDownSights changes movement properties. */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite)
+	EPredAimDownSightsMode AimDownSightsMode;
+
+	/**
+	 * Fastest gait allowed when AimingDownSights. Slower gaits are unaffected.
+	 * Sprint is only limited by bCanSprintDuringAimDownSights.
+	 * @see GetAimDownSightsGait
+	 */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(EditCondition="AimDownSightsMode==EPredAimDownSightsMode::Gait", EditConditionHides))
+	EPredGaitMode AimDownSightsGait;
+
 	/** Scale the max Acceleration (rate of change of velocity) */
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", ForceUnits="x"))
 	float MaxAccelerationAimingDownSightsScalar;
@@ -809,8 +821,12 @@ public:
 	virtual void BeginPlay() override;
 	
 public:
+	/** Gait mode used for movement properties, after any AimDownSights restriction */
 	virtual EPredGaitMode GetGaitMode() const;
 	virtual EPredGaitMode GetGaitSpeed() const;
+
+	/** Gait mode from Stroll/Walk/Sprint state alone, before any AimDownSights restriction */
+	virtual EPredGaitMode GetUnrestrictedGaitMode() const;
 
 	virtual bool IsGaitAtSpeed(float Mitigator) const;
 	virtual bool IsStrolling() const;
@@ -961,6 +977,21 @@ protected:
 
 public:
 	virtual bool IsAimingDownSights() const;
+
+	virtual EPredAimDownSightsMode GetAimDownSightsMode() const { return AimDownSightsMode; }
+
+	/** True if AimingDownSights and it is restricting the gait mode instead of applying scalars */
+	virtual bool IsAimDownSightsRestrictingGait() const;
+
+	/** True if AimingDownSights and the AimingDownSights scalars apply */
+	virtual bool IsAimDownSightsScalingMovement() const;
+
+	/**
+	 * Gait mode to use when AimingDownSights restricts the gait. Only called while that is in effect.
+	 * Override to pick the gait per state, e.g. return Stroll when UnrestrictedGait is already Walk.
+	 * @param UnrestrictedGait	Gait mode the character would have if not AimingDownSights
+	 */
+	virtual EPredGaitMode GetAimDownSightsGait(EPredGaitMode UnrestrictedGait) const;
 
 	/**
 	 * Call CharacterOwner->OnStartAimDownSights() if successful.
